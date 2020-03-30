@@ -1,0 +1,98 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+ <head>
+  <title>Index of /~wrc/courses/common/notes/csci452/code</title>
+ </head>
+ <body>
+<h1>Index of /~wrc/courses/common/notes/csci452/code</h1>
+  <table>
+   <tr><th valign="top"><img src="/icons/blank.gif" alt="[ICO]"></th><th><a href="?C=N;O=A">Name</a></th><th><a href="?C=M;O=A">Last modified</a></th><th><a href="?C=S;O=A">Size</a></th><th><a href="?C=D;O=A">Description</a></th></tr>
+   <tr><th colspan="5"><hr></th></tr>
+<tr><td valign="top"><img src="/icons/back.gif" alt="[PARENTDIR]"></td><td><a href="/~wrc/courses/common/notes/csci452/">Parent Directory</a></td><td>&nbsp;</td><td align="right">  - </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="x86pit.h">x86pit.h</a></td><td align="right">2019-12-08 12:16  </td><td align="right">2.4K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="x86pic.h">x86pic.h</a></td><td align="right">2019-12-08 12:16  </td><td align="right">2.3K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="x86arch.h">x86arch.h</a></td><td align="right">2019-12-08 12:17  </td><td align="right">5.9K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="users.o">users.o</a></td><td align="right">2020-03-26 15:23  </td><td align="right"> 17K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="users.h">users.h</a></td><td align="right">2020-03-26 15:23  </td><td align="right">4.7K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="users.c">users.c</a></td><td align="right">2020-03-26 14:51  </td><td align="right"> 39K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="usb.image">usb.image</a></td><td align="right">2020-03-26 15:23  </td><td align="right"> 55K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="ulibs.o">ulibs.o</a></td><td align="right">2020-03-26 14:01  </td><td align="right">896 </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="ulibs.lst">ulibs.lst</a></td><td align="right">2020-03-26 14:01  </td><td align="right">4.4K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="ulibs.S">ulibs.S</a></td><td align="right">2020-02-21 13:23  </td><td align="right">1.3K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="ulibc.o">ulibc.o</a></td><td align="right">2020-03-26 14:01  </td><td align="right">4.9K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="ulibc.c">ulibc.c</a></td><td align="right">2020-03-10 15:52  </td><td align="right"> 14K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="ulib.h">ulib.h</a></td><td align="right">2020-03-04 18:11  </td><td align="right"> 11K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="udefs.h">udefs.h</a></td><td align="right">2020-03-10 15:51  </td><td align="right">307 </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="uart.h">uart.h</a></td><td align="right">2019-12-08 12:16  </td><td align="right"> 10K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="types.h">types.h</a></td><td align="right">2020-03-09 19:50  </td><td align="right">1.5K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="syscalls.o">syscalls.o</a></td><td align="right">2020-03-26 15:20  </td><td align="right">9.0K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="syscalls.h">syscalls.h</a></td><td align="right">2020-03-10 15:53  </td><td align="right">1.4K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="syscalls.c">syscalls.c</a></td><td align="right">2020-03-26 15:20  </td><td align="right"> 15K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="support.o">support.o</a></td><td align="right">2020-03-26 14:55  </td><td align="right">2.8K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="support.h">support.h</a></td><td align="right">2019-12-08 12:16  </td><td align="right">1.5K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="support.c">support.c</a></td><td align="right">2020-03-26 14:54  </td><td align="right">6.3K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="startup.o">startup.o</a></td><td align="right">2020-03-26 14:01  </td><td align="right">748 </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="startup.lst">startup.lst</a></td><td align="right">2020-03-26 14:01  </td><td align="right">4.4K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="startup.S">startup.S</a></td><td align="right">2020-03-09 18:44  </td><td align="right">2.8K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="stacks.o">stacks.o</a></td><td align="right">2020-03-26 14:01  </td><td align="right">2.7K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="stacks.h">stacks.h</a></td><td align="right">2020-03-10 13:53  </td><td align="right">1.2K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="stacks.c">stacks.c</a></td><td align="right">2020-03-10 14:42  </td><td align="right">5.8K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="sio.o">sio.o</a></td><td align="right">2020-03-26 14:55  </td><td align="right">6.3K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="sio.h">sio.h</a></td><td align="right">2020-02-29 20:47  </td><td align="right">2.4K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="sio.c">sio.c</a></td><td align="right">2020-03-10 13:58  </td><td align="right"> 14K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="scheduler.o">scheduler.o</a></td><td align="right">2020-03-26 14:55  </td><td align="right">2.5K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="scheduler.h">scheduler.h</a></td><td align="right">2020-03-10 12:03  </td><td align="right">725 </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="scheduler.c">scheduler.c</a></td><td align="right">2020-03-26 14:53  </td><td align="right">2.0K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="queues.o">queues.o</a></td><td align="right">2020-03-26 14:01  </td><td align="right">6.8K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="queues.h">queues.h</a></td><td align="right">2020-03-10 13:16  </td><td align="right">2.9K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="queues.c">queues.c</a></td><td align="right">2020-03-10 13:41  </td><td align="right"> 16K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="prog.o">prog.o</a></td><td align="right">2020-03-26 15:23  </td><td align="right"> 61K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="prog.nl">prog.nl</a></td><td align="right">2020-03-26 15:23  </td><td align="right">4.4K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="prog.dis">prog.dis</a></td><td align="right">2020-03-26 15:23  </td><td align="right">543K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="prog.b">prog.b</a></td><td align="right">2020-03-26 15:23  </td><td align="right"> 53K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="process.o">process.o</a></td><td align="right">2020-03-26 14:01  </td><td align="right">5.0K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="process.h">process.h</a></td><td align="right">2020-03-10 13:37  </td><td align="right">4.0K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="process.c">process.c</a></td><td align="right">2020-03-10 13:39  </td><td align="right"> 12K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="kmem.o">kmem.o</a></td><td align="right">2020-03-26 14:01  </td><td align="right">3.8K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="kmem.h">kmem.h</a></td><td align="right">2020-03-10 12:09  </td><td align="right">2.2K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="kmem.c">kmem.c</a></td><td align="right">2020-03-10 12:48  </td><td align="right"> 17K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="klibs.o">klibs.o</a></td><td align="right">2020-03-26 14:01  </td><td align="right">784 </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="klibs.lst">klibs.lst</a></td><td align="right">2020-03-26 14:01  </td><td align="right">7.0K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="klibs.S">klibs.S</a></td><td align="right">2020-03-10 14:58  </td><td align="right">3.4K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="klibc.o">klibc.o</a></td><td align="right">2020-03-26 14:01  </td><td align="right">5.0K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="klibc.c">klibc.c</a></td><td align="right">2020-03-10 15:54  </td><td align="right"> 12K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="klib.h">klib.h</a></td><td align="right">2020-03-10 15:54  </td><td align="right">6.6K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="kernel.o">kernel.o</a></td><td align="right">2020-03-26 15:23  </td><td align="right">5.8K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="kernel.h">kernel.h</a></td><td align="right">2020-03-26 14:47  </td><td align="right">2.1K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="kernel.c">kernel.c</a></td><td align="right">2020-03-26 14:55  </td><td align="right">7.6K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="kdefs.h">kdefs.h</a></td><td align="right">2020-03-10 15:06  </td><td align="right">1.9K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="isr_stubs.o">isr_stubs.o</a></td><td align="right">2020-03-26 14:01  </td><td align="right"> 14K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="isr_stubs.lst">isr_stubs.lst</a></td><td align="right">2020-03-26 14:01  </td><td align="right"> 45K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="isr_stubs.S">isr_stubs.S</a></td><td align="right">2020-03-09 21:24  </td><td align="right"> 12K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="common.h">common.h</a></td><td align="right">2020-03-10 15:05  </td><td align="right">1.2K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="clock.o">clock.o</a></td><td align="right">2020-03-26 15:20  </td><td align="right">2.2K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="clock.h">clock.h</a></td><td align="right">2020-03-10 12:02  </td><td align="right">887 </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="clock.c">clock.c</a></td><td align="right">2020-03-26 15:10  </td><td align="right">3.2K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="cio.o">cio.o</a></td><td align="right">2020-03-26 14:01  </td><td align="right">8.3K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="cio.h">cio.h</a></td><td align="right">2020-03-10 14:54  </td><td align="right">8.1K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="cio.c">cio.c</a></td><td align="right">2020-03-10 14:54  </td><td align="right"> 15K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="bootstrap.o">bootstrap.o</a></td><td align="right">2020-03-26 14:01  </td><td align="right">3.3K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="bootstrap.lst">bootstrap.lst</a></td><td align="right">2020-03-26 14:01  </td><td align="right"> 35K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="bootstrap.h">bootstrap.h</a></td><td align="right">2019-12-08 12:16  </td><td align="right">1.2K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="bootstrap.b">bootstrap.b</a></td><td align="right">2020-03-26 14:01  </td><td align="right">1.0K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="bootstrap.S">bootstrap.S</a></td><td align="right">2019-12-08 12:16  </td><td align="right"> 17K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/folder.gif" alt="[DIR]"></td><td><a href="Userland/">Userland/</a></td><td align="right">2020-03-26 14:39  </td><td align="right">  - </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/hand.right.gif" alt="[   ]"></td><td><a href="README">README</a></td><td align="right">2019-12-08 12:18  </td><td align="right">6.1K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="Offsets.c">Offsets.c</a></td><td align="right">2020-03-09 18:37  </td><td align="right">4.2K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="Memory.txt">Memory.txt</a></td><td align="right">2019-12-08 12:16  </td><td align="right">2.1K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="Makefile.bak">Makefile.bak</a></td><td align="right">2020-03-26 14:53  </td><td align="right">7.7K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="Makefile">Makefile</a></td><td align="right">2020-03-26 14:54  </td><td align="right">7.0K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="BuildImage.c">BuildImage.c</a></td><td align="right">2019-12-08 12:16  </td><td align="right">7.3K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/unknown.gif" alt="[   ]"></td><td><a href="BuildImage">BuildImage</a></td><td align="right">2020-03-26 14:01  </td><td align="right"> 14K</td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="0.h">0.h</a></td><td align="right">2020-02-06 13:30  </td><td align="right">326 </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="0.c">0.c</a></td><td align="right">2020-02-06 13:30  </td><td align="right">345 </td><td>&nbsp;</td></tr>
+<tr><td valign="top"><img src="/icons/text.gif" alt="[TXT]"></td><td><a href="0.S">0.S</a></td><td align="right">2020-02-06 13:30  </td><td align="right">151 </td><td>&nbsp;</td></tr>
+   <tr><th colspan="5"><hr></th></tr>
+</table>
+<address>Apache/2.4.7 (Ubuntu) Server at www.cs.rit.edu Port 443</address>
+</body></html>

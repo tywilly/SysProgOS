@@ -1,0 +1,33 @@
+This directory contains the source code for all user-level processes,
+split out by main function.
+
+Naming convention:
+
+    idle()      classic 'idle' process; can be used if there is a
+                need to have an always-runnable process to dispatch
+                (vs., for instance, having dispatch() pause when there
+                is nothing to dispatch).
+
+    init()      classic 'init' process; starts the other user-level
+                processes based on the SPAWN_* macros in users.h
+
+    mainN()     generic main function, used by several user processes
+                with different command-line args
+
+    userX()     "one-task" main function; may be started by multiple
+                user processes
+
+All of these accept at least one command-line argument.  All are invoked
+with command lines of this form:
+
+    name  x  n  s
+
+where the first character of 'x' is what the process periodically prints
+to the serial output, 'n' is an iteration count, and 's' is a sleep time
+(in seconds).  All have default values for these, and all arguments are
+optional (but are positional).
+
+In order to compile and link these into separate executables (e.g., for
+placement into separate pages in memory), add a #include of "users.h" and
+of "common.h" to each source file.  Each should be linked with the two
+user library objects (ulibc.o and ulibs.o) from the distribution.
