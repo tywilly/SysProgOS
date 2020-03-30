@@ -1,3 +1,7 @@
+# SysProgOS Audio subsystem
+This branch will be used to implement the audio subsystem
+
+
 Systems Programming standalone framework information
 
 Version:  @(#)README	2.1
