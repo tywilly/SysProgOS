@@ -136,7 +136,7 @@ void _init( void ) {
     ** Other modules (clock, SIO, syscall, etc.) are expected to
     ** install their own ISRs in their initialization routines.
     */
-
+    __cio_clearscreen();
     __cio_puts( "System initialization starting.\n" );
     __cio_puts( "-------------------------------\n" );
 
