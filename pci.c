@@ -1,3 +1,12 @@
+/*
+  File: pci.c
+
+  Author: Tyler Wilcox
+
+  Contributor:
+
+  Description: PCI module implementation.
+ */
 
 #define __SP_KERNEL__
 
@@ -6,6 +15,9 @@
 
 #include "pci.h"
 
+//
+// _pci_init() - initialize the PCI module
+//
 void _pci_init( void ) {
 
 
@@ -14,7 +26,10 @@ void _pci_init( void ) {
 }
 
 
-uint16 pciConfigReadWord (uint8 bus, uint8 slot, uint8 func, uint8 offset ) {
+//
+// _pci_configReadWord() - Read a word of data in the PCI config.
+//
+uint16 _pci_configReadWord (uint8 bus, uint8 slot, uint8 func, uint8 offset ) {
   uint32 address;
   uint32 lbus = (uint32) bus;
   uint32 lslot = (uint32) slot;
@@ -31,11 +46,15 @@ uint16 pciConfigReadWord (uint8 bus, uint8 slot, uint8 func, uint8 offset ) {
 
 }
 
-uint16 pciCheckVendor (uint8 bus, uint8 slot ) {
+
+//
+// _pci_checkVendor() - Get the vendor ID of a PCI device.
+//
+uint16 _pci_checkVendor (uint8 bus, uint8 slot ) {
   uint16 vendor, device;
 
-  if ( (vendor = pciConfigReadWord( bus, slot, 0, 0 )) != 0xFFFF ) {
-    device = pciConfigReadWord( bus, slot, 0, 2 );
+  if ( (vendor = _pci_configReadWord( bus, slot, 0, 0 )) != 0xFFFF ) {
+    device = _pci_configReadWord( bus, slot, 0, 2 );
 
     __cio_printf( "Vendor: %x Device: %x", vendor, device);
   }

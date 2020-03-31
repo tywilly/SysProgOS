@@ -8,9 +8,9 @@
 
 void _pci_init( void );
 
-uint16 pciConfigReadWord ( uint8 bus, uint8 slot, uint8 func, uint8 offset );
+uint16 _pci_configReadWord ( uint8 bus, uint8 slot, uint8 func, uint8 offset );
 
-uint16 pciCheckVendor ( uint8 bus, uint8 slot );
+uint16 _pci_checkVendor ( uint8 bus, uint8 slot );
 
 #endif
 
