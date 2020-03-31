@@ -1,0 +1,79 @@
+Using QEMU to run the 20195 baseline system
+
+Version:  @(#)README.qemu	1.2
+Date:     3/30/20
+---------------------------------------------------------------------------
+
+I suggest that the easiest way to run the baseline system on a UNIX/Linux
+system with QEMU is to set up a separate shell window to handle the SIO
+input and output.  Here is a series of steps which will do this:
+
+	* Start up a second shell window.
+
+	* Find out the system device for that window using the "tty"
+	  command:
+
+	  	$ tty
+		/dev/pts/2
+	
+	* Specify that device as the serial device with the "-serial"
+	  option to QEMU
+
+Here's a typical QEMU command to do this, assuming the second shell
+window is connected to /dev/pts/2 (this is one command, split at a space
+character to enhance readability):
+
+    qemu-system-i386 -drive file=usb.image,index=0,media=disk,format=raw 
+       -serial mon:/dev/pts/2
+
+To simplify this, you may want to add a shell alias to your shell config
+file; here's a Bash alias similar to the one I was using last week
+(again, split at a space character to enhance readability):
+
+    alias q6='qemu-system-i386 -drive
+       file=usb.image,index=0,media=disk,format=raw -serial mon:/dev/pts/2'
+
+When QEMU starts up, it will create a window to emulate the console; all
+CHAN_CONS output goes there.  All CHAN_SIO output will go to the shell
+window connected to /dev/pts/2; any characters you type in that shell
+window will be readable by processes being run under the baseline system.
+To send characters via the console "keyboard", change the window focus
+to the console window and type.
+
+In my testing, I used SSH to connect from my MacBook Pro to my office
+desktop machine, which is running Ubuntu 18.04.4.  I found that the
+the key mapping from the laptop keyboard is radically different than
+the standard key mapping for the console keyboard.  After a lot of
+testing, here's the mapping I eventually deduced:
+
+  Key:     ESC   F1    F2    F3    F4    F5    F6    F7    F8    `
+  Sends:   /     0xff  0xff  .     0xff  2     3     0     \n    m
+
+  Key:     1     2     3     4     5     6     7     8     9     -
+  Sends:   e     r     t     y     i     u     [     \n    p     ]
+
+  Key:     =     DEL   TAB   q     w     e     r     t     y     u
+  Sends:   o     ,     b     -     =     0x08  o     w     q     d
+
+  Key:     i     o     p     [     ]     CAPS  a     s     d     f
+  Sends:   g     s     h     f     a     0xff  0xff  0x1b  i     2
+
+  Key:     g     h     j     k     l     ;     '     RET   LSH   z
+  Sends:   4     3     l     '     k     `     ;     j     0xff  5
+
+  Key:     x     c     v     b     n     m     ,     .     /     RSH
+  Sends:   6     7     8     0     x     c     \     v     z     0xff
+
+  Key:     CTRL  LOPT  LCMD  SP    RCMD  ROPT  UARR  DARR  LARR  RARR
+  Sends:   0xff  0xff  *     n     0xff  0xff  0xff  0xff  0xff  0xff
+
+Some keys ('0', '\') seemed to send nothing at all.  Some function keys
+(F9 through F12) were caught by OS X and not forwarded to QEMU.
+
+IMPORTANT NOTE:  when I used the console shell debugging capabilities,
+I was unable to get the console debugging shell to exit - the 'x'
+character (which I sent by typing 'n') would exit from the shell
+function, but control was immediately transferred back into the shell
+function, so user processes never ran again.  I have not taken the time
+to figure out exactly why this is happening; if you figure it out, let me
+know.

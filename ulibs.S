@@ -1,5 +1,5 @@
 /*
-** SCCS ID:	%W%	%G%
+** SCCS ID:	@(#)ulibs.S	1.1	3/30/20
 **
 ** File:	ulibs.S
 **
