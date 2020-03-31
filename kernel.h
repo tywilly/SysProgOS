@@ -1,5 +1,5 @@
 /*
-** SCCS ID:	%W%	%G%
+** SCCS ID:	@(#)kernel.h	1.1	3/30/20
 **
 ** File:	kernel.h
 **

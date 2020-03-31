@@ -1,5 +1,5 @@
 /*
-** SCCS ID:	%W%	%G%
+** SCCS ID:	@(#)isr_stubs.S	2.2	3/30/20
 **
 ** File:	isr_stubs.S
 **
@@ -194,7 +194,7 @@ __isr_restore:
 
 	movl	_system_time, %eax	// current time, lower half
         pushl   %eax
-	movl	_system_time+2, %eax	// current time, upper half
+	movl	_system_time+4, %eax	// current time, upper half
         pushl   %eax
 
         pushl   $fmtall

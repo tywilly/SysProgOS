@@ -1,5 +1,5 @@
 /*
-** SCCS ID:	%W%	%G%
+** SCCS ID:	@(#)ulib.h	1.1	3/30/20
 **
 ** File:	ulib.h
 **
