@@ -23,6 +23,8 @@
 #include "cio.h"
 #include "sio.h"
 #include "scheduler.h"
+#include "pci.h"
+#include "usb.h"
 
 // need init() and idle() addresses
 #include "users.h"
@@ -136,7 +138,7 @@ void _init( void ) {
     ** Other modules (clock, SIO, syscall, etc.) are expected to
     ** install their own ISRs in their initialization routines.
     */
-
+    __cio_clearscreen();
     __cio_puts( "System initialization starting.\n" );
     __cio_puts( "-------------------------------\n" );
 
@@ -151,6 +153,8 @@ void _init( void ) {
     _sio_init();     // serial i/o
     _stk_init();     // stacks
     _sys_init();     // system calls
+    _pci_init();     // PCI
+    _usb_init();     // USB
 
     __cio_puts( "\nModule initialization complete.\n" );
     __cio_puts( "-------------------------------\n" );
@@ -303,6 +307,25 @@ void _shell( int ch ) {
                     __delay( 200 );
                 }
             }
+            break;
+        case 'l':
+            __cio_puts( "\nPCI Devices:\n" );
+
+            for(uint16 i=0; i<256; i++) {
+                for(uint8 x=0;x<32;x++) {
+                    uint16 vendor = pciConfigReadWord (i, x, 0, 0);
+                    uint16 device = pciConfigReadWord (i, x, 0, 2);
+                    uint16 codes = pciConfigReadWord (i, x, 0, 10);
+                    uint8 class = codes >> 8;
+                    uint8 subclass = codes & 0xFF;
+
+                    if(vendor != 0xFFFF) {
+                        __cio_printf("Vendor: %x Device: %x Class: %x Subclass: %x\n",vendor, device, class, subclass);
+                    }
+                }
+            }
+
+
             break;
      
         default:
