@@ -1,5 +1,5 @@
 /*
-** SCCS ID: %W% %G%
+** SCCS ID: @(#)kernel.c	1.1 3/30/20
 **
 ** File:    kernel.c
 **
@@ -136,7 +136,7 @@ void _init( void ) {
     ** Other modules (clock, SIO, syscall, etc.) are expected to
     ** install their own ISRs in their initialization routines.
     */
-    __cio_clearscreen();
+
     __cio_puts( "System initialization starting.\n" );
     __cio_puts( "-------------------------------\n" );
 
@@ -306,7 +306,7 @@ void _shell( int ch ) {
             break;
      
         default:
-            __cio_printf( "shell: unknown request '%c'\n", ch );
+            __cio_printf( "shell: unknown request '0x%02x'\n", ch );
 
             // FALL THROUGH
 

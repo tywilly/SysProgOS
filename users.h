@@ -1,5 +1,5 @@
 /*
-** SCCS ID: %W% %G%
+** SCCS ID: @(#)users.h	1.1 3/30/20
 **
 ** File:    users.h
 **
@@ -79,8 +79,6 @@
 #define SPAWN_T // T runs main6(), spawns children, waits for them
 #define SPAWN_U // U runs main6(), spawns children, waits for them by PID
 #define SPAWN_V // V runs main6(), spawns children, kills them
-#if 0
-#endif
 
 //
 // Users W-Z are spawned from other processes; they
