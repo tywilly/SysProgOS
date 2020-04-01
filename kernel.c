@@ -311,20 +311,7 @@ void _shell( int ch ) {
         case 'l': // List all connected PCI devices
             __cio_puts( "\nPCI Devices:\n" );
 
-            for(uint16 i=0; i<256; i++) {
-                for(uint8 x=0;x<32;x++) {
-                    uint16 vendor = _pci_configReadWord (i, x, 0, 0);
-                    uint16 device = _pci_configReadWord (i, x, 0, 2);
-                    uint16 codes = _pci_configReadWord (i, x, 0, 10);
-                    uint8 class = codes >> 8;
-                    uint8 subclass = codes & 0xFF;
-
-                    if(vendor != 0xFFFF) {
-                        __cio_printf("Vendor: %x Device: %x Class: %x Subclass: %x\n",vendor, device, class, subclass);
-                    }
-                }
-            }
-
+            _pci_dump_all();
 
             break;
      
