@@ -314,7 +314,11 @@ void _shell( int ch ) {
             _pci_dump_all();
 
             break;
-     
+        case 'u':
+            __cio_puts( "\nUSB Devices:\n" );
+
+            _usb_status();
+            break;
         default:
             __cio_printf( "shell: unknown request '0x%02x'\n", ch );
 
