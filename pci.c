@@ -17,6 +17,10 @@
 
 #include "pci.h"
 
+PCIDev _pci_dev_list[MAX_PCI_DEVICES];
+
+int _pci_num_dev = 0;
+
 //
 // _pci_init() - initialize the PCI module
 //
@@ -57,6 +61,7 @@ void _pci_add_device( uint8 bus, uint8 slot, uint8 func ) {
 
   if(vendor != 0xFFFF) { // Is it a valid device?
     PCIDev* dev = &_pci_dev_list[_pci_num_dev];
+    dev->id = _pci_num_dev;
     dev->vendorid = vendor;
     dev->deviceid = (_pci_config_read (bus, slot, func, 0x00) >> 16);
     uint16 codes = (_pci_config_read (bus, slot, func, 0x08) >> 16);
@@ -72,6 +77,8 @@ void _pci_add_device( uint8 bus, uint8 slot, uint8 func ) {
     dev->bar3 = _pci_config_read (bus, slot, func, 0x1C);
     dev->bar4 = _pci_config_read (bus, slot, func, 0x20);
     dev->bar5 = _pci_config_read (bus, slot, func, 0x24);
+
+    dev->interrupt = (_pci_config_read (bus, slot, func, 0x3C) & 0xFF);
 
     _pci_num_dev++;
 

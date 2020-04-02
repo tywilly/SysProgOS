@@ -8,11 +8,14 @@
 
 #ifndef __SP_ASM__
 
+
 typedef struct pci_dev_s {
+  int id;
   uint8 class;
   uint8 subclass;
   uint8 headertype;
   uint8 progif;
+  uint8 interrupt;
 
   uint16 vendorid;
   uint16 deviceid;
@@ -25,10 +28,6 @@ typedef struct pci_dev_s {
   uint32 bar5;
 
 } PCIDev;
-
-PCIDev _pci_dev_list[MAX_PCI_DEVICES];
-
-int _pci_num_dev = 0;
 
 void _pci_init( void );
 
