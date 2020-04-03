@@ -5,12 +5,13 @@
 
  */
 
-#ifndef _USB_H_
-#define _USB_H_
+#ifndef _USB_UHCI_H_
+#define _USB_UHCI_H_
 
 #define MAX_USB_DEVICES 15
 
 #include "common.h"
+#include "pci.h"
 
 #ifndef __SP_ASM__
 
@@ -25,9 +26,7 @@ struct _usb_tran_desc_s {
   uint32 buffer_pointer;
 };
 
-void _usb_init( void );
-
-uint16 _usb_read_word( uint8 offset );
+void _usb_uhci_init( PCIDev* pciDev );
 
 void _usb_enable_interrupts( bool shor, bool ioc, bool ric, bool time );
 
