@@ -16,3 +16,6 @@ void _usb_init( void ) {
 
 }
 
+void _usb_status( void ) {
+  _usb_uhci_status();
+}

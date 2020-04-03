@@ -332,6 +332,8 @@ void _shell( int ch ) {
             __cio_puts( "   p  -- dump the active table and all PCBs\n" );
             __cio_puts( "   q  -- dump the queues\n" );
             __cio_puts( "   s  -- dump stacks for active processes\n" );
+            __cio_puts( "   l  -- list all PCI devices\n");
+            __cio_puts( "   u  -- get the status of the USB controller\n" );
             __cio_puts( "   x  -- exit\n" );
             break;
         }
