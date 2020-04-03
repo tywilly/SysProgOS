@@ -6,5 +6,5 @@
 
 void _usb_init( void );
 
-
+void _usb_status( void );
 #endif

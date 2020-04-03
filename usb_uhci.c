@@ -54,7 +54,7 @@ void _usb_enable_interrupts( bool shor, bool ioc, bool ric, bool time ) {
   _usb_write_byte(0x04, data);
 }
 
-void _usb_status( void ) {
+void _usb_uhci_status( void ) {
   uint16 curr_frame_ind, p1, p2;
   uint32* addr;
 

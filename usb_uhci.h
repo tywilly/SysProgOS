@@ -30,7 +30,7 @@ void _usb_uhci_init( PCIDev* pciDev );
 
 void _usb_enable_interrupts( bool shor, bool ioc, bool ric, bool time );
 
-void _usb_status( void );
+void _usb_uhci_status( void );
 
 #endif
 
