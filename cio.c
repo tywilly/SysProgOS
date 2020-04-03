@@ -5,7 +5,7 @@
 **
 ** Author:	Warren R. Carithers
 **
-** Contributor:
+** Contributor: Cody Burrows (cxb2114@rit.edu)
 **
 ** Based on:	c_io.c 1.13 (Ken Reek, Jon Coles, Warren R. Carithers)
 **
@@ -484,6 +484,7 @@ static unsigned char scan_code[ 2 ][ 128 ] = {
 ** __c_next_space, and are removed at __c_next_char.  Buffer is empty if
 ** these are equal.
 */
+static volatile bool ignore_kbint = false;
 static	char	__c_input_buffer[ C_BUFSIZE ];
 static	volatile char	*__c_next_char = __c_input_buffer;
 static	volatile char	*__c_next_space = __c_input_buffer;
@@ -550,16 +551,26 @@ static int __c_input_scan_code( int code ){
 
 static void __c_keyboard_isr( int vector, int code ){
 
+    if (ignore_kbint) {
+        // NOTE: This is a bandaid that hides the real problem
+        // The real problem has something to do with the keyboard ISR running
+        // after interrupts are re-enabled, which puts two 'x' characters in
+        // the input buffer. The scheduler sees the second 'x' and invokes the
+        // shell again ad infinitum.
+        __cio_printf("IGNORING KEYBOARD INTERRUPT\n");
+        ignore_kbint= false;
+    } else {
 	int val = __c_input_scan_code( __inb( KEYBOARD_DATA ) );
 
-    // For debugging, print the character code out
-    // __cio_printf( "cio: input code 0x%02x\n", val );
+        // For debugging, print the character code out
+        // __cio_printf( "cio: input code 0x%02x\n", val );
 
 	// if there is a notification function, call it
 	if( val != -1 && __c_notify )
 		__c_notify( val );
+    }
 
-	__outb( PIC_MASTER_CMD_PORT, PIC_EOI );
+    __outb( PIC_MASTER_CMD_PORT, PIC_EOI );
 }
 
 int __cio_getchar( void ){
@@ -575,6 +586,7 @@ int __cio_getchar( void ){
 				;
 			}
 			(void) __c_input_scan_code( __inb( KEYBOARD_DATA ) );
+                        ignore_kbint = true;
 		}
 	}
 
@@ -583,6 +595,7 @@ int __cio_getchar( void ){
 	if( c != EOT ){
 		__cio_putchar( c );
 	}
+
 	return c;
 }
 
@@ -604,6 +617,38 @@ int __cio_gets( char *buffer, unsigned int size ){
 	}
 	*buffer = '\0';
 	return count;
+}
+
+/**
+  * Print the contents of the cio input buffer.
+  * This function creates two lines of output: the first is the contents
+  * of the buffer. The line below shows where the _c_next_char and 
+  * __c_next_space pointers are. 
+  *
+  * ^ = __c_next_char
+  * _ = __c_next_space
+  * & = Both pointers point to the same location
+  */
+void __cio_dump_queue( void ) {
+    __cio_printf("QUEUE CONTENTS [%d]:\n", __cio_input_queue());
+    for (int i = 0; i < C_BUFSIZE; ++i) {
+        __cio_printf("%c", __c_input_buffer[i]);
+    }
+    __cio_printf("\n");
+
+    for (int i = 0; i < C_BUFSIZE; ++i) {
+        if (&__c_input_buffer[i] == __c_next_space &&
+            &__c_input_buffer[i] == __c_next_char) {
+            __cio_printf("&");
+        } else if (&__c_input_buffer[i] == __c_next_space) {
+            __cio_printf("_");
+        } else if (&__c_input_buffer[i] == __c_next_char) {
+            __cio_printf("^");
+        } else {
+            __cio_printf(" ");
+        }
+    }
+    __cio_printf("\n");
 }
 
 int __cio_input_queue( void ){
