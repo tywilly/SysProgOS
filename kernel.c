@@ -23,6 +23,8 @@
 #include "cio.h"
 #include "sio.h"
 #include "scheduler.h"
+#include "pci.h"
+#include "usb.h"
 
 // need init() and idle() addresses
 #include "users.h"
@@ -136,7 +138,7 @@ void _init( void ) {
     ** Other modules (clock, SIO, syscall, etc.) are expected to
     ** install their own ISRs in their initialization routines.
     */
-
+    __cio_clearscreen();
     __cio_puts( "System initialization starting.\n" );
     __cio_puts( "-------------------------------\n" );
 
@@ -151,6 +153,8 @@ void _init( void ) {
     _sio_init();     // serial i/o
     _stk_init();     // stacks
     _sys_init();     // system calls
+    _pci_init();     // PCI
+    _usb_init();     // USB
 
     __cio_puts( "\nModule initialization complete.\n" );
     __cio_puts( "-------------------------------\n" );
@@ -304,7 +308,17 @@ void _shell( int ch ) {
                 }
             }
             break;
-     
+        case 'l': // List all connected PCI devices
+            __cio_puts( "\nPCI Devices:\n" );
+
+            _pci_dump_all();
+
+            break;
+        case 'u':
+            __cio_puts( "\nUSB Devices:\n" );
+
+            _usb_status();
+            break;
         default:
             __cio_printf( "shell: unknown request '0x%02x'\n", ch );
 
@@ -318,6 +332,8 @@ void _shell( int ch ) {
             __cio_puts( "   p  -- dump the active table and all PCBs\n" );
             __cio_puts( "   q  -- dump the queues\n" );
             __cio_puts( "   s  -- dump stacks for active processes\n" );
+            __cio_puts( "   l  -- list all PCI devices\n");
+            __cio_puts( "   u  -- get the status of the USB controller\n" );
             __cio_puts( "   x  -- exit\n" );
             break;
         }
