@@ -41,6 +41,7 @@ PCIDev* _pci_get_device( int devid );
 
 PCIDev* _pci_get_device_class( uint8 class, uint8 subclass, uint8 progif );
 
+PCIDev* _pci_get_device_vendorid_deviceid( uint16 vendor, uint16 device );
 #endif
 
 #endif

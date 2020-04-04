@@ -25,6 +25,7 @@
 #include "scheduler.h"
 #include "pci.h"
 #include "usb.h"
+#include "soundblaster.h"
 
 // need init() and idle() addresses
 #include "users.h"
@@ -144,17 +145,18 @@ void _init( void ) {
 
     __cio_puts( "Modules:" );
 
-    _kmem_init();    // kernel memory system (must be first)
-    _queue_init();   // queues (must be second)
+    _kmem_init();         // kernel memory system (must be first)
+    _queue_init();        // queues (must be second)
 
-    _clk_init();     // clock
-    _proc_init();    // processes
-    _sched_init();   // scheduler
-    _sio_init();     // serial i/o
-    _stk_init();     // stacks
-    _sys_init();     // system calls
-    _pci_init();     // PCI
-    _usb_init();     // USB
+    _clk_init();          // clock
+    _proc_init();         // processes
+    _sched_init();        // scheduler
+    _sio_init();          // serial i/o
+    _stk_init();          // stacks
+    _sys_init();          // system calls
+    _pci_init();          // PCI
+    _usb_init();          // USB
+    _soundblaster_init(); // sound blaster audio
 
     __cio_puts( "\nModule initialization complete.\n" );
     __cio_puts( "-------------------------------\n" );
