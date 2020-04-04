@@ -557,6 +557,7 @@ static void __c_keyboard_isr( int vector, int code ){
         // after interrupts are re-enabled, which puts two 'x' characters in
         // the input buffer. The scheduler sees the second 'x' and invokes the
         // shell again ad infinitum.
+
         __cio_printf("IGNORING KEYBOARD INTERRUPT\n");
         ignore_kbint= false;
     } else {

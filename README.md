@@ -1,4 +1,5 @@
-# SysProgOS Networking/USB/Filesystem subsystems
+# SysProgOS Audio subsystem
+This branch will be used to implement the audio subsystem
 
 
 Systems Programming standalone framework information
