@@ -138,3 +138,20 @@ PCIDev* _pci_get_device_class( uint8 class, uint8 subclass, uint8 progif) {
   }
   return 0;
 }
+
+//
+// _pci_get_device_id() - Get a device by vendor id, device id, and sub/class
+//
+PCIDev* _pci_get_device_id( uint16 vendor, uint16 device, uint8 class, 
+                            uint8 subclass) {
+    for (int i = 0; i < MAX_PCI_DEVICES; ++i) {
+        PCIDev dev = _pci_dev_list[i];
+
+        if (dev.vendorid == vendor && dev.deviceid == device &&
+            dev.class == class && dev.subclass == subclass) {
+            return &_pci_dev_list[i];
+        }
+    }
+
+    return 0;
+}

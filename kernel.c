@@ -25,6 +25,7 @@
 #include "scheduler.h"
 #include "pci.h"
 #include "usb.h"
+#include "ac97.h"
 
 // need init() and idle() addresses
 #include "users.h"
@@ -155,6 +156,7 @@ void _init( void ) {
     _sys_init();     // system calls
     _pci_init();     // PCI
     _usb_init();     // USB
+    _ac97_init();    // AC97
 
     __cio_puts( "\nModule initialization complete.\n" );
     __cio_puts( "-------------------------------\n" );
