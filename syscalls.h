@@ -34,9 +34,10 @@
 #define	SYS_getpid	8
 #define	SYS_getppid	9
 #define	SYS_getstate	10
+#define SYS_sb_write    11
 
 // UPDATE THIS DEFINITION IF MORE SYSCALLS ARE ADDED!
-#define	N_SYSCALLS	11
+#define	N_SYSCALLS	12
 
 // dummy system call code to test our ISR
 

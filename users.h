@@ -57,7 +57,7 @@
 // called exit() but continued to run), it will usually return a status
 // of 42.
 //
-#define SPAWN_A // A, B, and C are identical, running main1()
+//#define SPAWN_A // A, B, and C are identical, running main1()
 //#define SPAWN_B
 //#define SPAWN_C // D is like A-C, but runs main2(), which does not exit()
 //#define SPAWN_D
@@ -79,6 +79,8 @@
 //#define SPAWN_T // T runs main6(), spawns children, waits for them
 //#define SPAWN_U // U runs main6(), spawns children, waits for them by PID
 //#define SPAWN_V // V runs main6(), spawns children, kills them
+
+#define SPAWN_SB
 
 //
 // Users W-Z are spawned from other processes; they

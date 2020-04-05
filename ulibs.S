@@ -46,6 +46,7 @@ SYSCALL(gettime)
 SYSCALL(getpid)
 SYSCALL(getppid)
 SYSCALL(getstate)
+SYSCALL(sb_write)
 
 /*
 ** This is a bogus system call; it's here so that we can test
@@ -69,4 +70,3 @@ SYSCALL(bogus)
 exit_helper:
         pushl   %eax    // use whatever was in EAX as the status
         call    exit    // terminate this process
-

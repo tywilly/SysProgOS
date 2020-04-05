@@ -12,6 +12,7 @@
 
 #include "common.h"
 #include "users.h"
+#include "userSB.h"
 
 /*
 ** USER PROCESSES
@@ -1277,6 +1278,15 @@ int init( int argc, char *args ) {
     // argv[1] will vary
     argv[2] = "30";
 
+#ifdef SPAWN_SB
+    argv[1] = "SB";
+    whom = spawn( mainSB, argv );
+    if (whom < 0 ) {
+        cwrites( "init, spawn() sound blaster failed.\n");
+    }
+    swritech( ch );
+#endif
+
 #ifdef SPAWN_A
     // "main1 A 30"
     argv[1] = "A";
@@ -1609,7 +1619,7 @@ int idle( int argc, char *args ) {
     uint64 now;
     char buf[128];
     char ch = '.';
-    
+
     me = getpid();
     now = gettime();
 

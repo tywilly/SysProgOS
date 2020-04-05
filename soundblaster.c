@@ -38,4 +38,15 @@ void _soundblaster_init(void) {
         __cio_puts(":)");
     }
 
+    // TODO set to 44.1 Khz
+
+    //
+    // TODO create the buffer to put data into and enable interrupts,
+    //  create channels, ...
+
+}
+
+void _soundblaster_write( uint16 sample ) {
+    // TODO make this not just a print method
+    __cio_printf( "%x\n", sample );
 }

@@ -23,4 +23,7 @@
 /** Detects and configures the soundblaster device. */
 void _soundblaster_init(void);
 
+/** Writes a single sample of data to the SoundBlaster device. */
+void _soundblaster_write( uint16 sample );
+
 #endif

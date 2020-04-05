@@ -171,6 +171,13 @@ Pid getppid( void );
 State getstate( uint16 pid );
 
 /*
+** sb_write - writes a single sample of sound data to the
+**    sound blaster sound card.
+** usage:  sb_write(samples[i]);
+*/
+void sb_write( uint16 sample );
+
+/*
 ** bogus - a bogus system call, for testing our syscall ISR
 **
 ** usage:	bogus();
