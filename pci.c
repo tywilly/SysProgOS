@@ -32,23 +32,25 @@ void _pci_init( void ) {
 
 }
 
+uint32 _pci_calculate_address(uint8 bus, uint8 slot, uint8 func, uint8 offset) {
+  uint32 lbus = (uint32) bus;
+  uint32 lslot = (uint32) slot;
+  uint32 lfunc = (uint32) func;
+
+  return (uint32)(lbus << 16) | (lslot << 11) |
+    (lfunc << 8) | (offset & 0xfc) | ((uint32) 0x80000000); // Construct device address
+}
 
 //
 // _pci_config_read() - Read a word of data in the PCI config.
 //
 uint32 _pci_config_read (uint8 bus, uint8 slot, uint8 func, uint8 offset ) {
-  uint32 address;
-  uint32 lbus = (uint32) bus;
-  uint32 lslot = (uint32) slot;
-  uint32 lfunc = (uint32) func;
   uint32 tmp = 0;
+  uint32 address = _pci_calculate_address(bus, slot, func, offset);
 
-  address = (uint32)(lbus << 16) | (lslot << 11) |
-    (lfunc << 8) | (offset & 0xfc) | ((uint32) 0x80000000); // Construct device address
+  __outl(PCI_ADDR_PORT, address);
 
-  __outl(0xCF8, address);
-
-  tmp = (uint32)((__inl(0xCFC))); // Get config data for the device
+  tmp = (uint32)((__inl(PCI_VALUE_PORT))); // Get config data for the device
   return tmp;
 
 }
@@ -79,6 +81,10 @@ void _pci_add_device( uint8 bus, uint8 slot, uint8 func ) {
     dev->bar5 = _pci_config_read (bus, slot, func, 0x24);
 
     dev->interrupt = (_pci_config_read (bus, slot, func, 0x3C) & 0xFF);
+
+    dev->bus = bus;
+    dev->slot = slot;
+    dev->func = func;
 
     _pci_num_dev++;
 
@@ -154,4 +160,12 @@ PCIDev* _pci_get_device_id( uint16 vendor, uint16 device, uint8 class,
     }
 
     return 0;
+}
+
+void _pci_write_field( PCIDev *dev, uint8 offset, uint32 value) {
+    uint32 address = _pci_calculate_address(dev->bus, dev->slot, dev->func, 
+                                            offset);
+
+    __outl(PCI_ADDR_PORT, address);
+    __outl(PCI_VALUE_PORT, value);
 }

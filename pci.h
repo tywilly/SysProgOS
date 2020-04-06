@@ -3,6 +3,9 @@
 #define _PCI_H_
 
 #define MAX_PCI_DEVICES 15
+#define PCI_ADDR_PORT   0xCF8
+#define PCI_VALUE_PORT  0xCFC
+#define PCI_COMMAND     0x04
 
 #include "common.h"
 
@@ -27,6 +30,10 @@ typedef struct pci_dev_s {
   uint32 bar4;
   uint32 bar5;
 
+  uint8 bus;
+  uint8 slot;
+  uint8 func;
+
 } PCIDev;
 
 void _pci_init( void );
@@ -43,6 +50,10 @@ PCIDev* _pci_get_device_class( uint8 class, uint8 subclass, uint8 progif );
 
 PCIDev* _pci_get_device_id( uint16 vendor, uint16 device, uint8 class, 
                             uint8 subclass );
+
+void _pci_write_field( PCIDev *dev, uint8 offset, uint32 value );
+
+uint32 _pci_calculate_address(uint8 bus, uint8 slot, uint8 func, uint8 offset);
 
 #endif
 
