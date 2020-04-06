@@ -21,6 +21,8 @@
 #define AC97_PCI_CLASS  0x04    // Multimedia Controller
 #define AC97_PCI_SUBCL  0x01    // Multimedia Audio Controller
 
+#define AC97_MUTE       0x8000  // Set bit 15 to mute
+
 // Register Offsets from Native Audio Mixer Base Address Register
 // TODO DCB none yet...
 
@@ -59,8 +61,7 @@ void _ac97_init(void);
 void _ac97_isr(int vector, int code);
 
 /**
-  * Set the PCM Output Volume to a percentage (0-100)
-  * A value outside the range [0, 100] will be ignored.
+  * Set the PCM Output Volume to a 5 bit value. 
   */
 void _ac97_set_volume(uint8 vol);
 

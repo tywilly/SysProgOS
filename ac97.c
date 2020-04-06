@@ -70,16 +70,25 @@ void _ac97_isr(int vector, int code) {
 }
 
 void _ac97_set_volume(uint8 vol) {
-    if (vol > 100) {
-        __cio_puts("AC97: Volume out of Range\n");
+    
+    if (vol > (1 << 5)) {
+        __cio_puts("AC97: Volume out of range!\n");
+    }
+
+    // set master to full
+    // use PCM OUT volume to control lousness
+    __outw(dev.nambar + AC97_MASTER_VOLUME, 0x0);
+
+    if (vol == 0) {
+        // mute
+        __outw(dev.nambar + AC97_PCM_OUT_VOLUME, AC97_MUTE);
     } else {
-        // set master to full
-        __outw(dev.nambar + AC97_MASTER_VOLUME, 0x0);
+        vol = ~vol;         // 0 is max volume
+        vol &= 0x1F;        // ignore upper bits
+        vol &= (vol << 8);  // set left and right channels to the same volume
 
-        // set PCM OUT volume to control lousness
-        // scale to 5 bits
         // TODO DCB could some devices support 6 bits?
-
-        // TODO DCB master and PCM out volume?
+        
+        __outw(dev.nambar + AC97_PCM_OUT_VOLUME, vol);
     }
 }
