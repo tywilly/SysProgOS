@@ -61,6 +61,11 @@ void _pci_add_device( uint8 bus, uint8 slot, uint8 func ) {
 
   if(vendor != 0xFFFF) { // Is it a valid device?
     PCIDev* dev = &_pci_dev_list[_pci_num_dev];
+
+    dev->bus = bus;
+    dev->slot = slot;
+    dev->func = func;
+
     dev->id = _pci_num_dev;
     dev->vendorid = vendor;
     dev->deviceid = (_pci_config_read (bus, slot, func, 0x00) >> 16);

@@ -11,6 +11,11 @@
 
 typedef struct pci_dev_s {
   int id;
+
+  uint8 bus;
+  uint8 slot;
+  uint8 func;
+
   uint8 class;
   uint8 subclass;
   uint8 headertype;
