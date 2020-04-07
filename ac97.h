@@ -26,13 +26,14 @@
 // Register Offsets from Native Audio Mixer Base Address Register
 // TODO DCB none yet...
 
-// Register Offsets from Native Audio Bus Mastering Base Address Register
-#define AC97_PCM_OUT_CR     0x1B    // PCM Output Control Register offset
-#define AC97_PCM_OUT_BDBAR  0x10    // PCM Output Buffer Descriptor Base Addr
-
 // Mixer IO Port Offsets
 #define AC97_PCM_OUT_VOLUME 0x18    // PCM Output Volume
 #define AC97_MASTER_VOLUME  0x02    // Master Volume
+
+// Register Offsets from Native Audio Bus Mastering Base Address Register
+#define AC97_PCM_OUT_CR     0x1B    // PCM Output Control Register offset
+#define AC97_PCM_OUT_LVI    0x15    // Last Valid Index
+#define AC97_PCM_OUT_BDBAR  0x10    // PCM Output Buffer Descriptor Base Addr
 
 // PCM Output Control Register Fields
 #define AC97_PCM_OUT_CR_IOCE    (1 << 4)    // Interrupt on Completion Enable
@@ -68,6 +69,8 @@ typedef struct ac97_dev {
     uint32 nabmbar; // TODO DCB can these be 16 bits?
     uint32 nambar;
     AC97BufferDescriptor *bdl;
+    uint8 lvi;  // last valid index
+    uint8 vol_bits; // bits of volume this device supports (5 or 6)
 } AC97Dev;
 
 /**
@@ -81,8 +84,16 @@ void _ac97_init(void);
 void _ac97_isr(int vector, int code);
 
 /**
-  * Set the PCM Output Volume to a 5 bit value. 
+  * Set the PCM Output Volume using a scale from 0 to 63 (6 bits). If the audio
+  * device only supports 5 bits of volume resolution, the value will be scaled
+  * before being passed on to the device.
   */
 void _ac97_set_volume(uint8 vol);
+
+/**
+  * Convert a value on a scale of 0 to 2^max_bits to a scale of 0 to
+  * 2^target_max_bits. This is helpful for volume scaling.
+  */
+uint8 _ac97_scale(uint8 value, uint8 max_bits, uint8 target_max_bits);
 
 #endif

@@ -51,15 +51,34 @@ void _ac97_init(void) {
         // allows the controller to initiate DMA transfers
         _pci_write_field(pci_dev, PCI_COMMAND, 0x5);
 
-        // prevent deafness
-        _ac97_set_volume(0x06);
-
         // set up buffer desciptor list using a statically allocated hunk
         __memclr(bdl_array, sizeof(AC97BufferDescriptor) * AC97_BDL_LEN);
         dev.bdl = bdl_array;
 
         // inform the ICH where the BDL lives
         __outl(dev.nabmbar + AC97_PCM_OUT_BDBAR, (uint32) dev.bdl);
+
+        // set the last valid index to 2
+        // TODO DCB why??
+        dev.lvi = 2;
+        __outb(dev.nabmbar + AC97_PCM_OUT_LVI, dev.lvi);
+
+        // determine the number of volume bits this device supports
+        // write 6 bits to the volume
+        // 0x2020 sets the left and right levels with a 1 in the 6th bit posn.
+        __outw(dev.nabmbar + AC97_MASTER_VOLUME, 0x2020);
+        uint16 vol = __inw(dev.nabmbar + AC97_MASTER_VOLUME);
+        if ((vol & 0x1F) == 0x1F) {
+            // we wrote a 1 to the 6th bit, but the lower 5 were set
+            // this device only supports 5 bits.
+            dev.vol_bits = 5;
+        } else {
+            dev.vol_bits = 6;
+        }
+
+
+        // prevent deafness
+        _ac97_set_volume(32); // set to 50%
     } else {
         dev.status = AC97_STATUS_NOT_PRESENT;
     }
@@ -80,24 +99,29 @@ void _ac97_isr(int vector, int code) {
 
 void _ac97_set_volume(uint8 vol) {
     
-    if (vol > (1 << 5)) {
+    if (vol >= (1 << dev.vol_bits)) {
         __cio_puts("AC97: Volume out of range!\n");
     }
 
-    // set master to full
-    // use PCM OUT volume to control lousness
-    __outw(dev.nambar + AC97_MASTER_VOLUME, 0x0);
+    // set PCM to full volume
+    // control loudness with master volume
+    __outw(dev.nambar + AC97_PCM_OUT_VOLUME, 0x0);
 
     if (vol == 0) {
         // mute
-        __outw(dev.nambar + AC97_PCM_OUT_VOLUME, AC97_MUTE);
+        __outw(dev.nambar + AC97_MASTER_VOLUME, AC97_MUTE);
     } else {
-        vol = ~vol;         // 0 is max volume
-        vol &= 0x1F;        // ignore upper bits
-        vol &= (vol << 8);  // set left and right channels to the same volume
+        uint16 vol16 = (uint16) _ac97_scale(vol, 6, dev.vol_bits);
 
-        // TODO DCB could some devices support 6 bits?
+        vol16 = ~vol16;                     // 0 is max volume
+        vol16 &= ((1 << dev.vol_bits) - 1); // ignore upper bits
+        vol16 |= (vol16 << 8);              // set left and right channels
         
-        __outw(dev.nambar + AC97_PCM_OUT_VOLUME, vol);
+        __outw(dev.nambar + AC97_MASTER_VOLUME, vol16);
     }
+}
+
+// Scale a value to a different number of bits
+uint8 _ac97_scale(uint8 value, uint8 max_bits, uint8 target_max_bits) {
+    return (value) * ((1 << target_max_bits)) / ((1 << max_bits));
 }
