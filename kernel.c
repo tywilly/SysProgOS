@@ -25,7 +25,7 @@
 #include "scheduler.h"
 #include "pci.h"
 #include "usb.h"
-
+#include "optical_drive.h"
 // need init() and idle() addresses
 #include "users.h"
 
@@ -155,6 +155,7 @@ void _init( void ) {
     _sys_init();     // system calls
     _pci_init();     // PCI
     _usb_init();     // USB
+    _atapi_init();   //ATAPI / OPTICAL DRIVE
 
     __cio_puts( "\nModule initialization complete.\n" );
     __cio_puts( "-------------------------------\n" );

@@ -2,16 +2,14 @@
 #include "cio.h"
 #include "optical_drive.h"
 
-void _reset_ata(uint32 bus)
-{
+void _reset_ata(uint32 bus) {
     __outb(ATA_DCR(bus), ATA_DCR_SOFTWARE_RESET);
     ATA_SELECT_DELAY(bus);
     __outb(ATA_DCR(bus), 0);
     ATA_SELECT_DELAY(bus);
 }
 
-bool _is_atapi(uint32 bus, uint32 drive)
-{
+bool _is_atapi(uint32 bus, uint32 drive) {
     __outb(ATA_DRIVE_SELECT(bus), drive);
     ATA_SELECT_DELAY(bus);
     __outb(ATA_SECTOR_COUNT(bus), 0);
@@ -32,15 +30,13 @@ bool _is_atapi(uint32 bus, uint32 drive)
    	return false; 
 }
 
-bool _ata_bus_check(uint32 bus)
-{
+bool _ata_bus_check(uint32 bus) {
     _reset_ata(ATA_BUS_PRIMARY);
     uint8 ata_status = __inb(ATA_COMMAND(bus));
     return (ata_status == FLOATING_BUS);
 }
 
-enum drive_type _find_atapi_drive( void )
-{
+enum drive_type _find_atapi_drive( void ) {
     if (_ata_bus_check(ATA_BUS_PRIMARY)) {
         if (_is_atapi(ATA_BUS_PRIMARY, ATA_MASTER))
             return PRIMARY_MASTER;
@@ -56,8 +52,7 @@ enum drive_type _find_atapi_drive( void )
     return NO_DRIVE;
 }
 
-uint32 atapi_capacity(uint32 bus, uint32 drive)
-{
+uint32 _atapi_capacity(uint32 bus, uint32 drive) {
     uint32 status;
     __outb(ATA_DRIVE_SELECT(bus), drive);
     ATA_SELECT_DELAY(bus);
@@ -82,16 +77,15 @@ uint32 atapi_capacity(uint32 bus, uint32 drive)
     return last_lba;
 }
 
-void init_atapi(void)
-{
+void _atapi_init(void) {
     enum drive_type loc = _find_atapi_drive();
-    if (loc == NO_DRIVE){
+    if (loc == NO_DRIVE) {
 	__cio_puts("No ATAPI FOUND"); 
         return;
     }
     uint32 drive = loc & 0xff;
     uint32 bus = loc >> 0x10;
-    uint32 lba = atapi_capacity(bus, drive);
+    uint32 lba = _atapi_capacity(bus, drive);
     __cio_printf("%u",lba);
     //read_to_sector using lba
 }
