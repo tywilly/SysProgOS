@@ -28,6 +28,7 @@
 
 // Register Offsets from Native Audio Bus Mastering Base Address Register
 #define AC97_PCM_OUT_CR     0x1B    // PCM Output Control Register offset
+#define AC97_PCM_OUT_BDBAR  0x10    // PCM Output Buffer Descriptor Base Addr
 
 // Mixer IO Port Offsets
 #define AC97_PCM_OUT_VOLUME 0x18    // PCM Output Volume
@@ -41,6 +42,24 @@
 #define AC97_STATUS_OK              0
 #define AC97_STATUS_NOT_PRESENT     1
 
+// buffer descriptor list things
+#define AC97_BDL_LEN        32
+#define AC97_BDL_BUFFER_LEN 16 // TODO DCB (0x1000)?
+#define AC97_NUM_BUFFERS    32 // TODO DCB enough??
+
+typedef struct buffer_descriptor_s {
+    unsigned int pointer        : 31;
+    unsigned int ptr_reserved   : 1;
+    unsigned int ioc            : 1;
+    unsigned int bup            : 1;
+    unsigned int len_reserved   : 14;
+    unsigned int length         : 16;
+} AC97BufferDescriptor;
+
+typedef struct buffer_s {
+    uint16 data;
+} AC97Buffer;
+
 /**
   * Store everything we know about the ac97 device.
   */
@@ -48,6 +67,7 @@ typedef struct ac97_dev {
     uint8 status;
     uint32 nabmbar; // TODO DCB can these be 16 bits?
     uint32 nambar;
+    AC97BufferDescriptor *bdl;
 } AC97Dev;
 
 /**

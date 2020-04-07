@@ -20,6 +20,8 @@
 
 // the one and only ac97 device we will be keeping track of...at the moment
 static AC97Dev dev;
+static AC97BufferDescriptor bdl_array[AC97_BDL_LEN];
+static AC97Buffer buffers[AC97_NUM_BUFFERS];
 
 // Detect and configure the ac97 device.
 void _ac97_init(void) {
@@ -50,7 +52,14 @@ void _ac97_init(void) {
         _pci_write_field(pci_dev, PCI_COMMAND, 0x5);
 
         // prevent deafness
-        _ac97_set_volume(25);
+        _ac97_set_volume(0x06);
+
+        // set up buffer desciptor list using a statically allocated hunk
+        __memclr(bdl_array, sizeof(AC97BufferDescriptor) * AC97_BDL_LEN);
+        dev.bdl = bdl_array;
+
+        // inform the ICH where the BDL lives
+        __outl(dev.nabmbar + AC97_PCM_OUT_BDBAR, (uint32) dev.bdl);
     } else {
         dev.status = AC97_STATUS_NOT_PRESENT;
     }
