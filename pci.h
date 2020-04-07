@@ -11,6 +11,9 @@
 
 typedef struct pci_dev_s {
   int id;
+  uint8 bus;
+  uint8 slot;
+  uint8 func;
   uint8 class;
   uint8 subclass;
   uint8 headertype;
@@ -33,6 +36,8 @@ void _pci_init( void );
 
 uint32 _pci_config_read ( uint8 bus, uint8 slot, uint8 func, uint8 offset );
 
+void _pci_config_write_byte(uint8 bus, uint8 slot, uint8 func, uint8 offset, uint8 data);
+
 void _pci_enumerate_devices ( void );
 
 void _pci_dump_all( void );
@@ -40,6 +45,8 @@ void _pci_dump_all( void );
 PCIDev* _pci_get_device( int devid );
 
 PCIDev* _pci_get_device_class( uint8 class, uint8 subclass, uint8 progif );
+
+void _pci_set_interrupt( PCIDev* dev, uint8 interrupt );
 
 #endif
 

@@ -53,6 +53,20 @@ uint32 _pci_config_read (uint8 bus, uint8 slot, uint8 func, uint8 offset ) {
 
 }
 
+void _pci_config_write(uint8 bus, uint8 slot, uint8 func, uint8 offset, uint32 data) {
+  uint32 address;
+  uint32 lbus = (uint32) bus;
+  uint32 lslot = (uint32) slot;
+  uint32 lfunc = (uint32) func;
+
+  address = (uint32)(lbus << 16) | (lslot << 11) |
+    (lfunc << 8) | (offset & 0xfc) | ((uint32) 0x80000000);
+
+  __outl(0xCF8, address);
+
+  __outl(0xCFC, data);
+}
+
 //
 // _pci_add_device() - Add the PCI device to the list if it is valid.
 //
@@ -62,6 +76,9 @@ void _pci_add_device( uint8 bus, uint8 slot, uint8 func ) {
   if(vendor != 0xFFFF) { // Is it a valid device?
     PCIDev* dev = &_pci_dev_list[_pci_num_dev];
     dev->id = _pci_num_dev;
+    dev->bus = bus;
+    dev->slot = slot;
+    dev->func = func;
     dev->vendorid = vendor;
     dev->deviceid = (_pci_config_read (bus, slot, func, 0x00) >> 16);
     uint16 codes = (_pci_config_read (bus, slot, func, 0x08) >> 16);
@@ -78,7 +95,7 @@ void _pci_add_device( uint8 bus, uint8 slot, uint8 func ) {
     dev->bar4 = _pci_config_read (bus, slot, func, 0x20);
     dev->bar5 = _pci_config_read (bus, slot, func, 0x24);
 
-    dev->interrupt = (_pci_config_read (bus, slot, func, 0x3C) & 0xFF);
+    dev->interrupt = (uint8)(_pci_config_read (bus, slot, func, 0x3C) & 0xFF);
 
     _pci_num_dev++;
 
@@ -91,6 +108,18 @@ void _pci_add_device( uint8 bus, uint8 slot, uint8 func ) {
 
   }
 
+}
+
+void _pci_set_interrupt( PCIDev* dev, uint8 interrupt ) {
+  dev->interrupt = interrupt;
+
+  uint32 tmp = _pci_config_read(dev->bus, dev->slot, dev->func, 0x3C);
+  tmp = tmp & 0xFFFFFF00;
+  tmp = tmp | interrupt;
+
+  _pci_config_write(dev->bus, dev->slot, dev->func, 0x3C, tmp);
+
+  tmp = _pci_config_read(dev->bus, dev->slot, dev->func, 0x3C);
 }
 
 //
@@ -114,8 +143,8 @@ void _pci_enumerate_devices ( void ) {
 void _pci_dump_all( void ) {
   for (int i=0; i<MAX_PCI_DEVICES;i++) {
     PCIDev* dev = &_pci_dev_list[i];
-    __cio_printf( "%d: Vendor: %04x Device: %04x Class: %02x SubClass: %02x Progif: %02x\n", i, dev->vendorid,
-                  dev->deviceid, dev->class, dev->subclass, dev->progif);
+    __cio_printf( "%d: Vendor: %04x Device: %04x Class: %02x SubClass: %02x Progif: %02x Int: %02x\n", i, dev->vendorid,
+                  dev->deviceid, dev->class, dev->subclass, dev->progif, dev->interrupt);
   }
 }
 

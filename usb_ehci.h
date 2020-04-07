@@ -35,7 +35,7 @@ struct _usb_qh_s {
 
 void _usb_ehci_init( PCIDev* pciDev );
 
-void _usb_enable_interrupts( bool shor, bool ioc, bool ric, bool time );
+void _usb_enable_interrupts( void );
 
 void _usb_ehci_status( void );
 

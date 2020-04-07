@@ -12,11 +12,11 @@
 
 OS_C_SRC = clock.c kernel.c klibc.c kmem.c process.c \
 	queues.c scheduler.c sio.c stacks.c syscalls.c pci.c \
-	usb.c usb_uhci.c usbhd.c usbd.c
+	usb.c usb_ehci.c usbhd.c usbd.c
 
 OS_C_OBJ = clock.o kernel.o klibc.o kmem.o process.o \
 	queues.o scheduler.o sio.o stacks.o syscalls.o pci.o \
-	usb.o usb_uhci.o usbhd.o usbd.o
+	usb.o usb_ehci.o usbhd.o usbd.o
 
 OS_S_SRC = klibs.S
 OS_S_OBJ = klibs.o

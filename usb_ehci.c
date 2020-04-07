@@ -25,40 +25,44 @@ void _usb_isr( int vector, int ecode ) {
 }
 
 uint32 _usb_read_long( uint8 offset ) {
-  return (uint32)(__inl(base_addr + (uint32) offset));
+  return *(uint32 *)(base_addr + offset);
 }
 
 uint16 _usb_read_word( uint8 offset ) {
-  return (uint16)(__inw(base_addr + (uint32)offset));
+  return *(uint16 *)(base_addr + offset);
 }
 
 uint8 _usb_read_byte( uint8 offset ) {
-  return (uint8)(__inb(base_addr + (uint32)offset));
+  return *(uint8 *)(base_addr + offset);
 }
 
 void _usb_write_long( uint8 offset, uint32 data ){
-  __outl(base_addr + (uint32)offset, data);
+  uint32* tmp = (uint32 *)(base_addr + offset);
+  *tmp = data;
 }
 
 void _usb_write_word( uint8 offset, uint16 data ) {
-  __outw(base_addr + (uint32)offset, data);
+  uint16* tmp = (uint16 *)(base_addr + offset);
+  *tmp = data;
 }
 
 void _usb_write_byte( uint8 offset, uint8 data ) {
-  __outb(base_addr + (uint32)offset, data);
+  uint8* tmp = (uint8 *)(base_addr + offset);
+  *tmp = data;
 }
 
 void _usb_ehci_init( PCIDev* pciDev ) {
 
   usbController = pciDev;
 
-  base_addr = usbController->bar0 & 0xFFFFFFFC; // Base address for controller
+  base_addr = usbController->bar0; // Base address for controller
+  base_addr = base_addr + _usb_read_byte( 0x00 );
 
   frame_list = (uint32 *)_kalloc_page(1); // Allocate space for frame list
 
-  _usb_write_long( 0x08, (uint32)frame_list ); // Tell the controller where that list is
+  _usb_write_long( 0x14, ((uint32)frame_list) ); // Tell the controller where that list is
 
-  if(frame_list != ((uint32 *)_usb_read_long( 0x08 ))) {
+  if(frame_list != ((uint32 *)_usb_read_long( 0x14 ))) {
     __panic("USB controller frame list address is not accurate");
   }
 
@@ -72,28 +76,33 @@ void _usb_ehci_init( PCIDev* pciDev ) {
     _queue_enque(_usb_free_tdq, (void *)&_usb_tds[i]);
   }
 
+  _pci_set_interrupt( usbController, 0x50 ); // Change the interrupt line
+
   __install_isr( usbController->interrupt, _usb_isr ); // Install ISR
+  //_usb_enable_interrupts(); // Enable interrupts
 
-  _usb_enable_interrupts(true, true, true, true); // Enable interrupts
+  uint32 tmpCmd = _usb_read_long(0x00);
+  tmpCmd |= 0x1;
+  _usb_write_long(0x00, tmpCmd);
 
-  __cio_puts( " USB_UHCI" );
+  _usb_write_long(0x40, 0x1); // All ports route to this controller
+
+  __cio_puts( " USB_EHCI" );
 
 }
 
-void _usb_enable_interrupts( bool shor, bool ioc, bool ric, bool time ) {
-  uint8 data = 0x00;
-  data = (shor << 3) | (ioc << 2) | (ric << 1) | time;
-  _usb_write_byte(0x04, data);
+void _usb_enable_interrupts() {
+  _usb_write_long(0x08, 0x3F);
 }
 
 void _usb_ehci_status( void ) {
-  uint16 curr_frame_ind, p1, p2;
+  uint32 curr_frame_ind, p1, p2;
   uint32 addr;
 
-  curr_frame_ind = _usb_read_word( 0x00 );
-  addr = _usb_read_word( 0x02 );
-  p1 = _usb_read_word( 0x10 );
-  p2 = _usb_read_word( 0x12 );
+  curr_frame_ind = _usb_read_long( 0x00 );
+  addr = _usb_read_long( 0x04 );
+  p1 = _usb_read_long( 0x44 );
+  p2 = _usb_read_long( 0x48 );
   __cio_printf("C: %x S: %x P1: %x P2: %x", curr_frame_ind, addr, p1, p2);
 
 }
