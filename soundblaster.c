@@ -29,11 +29,15 @@ static uint8 func;
 // memory access to the page
 static uint16* audio_samples;
 static uint16* insert_sample_pointer;
+static uint32  base_io;
 
 // make sure you configure this so there's at max 2^^16 number of samples.
 #define SB_SAMPLE_SIZE       16
 #define SB_NUM_PAGES_BUFFER  16
 #define SB_BYTES_ALLOCATED   SB_NUM_PAGES_BUFFER * PAGE_SIZE
+
+// temporary to debug
+static int on;
 
 // Detect and configure the Sound blaster audio device.
 void _soundblaster_init(void) {
@@ -66,13 +70,13 @@ void _soundblaster_init(void) {
     // align base address register to 4 bytes -- I/O region type
     uint32 base_address = soundblaster_dev->bar0 >> 2;
     // I/O Address space base address (port)
-    uint32 base_io = base_address << 2;
+    base_io = base_address << 2;
 
     // select memory page corresponding to DAC-1
     __outl( base_io + 0xC, 0b1100 );
 
     // set the pointer to the frame for the sound
-    __outl( base_io + 0x30, (int) audio_samples );
+    __outl( base_io + 0x30, (uint32) audio_samples );
 
     // set the number of samples that can be played
     uint32 number_samples = (SB_BYTES_ALLOCATED / SB_SAMPLE_SIZE) & 0xFFFF;
@@ -93,7 +97,7 @@ void _soundblaster_init(void) {
     // set 44.1 kHz sound & start the playback
     uint32 frequency_set = __inl(base_io + 0x0);
     frequency_set |= 0b11 << 12;
-    frequency_set |= 1 << 6;
+    //frequency_set |= 1 << 6; // turn on
     __outl( base_io + 0x0, frequency_set);
 
     // mark as good to screen
@@ -102,9 +106,31 @@ void _soundblaster_init(void) {
     // TODO enable interrupts so we can play more sound
     // TODO -- this currently makes no sound since we haven't given it any data
     //   - need _soundblaster_write to be working to be able to test this
+
+    on = 0;
 }
 
+
 void _soundblaster_write( uint16 sample ) {
-    // TODO make this not just a print method
-    __cio_printf( "%x\n", sample );
+    if (insert_sample_pointer >= SB_BYTES_ALLOCATED/16 + audio_samples) {
+        //__cio_puts( "+" );
+
+        if (on == 0) {
+            on = 1;
+
+            // turn on the sound
+            uint32 frequency_set = __inl(base_io + 0x0);
+            frequency_set |= 1 << 6;
+            __outl( base_io + 0x0, frequency_set);
+
+            __cio_puts("Turned on.");
+        }
+
+        return;
+
+        // TODO this is where we would put the process on the waiting queue.
+    }
+    // write and increment
+    *insert_sample_pointer = sample;
+    insert_sample_pointer++;
 }

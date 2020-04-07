@@ -48,7 +48,7 @@ int mainSB( int argc, char* args ) {
     // loop forever
     for(;;) {
         // convert the sine wave to a uint16 spread over it's bounds
-        double value = ( sine( get_next_value() ) + 1.0 ) * 65535.0;
+        double value = ( sine( get_next_value() ) + 1.0 ) * 65535.0 / 2.0;
         sb_write( ( uint16 ) value);
     }
 
