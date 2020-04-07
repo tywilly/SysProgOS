@@ -50,8 +50,7 @@
 #define AC97_NUM_BUFFERS    32 // TODO DCB enough??
 
 typedef struct buffer_descriptor_s {
-    unsigned int pointer        : 31;
-    unsigned int ptr_reserved   : 1;
+    void *pointer;
     unsigned int ioc            : 1;
     unsigned int bup            : 1;
     unsigned int len_reserved   : 14;
