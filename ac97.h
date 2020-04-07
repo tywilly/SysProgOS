@@ -98,5 +98,4 @@ uint8 _ac97_scale(uint8 value, uint8 max_bits, uint8 target_max_bits);
   * returned as a 6-bit value.
   */
 uint8 _ac97_get_volume(void);
-
 #endif

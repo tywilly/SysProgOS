@@ -55,7 +55,7 @@ void _ac97_init(void) {
         dev.bdl = bdl_array;
         for (int i = 0; i < AC97_BDL_LEN; ++i) {
             bdl_array[i].pointer = ((unsigned int) _kalloc_page(1)) & 0x7FFF;
-            __memclr((void *) bdl_array[i].pointer, AC97_BUFFER_LEN);
+            // TODO DCB memclr??
             bdl_array[i].ioc = 1;   // interrupt on completion
             bdl_array[i].length = AC97_BUFFER_LEN;
         }
