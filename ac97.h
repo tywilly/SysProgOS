@@ -32,8 +32,15 @@
 
 // Register Offsets from Native Audio Bus Mastering Base Address Register
 #define AC97_PCM_OUT_CR     0x1B    // PCM Output Control Register offset
+#define AC97_PCM_OUT_SR     0x16    // PCM Output Status Register Offset
 #define AC97_PCM_OUT_LVI    0x15    // Last Valid Index
 #define AC97_PCM_OUT_BDBAR  0x10    // PCM Output Buffer Descriptor Base Addr
+
+// PCM Output Status Register Fields
+#define AC97_PCM_OUT_SR_DCH     (1 << 0)    // DMA controller halted
+#define AC97_PCM_OUT_SR_LVBCI   (1 << 2)    // Last Valid Buffer Complete Int.
+#define AC97_PCM_OUT_SR_BCIS    (1 << 3)    // Buffer Complete Interrupt Status
+#define AC97_PCM_OUT_SR_FIFOE   (1 << 4)    // FIFO Error Interrupt.
 
 // PCM Output Control Register Fields
 #define AC97_PCM_OUT_CR_IOCE    (1 << 4)    // Interrupt on Completion Enable

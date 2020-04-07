@@ -14,6 +14,7 @@
 
 #include "common.h"
 #include "klib.h"
+#include "x86pic.h"
 
 #include "ac97.h"
 #include "pci.h"
@@ -99,10 +100,27 @@ void _ac97_init(void) {
 
 // ac97 interrupt service routine
 void _ac97_isr(int vector, int code) {
-    // TODO DCB remove
-    vector = code;
-    code = 7;
-    __cio_puts("UH OH...AC97 ISR NOT IMPLEMENTED!\n");
+    uint16 status = __inw(dev.nabmbar + AC97_PCM_OUT_SR);
+
+    if (status == 0) {
+        return;
+    }
+
+    if (status & AC97_PCM_OUT_SR_LVBCI) {
+        // last valid buffer complete interrupt
+        __cio_printf("AC97: LVBCI [%4x]\n", status);
+    } else if (status & AC97_PCM_OUT_SR_FIFOE) {
+        // fifo error interrupt
+        __cio_printf("AC97: FIFOE [%4x]\n", status);
+    } else if (status & AC97_PCM_OUT_SR_BCIS) {
+        // TODO DCB put more data into buffers
+    }
+
+    // clear DMA halt
+    __outw(dev.nabmbar + AC97_PCM_OUT_SR, status & ~(AC97_PCM_OUT_SR_DCH));
+
+    // acknowledge interrupt
+    __outb(PIC_MASTER_CMD_PORT, PIC_EOI);
 }
 
 void _ac97_set_volume(uint8 vol) {
