@@ -38,6 +38,7 @@
 // PCM Output Control Register Fields
 #define AC97_PCM_OUT_CR_IOCE    (1 << 4)    // Interrupt on Completion Enable
 #define AC97_PCM_OUT_CR_FEIE    (1 << 3)    // FIFO Error Interrupt Enable
+#define AC97_PCM_OUT_CR_RPBM    (1 << 0)    // Run/Pause Bus Master
 
 // save the status for debugging
 #define AC97_STATUS_OK              0
@@ -45,7 +46,7 @@
 
 // buffer descriptor list things
 #define AC97_BDL_LEN        32
-#define AC97_BDL_BUFFER_LEN 16 // TODO DCB (0x1000)?
+#define AC97_BUFFER_LEN     4096
 #define AC97_NUM_BUFFERS    32 // TODO DCB enough??
 
 typedef struct buffer_descriptor_s {
@@ -56,10 +57,6 @@ typedef struct buffer_descriptor_s {
     unsigned int len_reserved   : 14;
     unsigned int length         : 16;
 } AC97BufferDescriptor;
-
-typedef struct buffer_s {
-    uint16 data;
-} AC97Buffer;
 
 /**
   * Store everything we know about the ac97 device.
@@ -95,5 +92,11 @@ void _ac97_set_volume(uint8 vol);
   * 2^target_max_bits. This is helpful for volume scaling.
   */
 uint8 _ac97_scale(uint8 value, uint8 max_bits, uint8 target_max_bits);
+
+/**
+  * Read the master volume level of the ac97 controller. It will be
+  * returned as a 6-bit value.
+  */
+uint8 _ac97_get_volume(void);
 
 #endif
