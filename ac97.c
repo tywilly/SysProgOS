@@ -35,8 +35,8 @@ void _ac97_init(void) {
 
     if (pci_dev != 0) {
         // keep track of the pci device's base address registers
-        dev.nambar = pci_dev->bar0;
-        dev.nabmbar = pci_dev->bar1;
+        dev.nambar = pci_dev->bar0 & ~((uint32) 1);
+        dev.nabmbar = pci_dev->bar1 & ~((uint32) 1);
 
         // install ac97 interrupt service routine
         __install_isr(pci_dev->interrupt, _ac97_isr);
@@ -49,7 +49,7 @@ void _ac97_init(void) {
 
         // enable bus mastering, disable memory mapping
         // allows the controller to initiate DMA transfers
-        _pci_write_field(pci_dev, PCI_COMMAND, 0x5);
+        _pci_write_field16(pci_dev, PCI_COMMAND, 0x5);
 
         // set up buffer desciptor list using a statically allocated hunk
         __memclr(bdl_array, sizeof(AC97BufferDescriptor) * AC97_BDL_LEN);
@@ -83,11 +83,14 @@ void _ac97_init(void) {
         }
 
         // prevent deafness
-        _ac97_set_volume(31); // set to ~50%
+        _ac97_set_volume(16); // set to ~25%
 
         // set things to play
+        // TODO sets the bit correctly, but changes from 0x18 to 0x19...other bits?
+        __cio_printf("PCOR: %02x\n", __inb(dev.nabmbar + AC97_PCM_OUT_CR));
         __outb(dev.nabmbar + AC97_PCM_OUT_CR, 
                __inb(dev.nabmbar + AC97_PCM_OUT_CR) | AC97_PCM_OUT_CR_RPBM);
+        __cio_printf("PCOR: %02x\n", __inb(dev.nabmbar + AC97_PCM_OUT_CR));
     } else {
         dev.status = AC97_STATUS_NOT_PRESENT;
     }
@@ -124,7 +127,6 @@ void _ac97_isr(int vector, int code) {
 }
 
 void _ac97_set_volume(uint8 vol) {
-    
     if (vol >= (1 << dev.vol_bits)) {
         __cio_puts("AC97: Volume out of range!\n");
     }
@@ -132,6 +134,7 @@ void _ac97_set_volume(uint8 vol) {
     // set PCM to full volume
     // control loudness with master volume
     __outw(dev.nambar + AC97_PCM_OUT_VOLUME, 0x0);
+    __cio_printf("PCM VOL: %04x\n", __inw(dev.nambar + AC97_PCM_OUT_VOLUME));
 
     if (vol == 0) {
         // mute
@@ -145,6 +148,8 @@ void _ac97_set_volume(uint8 vol) {
         
         __outw(dev.nambar + AC97_MASTER_VOLUME, vol16);
     }
+
+    __cio_printf("MASTER: %04x\n", __inw(dev.nambar + AC97_MASTER_VOLUME));
 }
 
 // see what the master volume is set to

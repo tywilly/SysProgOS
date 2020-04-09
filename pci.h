@@ -39,6 +39,9 @@ typedef struct pci_dev_s {
 void _pci_init( void );
 
 uint32 _pci_config_read ( uint8 bus, uint8 slot, uint8 func, uint8 offset );
+uint32 _pci_config_read32 ( PCIDev *dev, uint8 offset );
+uint8 _pci_config_read8 ( PCIDev *dev, uint8 offset );
+uint16 _pci_config_read16 ( PCIDev *dev, uint8 offset );
 
 void _pci_enumerate_devices ( void );
 
@@ -51,9 +54,12 @@ PCIDev* _pci_get_device_class( uint8 class, uint8 subclass, uint8 progif );
 PCIDev* _pci_get_device_id( uint16 vendor, uint16 device, uint8 class, 
                             uint8 subclass );
 
-void _pci_write_field( PCIDev *dev, uint8 offset, uint32 value );
+void _pci_write_field32( PCIDev *dev, uint8 offset, uint32 value );
+void _pci_write_field16( PCIDev *dev, uint8 offset, uint16 value );
+void _pci_write_field8( PCIDev *dev, uint8 offset, uint8 value );
 
-uint32 _pci_calculate_address(uint8 bus, uint8 slot, uint8 func, uint8 offset);
+uint32 _pci_calculate_address(uint8 bus, uint8 slot, uint8 func, uint8 offset, 
+                              uint8 size);
 
 #endif
 

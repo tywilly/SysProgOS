@@ -69,8 +69,8 @@ typedef struct buffer_descriptor_s {
   */
 typedef struct ac97_dev {
     uint8 status;
-    uint32 nabmbar; // TODO DCB can these be 16 bits?
-    uint32 nambar;
+    uint16 nabmbar;
+    uint16 nambar;
     AC97BufferDescriptor *bdl;
     uint8 lvi;  // last valid index
     uint8 vol_bits; // bits of volume this device supports (5 or 6)
