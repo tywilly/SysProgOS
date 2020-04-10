@@ -55,6 +55,7 @@
 #define AC97_BDL_LEN        32
 #define AC97_BUFFER_LEN     4096
 #define AC97_NUM_BUFFERS    32 // TODO DCB enough??
+#define AC97_SAMPLE_WIDTH   16
 
 typedef struct buffer_descriptor_s {
     void *pointer;

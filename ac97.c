@@ -56,7 +56,7 @@ void _ac97_init(void) {
         dev.bdl = bdl_array;
         for (int i = 0; i < AC97_BDL_LEN; ++i) {
             bdl_array[i].pointer = _kalloc_page(1);
-            __memclr(bdl_array[i].pointer, AC97_BUFFER_LEN);
+            __memclr(bdl_array[i].pointer, AC97_BUFFER_LEN * AC97_SAMPLE_WIDTH);
             bdl_array[i].ioc = 1;   // interrupt on completion
             bdl_array[i].length = AC97_BUFFER_LEN;
         }
@@ -86,11 +86,8 @@ void _ac97_init(void) {
         _ac97_set_volume(16); // set to ~25%
 
         // set things to play
-        // TODO sets the bit correctly, but changes from 0x18 to 0x19...other bits?
-        __cio_printf("PCOR: %02x\n", __inb(dev.nabmbar + AC97_PCM_OUT_CR));
         __outb(dev.nabmbar + AC97_PCM_OUT_CR, 
                __inb(dev.nabmbar + AC97_PCM_OUT_CR) | AC97_PCM_OUT_CR_RPBM);
-        __cio_printf("PCOR: %02x\n", __inb(dev.nabmbar + AC97_PCM_OUT_CR));
     } else {
         dev.status = AC97_STATUS_NOT_PRESENT;
     }
