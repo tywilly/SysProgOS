@@ -11,10 +11,12 @@
 #
 
 OS_C_SRC = clock.c kernel.c klibc.c kmem.c process.c \
-	queues.c scheduler.c sio.c stacks.c syscalls.c
+	queues.c scheduler.c sio.c stacks.c syscalls.c pci.c \
+	usb.c
 
 OS_C_OBJ = clock.o kernel.o klibc.o kmem.o process.o \
-	queues.o scheduler.o sio.o stacks.o syscalls.o
+	queues.o scheduler.o sio.o stacks.o syscalls.o pci.o \
+	usb.o
 
 OS_S_SRC = klibs.S
 OS_S_OBJ = klibs.o
@@ -241,34 +243,29 @@ startup.o: bootstrap.h
 isr_stubs.o: bootstrap.h
 cio.o: cio.h klib.h types.h support.h x86arch.h x86pic.h
 support.o: support.h klib.h types.h cio.h x86arch.h x86pic.h bootstrap.h
-clock.o: x86arch.h x86pic.h ./x86pit.h common.h types.h kdefs.h cio.h kmem.h
-clock.o: support.h kernel.h process.h stacks.h queues.h bootstrap.h klib.h
-clock.o: clock.h scheduler.h
-kernel.o: common.h types.h kdefs.h cio.h kmem.h support.h kernel.h x86arch.h
-kernel.o: process.h stacks.h queues.h bootstrap.h klib.h clock.h syscalls.h
-kernel.o: sio.h scheduler.h users.h
-klibc.o: common.h types.h kdefs.h cio.h kmem.h support.h kernel.h x86arch.h
-klibc.o: process.h stacks.h queues.h bootstrap.h klib.h
-kmem.o: common.h types.h kdefs.h cio.h kmem.h support.h kernel.h x86arch.h
-kmem.o: process.h stacks.h queues.h bootstrap.h klib.h
-process.o: common.h types.h kdefs.h cio.h kmem.h support.h kernel.h x86arch.h
-process.o: process.h stacks.h queues.h bootstrap.h klib.h
-queues.o: common.h types.h kdefs.h cio.h kmem.h support.h kernel.h x86arch.h
-queues.o: process.h stacks.h queues.h bootstrap.h klib.h
-scheduler.o: common.h types.h kdefs.h cio.h kmem.h support.h kernel.h
-scheduler.o: x86arch.h process.h stacks.h queues.h bootstrap.h klib.h
-scheduler.o: scheduler.h
-sio.o: common.h types.h kdefs.h cio.h kmem.h support.h kernel.h x86arch.h
-sio.o: process.h stacks.h queues.h bootstrap.h klib.h ./uart.h x86pic.h sio.h
-sio.o: scheduler.h
-stacks.o: common.h types.h kdefs.h cio.h kmem.h support.h kernel.h x86arch.h
-stacks.o: process.h stacks.h queues.h bootstrap.h klib.h
-syscalls.o: common.h types.h kdefs.h cio.h kmem.h support.h kernel.h
-syscalls.o: x86arch.h process.h stacks.h queues.h bootstrap.h klib.h x86pic.h
-syscalls.o: ./uart.h syscalls.h scheduler.h clock.h sio.h
-users.o: common.h types.h kdefs.h cio.h kmem.h support.h kernel.h x86arch.h
-users.o: process.h stacks.h queues.h bootstrap.h klib.h users.h
-ulibc.o: common.h types.h kdefs.h cio.h kmem.h support.h kernel.h x86arch.h
-ulibc.o: process.h stacks.h queues.h bootstrap.h klib.h
-ulibs.o: syscalls.h common.h types.h kdefs.h cio.h kmem.h support.h kernel.h
-ulibs.o: x86arch.h process.h stacks.h queues.h bootstrap.h klib.h
+support.o: process.h common.h udefs.h ulib.h stacks.h kmem.h queues.h
+clock.o: x86arch.h x86pic.h ./x86pit.h common.h types.h udefs.h ulib.h klib.h
+clock.o: clock.h process.h stacks.h kmem.h queues.h bootstrap.h scheduler.h
+kernel.o: common.h types.h udefs.h ulib.h kernel.h x86arch.h process.h
+kernel.o: stacks.h kmem.h queues.h bootstrap.h clock.h syscalls.h cio.h sio.h
+kernel.o: scheduler.h pci.h usb.h users.h
+klibc.o: common.h types.h udefs.h ulib.h
+kmem.o: common.h types.h udefs.h ulib.h klib.h x86arch.h bootstrap.h kmem.h
+kmem.o: cio.h
+process.o: common.h types.h udefs.h ulib.h process.h stacks.h kmem.h queues.h
+process.o: bootstrap.h
+queues.o: common.h types.h udefs.h ulib.h queues.h process.h stacks.h kmem.h
+queues.o: bootstrap.h
+scheduler.o: common.h types.h udefs.h ulib.h scheduler.h
+sio.o: common.h types.h udefs.h ulib.h ./uart.h x86arch.h x86pic.h sio.h
+sio.o: queues.h process.h stacks.h kmem.h bootstrap.h scheduler.h kernel.h
+sio.o: klib.h
+stacks.o: common.h types.h udefs.h ulib.h stacks.h kmem.h
+syscalls.o: common.h types.h udefs.h ulib.h x86arch.h x86pic.h ./uart.h
+syscalls.o: support.h klib.h syscalls.h queues.h scheduler.h process.h
+syscalls.o: stacks.h kmem.h bootstrap.h clock.h cio.h sio.h
+pci.o: common.h types.h udefs.h ulib.h pci.h
+usb.o: common.h types.h udefs.h ulib.h usb.h pci.h
+users.o: common.h types.h udefs.h ulib.h users.h
+ulibc.o: common.h types.h udefs.h ulib.h
+ulibs.o: syscalls.h common.h types.h udefs.h ulib.h queues.h
