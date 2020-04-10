@@ -24,8 +24,13 @@ OS_LIBS =
 OS_SRCS = $(OS_C_SRC) $(OS_S_SRC)
 OS_OBJS = $(OS_C_OBJ) $(OS_S_OBJ)
 
+ifeq ($(USER_TEST),y)
 USR_C_SRC = users.c ulibc.c
 USR_C_OBJ = users.o ulibc.o
+else
+USR_C_SRC = userland.c ulibc.c
+USR_C_OBJ = userland.o ulibc.o
+endif
 
 USR_S_SRC = ulibs.S
 USR_S_OBJ = ulibs.o
@@ -263,5 +268,6 @@ syscalls.o: common.h types.h udefs.h ulib.h x86arch.h x86pic.h ./uart.h
 syscalls.o: support.h klib.h syscalls.h queues.h scheduler.h process.h
 syscalls.o: stacks.h kmem.h bootstrap.h clock.h cio.h sio.h
 users.o: common.h types.h udefs.h ulib.h users.h
+userland.o: common.h types.h udefs.h ulib.h users.h
 ulibc.o: common.h types.h udefs.h ulib.h
 ulibs.o: syscalls.h common.h types.h udefs.h ulib.h queues.h
