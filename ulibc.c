@@ -421,6 +421,74 @@ void sprint( char *dst, char *fmt, ... ) {
     *dst = '\0';
 }
 
+/* 
+** Writes the character c to stream.
+**
+** @param c	The character to write
+** @param chan	The channel to write the character to
+**
+** @return The character written on success, -1 on error.
+*/
+int fputc(char c, int chan) {
+	return write(chan, &c, 1);
+}
+
+/* 
+** Writes the null terminated string s to stream.
+**
+** @param s	A pointer to the null terimnated string to write. 
+** @param chan	The channel to write the character to
+**
+** @return The number of characters written.
+*/
+int fputs(const char* s, int chan) {
+	return write(chan, s, strlen(s));
+}
+
+/* 
+** Reads the next character from a channel, cast the result to an int.
+**
+** @param chan	The channel to read the character from
+**
+** @return The character read cast to an int on success, -1 on error.
+*/
+int fgetc(int chan) {
+	char c;
+	int stat;
+	stat = read(chan, &c, 1);
+	if (stat != 1)
+		return -1;
+	return (int) c;
+}
+
+/* 
+** Reads in at most one less than size characters from stream and
+** stores them into the buffer pointed to by s.  Reading  stops  after  an
+** EOF  or a newline.  If a newline is read, it is stored into the buffer.
+** A terminating null byte ('\0') is stored after the  last  character  in
+** the buffer.
+**
+** @param s	The buffer to read the string into
+** @param size	The maximum number of characters to read
+** @param chan	The channel to read the character from
+**
+** @return s on success, and NULL on error or EOF.
+*/
+char* fgets(char* s, int size, int chan) {
+	int i;
+	int stat;
+	char c;
+	for (i = 0; i < size - 1; i++) {
+		stat = read(chan, &c, 1);
+		if (stat != 1) {
+			s[i] = '\0';
+			return NULL;
+		}
+		s[i] = c;
+	}
+	return s;
+}
+
 /*
 **********************************************
 ** MISCELLANEOUS USEFUL SUPPORT FUNCTIONS
