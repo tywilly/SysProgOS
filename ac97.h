@@ -54,16 +54,17 @@
 // buffer descriptor list things
 #define AC97_BDL_LEN        32
 #define AC97_BUFFER_LEN     4096
-#define AC97_NUM_BUFFERS    32 // TODO DCB enough??
 #define AC97_SAMPLE_WIDTH   16
+#define AC97_BUFFER_SAMPLES AC97_BUFFER_LEN / AC97_SAMPLE_WIDTH
+#define AC97_NUM_BUFFERS    32 // TODO DCB enough??
+#define AC97_BDL_IOC        ((uint32) 1 << 31); // interrupt on completion
+#define AC97_BDL_BUP        ((uint32) 1 << 30);
+#define AC97_BDL_LEN_MASK   0xFFFF
 
 typedef struct buffer_descriptor_s {
-    void *pointer;
-    unsigned int ioc            : 1;
-    unsigned int bup            : 1;
-    unsigned int len_reserved   : 14;
-    unsigned int length         : 16;
-} AC97BufferDescriptor;
+    uint32 pointer;
+    uint32 control;
+} __attribute__((packed)) AC97BufferDescriptor;
 
 /**
   * Store everything we know about the ac97 device.

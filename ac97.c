@@ -55,11 +55,15 @@ void _ac97_init(void) {
         __memclr(bdl_array, sizeof(AC97BufferDescriptor) * AC97_BDL_LEN);
         dev.bdl = bdl_array;
         for (int i = 0; i < AC97_BDL_LEN; ++i) {
-            bdl_array[i].pointer = _kalloc_page(1);
-            __memclr(bdl_array[i].pointer, AC97_BUFFER_LEN * AC97_SAMPLE_WIDTH);
-            bdl_array[i].ioc = 1;   // interrupt on completion
-            bdl_array[i].length = AC97_BUFFER_LEN;
+            bdl_array[i].pointer = (uint32) _kalloc_page(1);
+            __memclr((void *) bdl_array[i].pointer, AC97_BUFFER_LEN);
+            bdl_array[i].control |= AC97_BDL_IOC; // set interrupt on completion
+            // set length in number of 16 bit samples
+            bdl_array[i].control &= ~((uint32) AC97_BDL_LEN_MASK);
+            bdl_array[i].control |= (AC97_BUFFER_SAMPLES & AC97_BDL_LEN_MASK);
         }
+
+        __cio_printf("%016x\n", bdl_array[0]);
 
         // inform the ICH where the BDL lives
         __outl(dev.nabmbar + AC97_PCM_OUT_BDBAR, (uint32) dev.bdl);
