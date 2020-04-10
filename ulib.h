@@ -312,6 +312,18 @@ char *strcat( register char *dst, register const char *src );
 int strcmp( register const char *s1, register const char *s2 );
 
 /*
+** Splits the string s at the first occurrance of a character in the delim
+** string, replacing the delimiter with a null byte.
+**
+** @param s	The string to parse
+** @param delim	A character array of delimiters to split at
+**
+** @return A pointer to the beginning of the rest of the string after after the
+** delimiter, or NULL if no delimiters were found.
+*/
+char* strsplit (char* s, const char* delim);
+
+/*
 ** pad(dst,extra,padchar) - generate a padding string
 **
 ** @param dst     Pointer to where the padding should begin

@@ -250,6 +250,30 @@ int strcmp( register const char *s1, register const char *s2 ) {
     return( *(const unsigned char *)s1 - *(const unsigned char *)s2 );
 }
 
+/*
+** Splits the string s at the first occurrance of a character in the delim
+** string, replacing the delimiter with a null byte.
+**
+** @param s	The string to parse
+** @param delim	A character array of delimiters to split at
+**
+** @return A pointer to the beginning of the rest of the string after after the
+** delimiter, or NULL if no delimiters were found.
+*/
+char* strsplit (char* s, const char* delim) {
+	int i, j;
+	int numdelim = strlen(delim);
+	for (i = 0; i < strlen(s); i++) {
+		for (j = 0; j < numdelim; j++) {
+			if ( s[i] == delim[j] ) {
+				s[i] = '\0';
+				return &s[i+1];
+			}
+		}
+	}
+	return NULL;
+}
+
 
 /*
 ** pad(dst,extra,padchar) - generate a padding string
