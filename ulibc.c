@@ -486,8 +486,65 @@ char* fgets(char* s, int size, int chan) {
 		}
 		s[i] = c;
 	}
+	s[i] = '\0';
 	return s;
 }
+
+/*
+** Gets a line with user editing, saving it to buf and null terminating it.
+** Reads until one of the following happens: size-1 characters are read, a '\n'
+** is read, or EOF.
+**
+** @param prompt	The prompt to display at the beginning of the line. If
+**			this is NULL or an empty string, no prompt will be
+**			printed.
+** @param buf		The buffer to save the read string to.
+** @param size		The size of buffer. At most, size-1 characters will be
+**			read.
+** @param chanin	The channel to read input from
+** @param chanout	The channel to write output to
+**
+** @return The number of characters read.
+*/
+int readline(const char* prompt, char* buf, int size, int chanin, int chanout) {
+	int i;
+
+	if (prompt != NULL && prompt[0] != '\0')
+		fputs(prompt, chanout);
+
+	for (i = 0; i < size; i++) {
+		int n;
+		char c; 
+		n = fgetc(chanin);
+
+		if (n == -1) {
+			buf[i] = '\0';
+			return i;
+		}
+
+		c = (char) n;
+		switch (c) {
+			case '\n':
+				buf[i] = '\n';
+				buf[i+1] = '\0';
+				fputc('\n', chanout);
+				return i;
+			// Delete character (backspace on serial terminals)
+			case 0x7f:
+				if (i == 0) break;
+				i-=2;
+				fputs("\b \b", chanout);
+				break;
+			default:
+				fputc(c, chanout);
+				buf[i] = c;
+		}
+	}
+
+	buf[i] = '\0';
+	return i;
+}
+
 
 /*
 **********************************************

@@ -404,6 +404,24 @@ int fgetc(int chan);
 char* fgets(char* s, int size, int chan);
 
 /*
+** Gets a line with user editing, saving it to buf and null terminating it.
+** Reads until one of the following happens: size-1 characters are read, a '\n'
+** is read, or EOF.
+**
+** @param prompt	The prompt to display at the beginning of the line. If
+**			this is NULL or an empty string, no prompt will be
+**			printed.
+** @param buf		The buffer to save the read string to.
+** @param size		The size of buffer. At most, size-1 characters will be
+**			read.
+** @param chanin	The channel to read input from
+** @param chanout	The channel to write output to
+**
+** @return The number of characters read.
+*/
+int readline(const char* prompt, char* buf, int size, int chanin, int chanout);
+
+/*
 **********************************************
 ** MISCELLANEOUS USEFUL SUPPORT FUNCTIONS
 **********************************************

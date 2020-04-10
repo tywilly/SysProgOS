@@ -58,27 +58,20 @@ int userY( int, char * ); int userZ( int, char * );
 ** Invoked as: consh
 */
 
+#define CONSH_LINE_LEN 256
+const char* consh_prompt = "consh> ";
+
 int consh( int argc, char* args) {
-	char c;
-	char buf[64];
+	char buf[CONSH_LINE_LEN];
 	int n;
 
 	while(1) {
-		//n = read( CHAN_SIO, &c, 1 );
-		n = fgetc(stdin);
-		if ( n == -1 ) {
+		n = readline(consh_prompt, buf, CONSH_LINE_LEN, stdin, stdout);
+		if ( n < 0 ) {
 			fputs("Failed to read from stdin\n", stderr);
 		}
-		c = (char) n;
-		n = fputc(c, stdout);
-		if ( n == -1 ) {
-			sprint(buf, "Failed to write to stdout: %c\n", c);
-			fputs(buf, stderr);
-		}
-		else {
-			sprint(buf, "%x\n", c);
-			fputs(buf, stderr);
-		}
+		fputs(buf, stdout);
+		fputc('\r', stdout);
 	}
 	
 	exit( 0 );
