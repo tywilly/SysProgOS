@@ -67,6 +67,9 @@ typedef uint64 Time;
 
 typedef int Status;
 
+// NULL pointer
+#define NULL 0
+
 // Error return values
 
 #define SUCCESS         (0)

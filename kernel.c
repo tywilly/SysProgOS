@@ -152,6 +152,8 @@ void _init( void ) {
     _stk_init();     // stacks
     _sys_init();     // system calls
 
+    _rdisk_init();   // ramdisk
+
     __cio_puts( "\nModule initialization complete.\n" );
     __cio_puts( "-------------------------------\n" );
     __delay( 200 );  // about 5 seconds

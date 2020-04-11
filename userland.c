@@ -1212,6 +1212,7 @@ int userZ( int argc, char *args ) {
 
 int test_exit(int argc, char* args) {
 	exit(99);
+	return 42;
 }
 
 /*
