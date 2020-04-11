@@ -28,8 +28,8 @@ ifeq ($(USER_TEST),y)
 USR_C_SRC = users.c ulibc.c
 USR_C_OBJ = users.o ulibc.o
 else
-USR_C_SRC = userland.c ulibc.c
-USR_C_OBJ = userland.o ulibc.o
+USR_C_SRC = userland.c ulibc.c consh.c
+USR_C_OBJ = userland.o ulibc.o consh.o
 endif
 
 USR_S_SRC = ulibs.S

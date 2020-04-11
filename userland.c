@@ -11,7 +11,8 @@
 */
 
 #include "common.h"
-#include "users.h"
+#include "userland.h"
+#include "consh.h"
 
 /*
 ** USER PROCESSES
@@ -37,8 +38,6 @@
 */
 
 int idle( int, char * );
-int consh( int, char * );
-int runcmd( char* argv[] );
 
 int main1( int, char * ); int main2( int, char * ); int main3( int, char * );
 int main4( int, char * ); int main5( int, char * ); int main6( int, char * );
@@ -52,109 +51,6 @@ int userP( int, char * ); int userQ( int, char * ); int userR( int, char * );
 int userS( int, char * ); int userT( int, char * ); int userU( int, char * );
 int userV( int, char * ); int userW( int, char * ); int userX( int, char * );
 int userY( int, char * ); int userZ( int, char * );
-
-/* Simple console shell
-** 
-** A simple interactive console shell.
-** 
-** Invoked as: consh
-*/
-
-#define CONSH_LINE_LEN 256
-#define CONSH_MAX_ARGC 32
-const char* consh_prompt = "consh> ";
-
-// Data structure to hold a command applet
-struct command_applet {
-	char* name;
-	int(*entry)(int,char*);
-};
-
-// An array of command applets for consh. Add commands here. Make sure to NULL
-// terminate the list.
-static const int consh_num_commands = 1;
-static const struct command_applet consh_commands[] = {
-	{"main1", main1}
-};
-
-int consh( int argc, char* args) {
-	char buf[CONSH_LINE_LEN];
-	int i, n;
-	char* pargs[CONSH_MAX_ARGC+1];
-
-	while(1) {
-		n = readline(consh_prompt, buf, CONSH_LINE_LEN, stdin, stdout);
-		if ( n < 0 ) {
-			fputs("Failed to read from stdin\r\n", stderr);
-		}
-		if (buf[n-1] == '\n')
-			buf[n-1] = '\0';
-
-		// Parse args
-		pargs[0] = buf;
-		for (i = 1; i < CONSH_MAX_ARGC; i++) {
-			pargs[i] = strsplit(pargs[i-1], " \t\n");
-			if (pargs[i] == NULL)
-				break;
-		}
-		pargs[i] = NULL;  // In case we have the max number of args
-		
-		n = runcmd(pargs);
-		if ( n < 0 ) {
-			sprint(pargs[1], "Failed to run %s\r\n", pargs[0]);
-			fputs(pargs[1], stderr);
-			sprint(pargs[1], "%s: command not found. "
-					"Run help for a list of commands.\r\n",
-					pargs[0]);
-			fputs(pargs[1], stdout);
-		}
-		else {
-			int32 status;
-			sprint(pargs[1], "Started %s as process %d\r\n",
-					pargs[0], n);
-			fputs(pargs[1], stderr);
-			wait(n, &status);
-			sprint(pargs[1], "%s (%d) exited with status %d\r\n",
-					pargs[0], n, status);
-			fputs(pargs[1], stdout);
-		}
-	}
-	
-	exit( 0 );
-	
-	return( 42 );  // shut the compiler up!
-}
-
-/*
-** Runs a command applet with the specified argv[0], spawning a new process for
-** the applet. The argv list should be NULL terminated.
-**
-** @param argv	The arguments to pass to the new process (NULL terminated).
-**
-** @return the PID of the new process on success, -1 if the command applet
-** could not be started.
-*/
-int runcmd( char* argv[] ) {
-	int i;
-	//char buf[128];
-
-	/*
-	fputs("Args:\r\n", stdout);
-	for (i = 0; argv[i] != NULL; i++) {
-		fputc('\t', stdout);
-		fputs(argv[i], stdout);
-		fputs("\r\n", stdout);
-	}
-	*/
-
-	for (i = 0; i < consh_num_commands; i++) {
-		if (strcmp(argv[0], consh_commands[i].name) == 0) {
-			return spawn( consh_commands[i].entry, argv );
-		}
-	}
-	
-	return -1;
-}
 
 /*
 ** User function #1:  write, exit
@@ -1314,6 +1210,10 @@ int userZ( int argc, char *args ) {
     return( 42 );  // shut the compiler up!
 }
 
+int test_exit(int argc, char* args) {
+	exit(99);
+}
+
 /*
 ** Initial process; it starts the other top-level user processes.
 **
@@ -1375,22 +1275,22 @@ int init( int argc, char *args ) {
     }
 
     // set up for users A, B, and C initially
-    argv[0] = "main1";
-    // argv[1] will vary
-    argv[2] = "30";
+    argv[0] = "test_exit";
+    argv[1] = NULL;
 
-#ifdef SPAWN_A
+    // test_exit
+    whom = spawn( test_exit, argv );
+
     // "consh"
     argv[0] = "consh";
     argv[1] = NULL;
-    whom = spawn( consh, argv );
+    whom = spawn( consh_main, argv );
     if( whom < 0 ) {
         cwrites( "init, spawn() consh failed\n" );
     }
     swrites( "Starting Console Shell" );
-#endif
 
-    swrites( "!\r\n\n" );
+    swrites( "\r\n\n" );
 
     /*
     ** At this point, we go into an infinite loop waiting
