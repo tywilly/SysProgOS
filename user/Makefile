@@ -133,3 +133,12 @@ depend:
 	makedepend $(INCLUDES) $(SOURCES)
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
+
+bin/userland.o: ./include/common.h ./include/types.h ./include/udefs.h
+bin/userland.o: ./include/ulib.h bin/userland.h bin/consh.h
+lib/ulibc.o: ./include/common.h ./include/types.h ./include/udefs.h
+lib/ulibc.o: ./include/ulib.h
+bin/consh.o: ./include/common.h ./include/types.h ./include/udefs.h
+bin/consh.o: ./include/ulib.h bin/consh.h bin/userland.h
+lib/ulibs.o: ./include/syscalls.h ./include/common.h ./include/types.h
+lib/ulibs.o: ./include/udefs.h ./include/ulib.h
