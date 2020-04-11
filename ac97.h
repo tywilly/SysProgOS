@@ -56,7 +56,7 @@
 #define AC97_BUFFER_LEN     4096
 #define AC97_SAMPLE_WIDTH   16
 #define AC97_BUFFER_SAMPLES AC97_BUFFER_LEN / AC97_SAMPLE_WIDTH
-#define AC97_NUM_BUFFERS    32 // TODO DCB enough??
+#define AC97_NUM_BUFFERS    32
 #define AC97_BDL_IOC        ((uint32) 1 << 31); // interrupt on completion
 #define AC97_BDL_BUP        ((uint32) 1 << 30);
 #define AC97_BDL_LEN_MASK   0xFFFF
@@ -106,4 +106,6 @@ uint8 _ac97_scale(uint8 value, uint8 max_bits, uint8 target_max_bits);
   * returned as a 6-bit value.
   */
 uint8 _ac97_get_volume(void);
+
+uint16 _ac97_status(void);
 #endif

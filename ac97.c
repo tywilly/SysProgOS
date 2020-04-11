@@ -39,7 +39,10 @@ void _ac97_init(void) {
         dev.nabmbar = pci_dev->bar1 & ~((uint32) 1);
 
         // install ac97 interrupt service routine
-        __install_isr(pci_dev->interrupt, _ac97_isr);
+        __cio_printf("\nPCI Reported Interrupt: %02x\n", pci_dev->interrupt);
+        __cio_printf("Actual Interrupt PIN:   %02x\n", _pci_config_read8(pci_dev, 0x3D));
+        __cio_printf("Actual Interrupt LINE:  %02x\n", _pci_config_read8(pci_dev, 0x3C));
+        __install_isr(43, _ac97_isr); // TODO DCB why is this 43?
 
         // enable ac97 interrupts
         // Write to PCM Out Control Register with FIFO Error Interrupt Enable,
@@ -58,12 +61,11 @@ void _ac97_init(void) {
             bdl_array[i].pointer = (uint32) _kalloc_page(1);
             __memclr((void *) bdl_array[i].pointer, AC97_BUFFER_LEN);
             bdl_array[i].control |= AC97_BDL_IOC; // set interrupt on completion
+
             // set length in number of 16 bit samples
             bdl_array[i].control &= ~((uint32) AC97_BDL_LEN_MASK);
             bdl_array[i].control |= (AC97_BUFFER_SAMPLES & AC97_BDL_LEN_MASK);
         }
-
-        __cio_printf("%016x\n", bdl_array[0]);
 
         // inform the ICH where the BDL lives
         __outl(dev.nabmbar + AC97_PCM_OUT_BDBAR, (uint32) dev.bdl);
@@ -104,6 +106,7 @@ void _ac97_init(void) {
 
 // ac97 interrupt service routine
 void _ac97_isr(int vector, int code) {
+    __cio_printf("\n\nAC97 ISR!!\n\n");
     uint16 status = __inw(dev.nabmbar + AC97_PCM_OUT_SR);
 
     if (status == 0) {
@@ -112,12 +115,13 @@ void _ac97_isr(int vector, int code) {
 
     if (status & AC97_PCM_OUT_SR_LVBCI) {
         // last valid buffer complete interrupt
-        __cio_printf("AC97: LVBCI [%4x]\n", status);
+        __cio_printf("AC97: LVBCI [%04x]\n", status);
     } else if (status & AC97_PCM_OUT_SR_FIFOE) {
         // fifo error interrupt
-        __cio_printf("AC97: FIFOE [%4x]\n", status);
+        __cio_printf("AC97: FIFOE [%04x]\n", status);
     } else if (status & AC97_PCM_OUT_SR_BCIS) {
         // TODO DCB put more data into buffers
+        __cio_printf("Put more data in buffers...\n");
     }
 
     // clear DMA halt
@@ -163,4 +167,8 @@ uint8 _ac97_get_volume(void) {
 // Scale a value to a different number of bits
 uint8 _ac97_scale(uint8 value, uint8 max_bits, uint8 target_max_bits) {
     return (value) * ((1 << target_max_bits)) / ((1 << max_bits));
+}
+
+uint16 _ac97_status(void) {
+    return __inw(dev.nabmbar + AC97_PCM_OUT_SR);
 }
