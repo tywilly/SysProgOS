@@ -37,6 +37,8 @@
 */
 
 int idle( int, char * );
+int consh( int, char * );
+int runcmd( char* argv[] );
 
 int main1( int, char * ); int main2( int, char * ); int main3( int, char * );
 int main4( int, char * ); int main5( int, char * ); int main6( int, char * );
@@ -59,24 +61,99 @@ int userY( int, char * ); int userZ( int, char * );
 */
 
 #define CONSH_LINE_LEN 256
+#define CONSH_MAX_ARGC 32
 const char* consh_prompt = "consh> ";
+
+// Data structure to hold a command applet
+struct command_applet {
+	char* name;
+	int(*entry)(int,char*);
+};
+
+// An array of command applets for consh. Add commands here. Make sure to NULL
+// terminate the list.
+static const int consh_num_commands = 1;
+static const struct command_applet consh_commands[] = {
+	{"main1", main1}
+};
 
 int consh( int argc, char* args) {
 	char buf[CONSH_LINE_LEN];
-	int n;
+	int i, n;
+	char* pargs[CONSH_MAX_ARGC+1];
 
 	while(1) {
 		n = readline(consh_prompt, buf, CONSH_LINE_LEN, stdin, stdout);
 		if ( n < 0 ) {
-			fputs("Failed to read from stdin\n", stderr);
+			fputs("Failed to read from stdin\r\n", stderr);
 		}
-		fputs(buf, stdout);
-		fputc('\r', stdout);
+		if (buf[n-1] == '\n')
+			buf[n-1] = '\0';
+
+		// Parse args
+		pargs[0] = buf;
+		for (i = 1; i < CONSH_MAX_ARGC; i++) {
+			pargs[i] = strsplit(pargs[i-1], " \t\n");
+			if (pargs[i] == NULL)
+				break;
+		}
+		pargs[i] = NULL;  // In case we have the max number of args
+		
+		n = runcmd(pargs);
+		if ( n < 0 ) {
+			sprint(pargs[1], "Failed to run %s\r\n", pargs[0]);
+			fputs(pargs[1], stderr);
+			sprint(pargs[1], "%s: command not found. "
+					"Run help for a list of commands.\r\n",
+					pargs[0]);
+			fputs(pargs[1], stdout);
+		}
+		else {
+			int32 status;
+			sprint(pargs[1], "Started %s as process %d\r\n",
+					pargs[0], n);
+			fputs(pargs[1], stderr);
+			wait(n, &status);
+			sprint(pargs[1], "%s (%d) exited with status %d\r\n",
+					pargs[0], n, status);
+			fputs(pargs[1], stdout);
+		}
 	}
 	
 	exit( 0 );
 	
 	return( 42 );  // shut the compiler up!
+}
+
+/*
+** Runs a command applet with the specified argv[0], spawning a new process for
+** the applet. The argv list should be NULL terminated.
+**
+** @param argv	The arguments to pass to the new process (NULL terminated).
+**
+** @return the PID of the new process on success, -1 if the command applet
+** could not be started.
+*/
+int runcmd( char* argv[] ) {
+	int i;
+	//char buf[128];
+
+	/*
+	fputs("Args:\r\n", stdout);
+	for (i = 0; argv[i] != NULL; i++) {
+		fputc('\t', stdout);
+		fputs(argv[i], stdout);
+		fputs("\r\n", stdout);
+	}
+	*/
+
+	for (i = 0; i < consh_num_commands; i++) {
+		if (strcmp(argv[0], consh_commands[i].name) == 0) {
+			return spawn( consh_commands[i].entry, argv );
+		}
+	}
+	
+	return -1;
 }
 
 /*
@@ -1273,7 +1350,6 @@ int userZ( int argc, char *args ) {
 
 int init( int argc, char *args ) {
     int32 whom;
-    char ch = '+';
     static int invoked = 0;
     char buf[128];
     char *argv[MAX_COMMAND_ARGS];
@@ -1289,10 +1365,9 @@ int init( int argc, char *args ) {
     // home up, clear
     swritech( '\x1a' );
     // wait a bit
-    DELAY(STD);
 
     // a bit of Dante to set the mood
-    swrites( "\n\nSpem relinquunt qui huc intrasti!\n\n\r" );
+    swrites( "\n\n\rSpem relinquunt qui huc intrasti!\n\n\r" );
 
     // clear the argument vector
     for( int i = 0; i < MAX_COMMAND_ARGS; ++i ) {
@@ -1314,24 +1389,6 @@ int init( int argc, char *args ) {
     }
     swrites( "Starting Console Shell" );
 #endif
-
-#ifdef SPAWN_V
-    // User V:  kill all children
-    // "main6 V 6 kill"
-    argv[0] = "userV";
-    argv[1] = "V";
-    argv[2] = "6";      // children
-    argv[3] = "kill";   // not just waiting
-    // "kill" is always by PID, so no fourth argument necessary
-    argv[4] = NULL;
-    //whom = spawn( main6, argv );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() user V failed\n" );
-    }
-    swritech( ch );
-#endif
-
-    // Users W through Z are spawned elsewhere
 
     swrites( "!\r\n\n" );
 
@@ -1380,15 +1437,12 @@ int idle( int argc, char *args ) {
     int32 me;
     uint64 now;
     char buf[128];
-    char ch = '.';
     
     me = getpid();
     now = gettime();
 
     sprint( buf, "Idle [%d] started at %d\n", me, (int32) now );
     cwrites( buf );
-
-    write( CHAN_SIO, &ch, 1 );
 
     // idle() should never block - it must always be available
     // for dispatching when we need to pick a new current process
