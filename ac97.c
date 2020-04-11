@@ -22,6 +22,7 @@
 // the one and only ac97 device we will be keeping track of...at the moment
 static AC97Dev dev;
 static AC97BufferDescriptor bdl_array[AC97_BDL_LEN];
+extern const uint32 _binary_winstart_wav_start;
 
 // Detect and configure the ac97 device.
 void _ac97_init(void) {
@@ -57,9 +58,15 @@ void _ac97_init(void) {
         // set up buffer desciptor list using a statically allocated hunk
         __memclr(bdl_array, sizeof(AC97BufferDescriptor) * AC97_BDL_LEN);
         dev.bdl = bdl_array;
+        void *pos = (void *) _binary_winstart_wav_start;
         for (int i = 0; i < AC97_BDL_LEN; ++i) {
             bdl_array[i].pointer = (uint32) _kalloc_page(1);
-            __memclr((void *) bdl_array[i].pointer, AC97_BUFFER_LEN);
+            // What we want to do is clear memory
+            //__memclr((void *) bdl_array[i].pointer, AC97_BUFFER_LEN);
+
+            // but I'm hacking this to play the windows xp startup sound.
+            __memcpy((void *) bdl_array[i].pointer, pos, 4096);
+            pos = (void *)((uint32) pos + 4096);
             bdl_array[i].control |= AC97_BDL_IOC; // set interrupt on completion
 
             // set length in number of 16 bit samples
@@ -72,7 +79,7 @@ void _ac97_init(void) {
 
         // set the last valid index to 2
         // TODO DCB why??
-        dev.lvi = 2;
+        dev.lvi = 30;
         __outb(dev.nabmbar + AC97_PCM_OUT_LVI, dev.lvi);
 
         // determine the number of volume bits this device supports

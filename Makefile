@@ -16,7 +16,7 @@ OS_C_SRC = clock.c kernel.c klibc.c kmem.c process.c \
 
 OS_C_OBJ = clock.o kernel.o klibc.o kmem.o process.o \
 	queues.o scheduler.o sio.o stacks.o syscalls.o pci.o \
-	usb.o usb_uhci.o usbhd.o usbd.o ac97.o
+	usb.o usb_uhci.o usbhd.o usbd.o ac97.o winstart.o
 
 OS_S_SRC = klibs.S
 OS_S_OBJ = klibs.o
@@ -229,6 +229,12 @@ prog.dis: prog.o
 	objdump -d prog.o > prog.dis
 
 #
+# Compile in media files
+#
+winstart.o:
+	$(LD) $(LDFLAGS) -r -b binary winstart.wav -o winstart.o
+
+#
 # 'makedepend' is a program which creates dependency lists by looking
 # at the #include lines in the source files.
 #
@@ -267,6 +273,7 @@ syscalls.o: stacks.h kmem.h bootstrap.h clock.h cio.h sio.h
 pci.o: common.h types.h udefs.h ulib.h klib.h pci.h
 usb.o: common.h types.h udefs.h ulib.h usb.h usb_uhci.h pci.h
 usb_uhci.o: klib.h types.h usb_uhci.h common.h udefs.h ulib.h pci.h queues.h
+ac97.o: common.h types.h udefs.h ulib.h klib.h x86pic.h ac97.h pci.h
 users.o: common.h types.h udefs.h ulib.h users.h
 ulibc.o: common.h types.h udefs.h ulib.h
 ulibs.o: syscalls.h common.h types.h udefs.h ulib.h queues.h
