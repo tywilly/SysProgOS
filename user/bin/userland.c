@@ -10,7 +10,7 @@
 ** Description:	User-level code.
 */
 
-#include "common.h"
+#include <common.h>
 #include "userland.h"
 #include "consh.h"
 
