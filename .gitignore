@@ -61,6 +61,5 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
-# Swap files
+# vim stuff
 *.swp
-
