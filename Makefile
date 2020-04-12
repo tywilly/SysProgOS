@@ -41,7 +41,7 @@ USR_LIBS =
 
 #USR_SRCS = $(USR_C_SRC) $(USR_S_SRC)
 #USR_OBJS = $(USR_C_OBJ) $(USR_S_OBJ)
-USR_SRCS = user
+USR_SRCS = 
 USR_OBJS = user/user.o
 
 #
@@ -252,3 +252,32 @@ depend:
 	makedepend $(INCLUDES) $(SOURCES)
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
+
+bootstrap.o: bootstrap.h
+startup.o: bootstrap.h
+isr_stubs.o: bootstrap.h
+cio.o: cio.h klib.h types.h support.h x86arch.h x86pic.h
+support.o: support.h klib.h types.h cio.h x86arch.h x86pic.h bootstrap.h
+support.o: process.h common.h ./udefs.h ulib.h stacks.h kmem.h queues.h
+clock.o: x86arch.h x86pic.h ./x86pit.h common.h types.h ./udefs.h ulib.h
+clock.o: klib.h clock.h process.h stacks.h kmem.h queues.h bootstrap.h
+clock.o: scheduler.h
+kernel.o: common.h types.h ./udefs.h ulib.h kernel.h x86arch.h process.h
+kernel.o: stacks.h kmem.h queues.h bootstrap.h clock.h syscalls.h cio.h sio.h
+kernel.o: scheduler.h ramdisk.h users.h
+klibc.o: common.h types.h ./udefs.h ulib.h
+kmem.o: common.h types.h ./udefs.h ulib.h klib.h x86arch.h bootstrap.h kmem.h
+kmem.o: cio.h
+process.o: common.h types.h ./udefs.h ulib.h process.h stacks.h kmem.h
+process.o: queues.h bootstrap.h
+queues.o: common.h types.h ./udefs.h ulib.h queues.h process.h stacks.h
+queues.o: kmem.h bootstrap.h
+scheduler.o: common.h types.h ./udefs.h ulib.h scheduler.h
+sio.o: common.h types.h ./udefs.h ulib.h ./uart.h x86arch.h x86pic.h sio.h
+sio.o: queues.h process.h stacks.h kmem.h bootstrap.h scheduler.h kernel.h
+sio.o: klib.h
+stacks.o: common.h types.h ./udefs.h ulib.h stacks.h kmem.h
+syscalls.o: common.h types.h ./udefs.h ulib.h x86arch.h x86pic.h ./uart.h
+syscalls.o: support.h klib.h syscalls.h queues.h scheduler.h process.h
+syscalls.o: stacks.h kmem.h bootstrap.h clock.h cio.h sio.h
+ramdisk.o: types.h cio.h kmem.h common.h ./udefs.h ulib.h klib.h ramdisk.h
