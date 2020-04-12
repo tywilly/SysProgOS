@@ -4,31 +4,23 @@
 #include "klib.h"
 #include "ramdisk.h"
 
-#define MAX_RAMDISKS 8
-
-struct ramdisk_s {
-	bool used;		// Whether or not texit(17);his ramdisk is in use
-	uint8* start;		// The start address
-	unsigned int size;	// The size of the ramdisk in bytes
-};
-
-typedef struct ramdisk_s RamDisk;
-
 static RamDisk disks[MAX_RAMDISKS];
+static RamDisk empty_disk;
 
 /*
-** _rdisk_init()
+** _ramdisk_init()
 **
 ** initialize the ramdisk module
 */
-void _rdisk_init(void) {
+void _ramdisk_init(void) {
 	int i;
 
 	// Initialize all the ramdisks to be empty.
+	empty_disk.used = false;
+	empty_disk.start = NULL;
+	empty_disk.size = 0;
 	for (i = 0; i < MAX_RAMDISKS; i++) {
-		disks[i].used = false;
-		disks[i].start = NULL;
-		disks[i].size = 0;
+		__memcpy(&disks[i], &empty_disk, sizeof(RamDisk));
 	}
 
 	__cio_puts( " RAMDISK" );
@@ -44,10 +36,10 @@ void _rdisk_init(void) {
 **
 ** @return The number of the device created, or -1 if there was an error.
 */
-int _rdisk_create(int disknum, unsigned int size) {
+int _ramdisk_create(int disknum, unsigned int size) {
 	uint32 num_slabs;
 
-	if ( disknum < 0 || disknum >= MAX_RAMDISKS )
+	if ( disknum < -1 || disknum >= MAX_RAMDISKS )
 		return -1;
 
 	// Dynamic device selection
@@ -95,7 +87,7 @@ int _rdisk_create(int disknum, unsigned int size) {
 **
 ** @return The number of the device destroyed, or -1 if there was an error.
 */
-int _rdisk_destroy(int disknum) {
+int _ramdisk_destroy(int disknum) {
 	if ( disknum < 0 || disknum >= MAX_RAMDISKS )
 		return -1;
 	if ( disks[disknum].used == false )
@@ -105,5 +97,22 @@ int _rdisk_destroy(int disknum) {
 	disks[disknum].size = 0;
 	disks[disknum].used = false;
 	return disknum;
+}
+
+/*
+** Gets a copy of the Ramdisk struct for a given ramdisk
+**
+** @param disknum	The number of the ramdisk to get the struct for.
+**
+** @return The struct for the ramdisk, or an empty struct if the ramdisk does
+** not exist.
+*/
+RamDisk _ramdisk_get(int disknum) {
+	if (disknum >= 0 && disknum < MAX_RAMDISKS) {
+		return disks[disknum];
+	}
+	else {
+		return(empty_disk);
+	}
 }
 

@@ -41,7 +41,7 @@ USR_LIBS =
 
 #USR_SRCS = $(USR_C_SRC) $(USR_S_SRC)
 #USR_OBJS = $(USR_C_OBJ) $(USR_S_OBJ)
-USR_SRCS = 
+USR_SRCS = user
 USR_OBJS = user/user.o
 
 #
@@ -165,10 +165,6 @@ LDFLAGS = -melf_i386 -no-pie
 .c.o:
 	$(CC) $(CFLAGS) -c $*.c
 
-.PHONY: user/%
-user/%:
-	make -C user $*
-
 #
 # Targets for remaking bootable image of the program
 #
@@ -212,6 +208,14 @@ BuildImage:	BuildImage.c
 
 Offsets:	Offsets.c
 	$(CC) -mx32 -std=c99 $(INCLUDES) -o Offsets Offsets.c
+
+#
+# Targets for subdirectories
+#
+
+.PHONY: user/user.o
+user/user.o:
+	make -C user
 
 #
 # Clean out this directory

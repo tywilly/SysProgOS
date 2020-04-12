@@ -23,6 +23,7 @@
 #include "cio.h"
 #include "sio.h"
 #include "scheduler.h"
+#include "ramdisk.h"
 
 // need init() and idle() addresses
 #include "users.h"
@@ -152,7 +153,7 @@ void _init( void ) {
     _stk_init();     // stacks
     _sys_init();     // system calls
 
-    _rdisk_init();   // ramdisk
+    _ramdisk_init();   // ramdisk
 
     __cio_puts( "\nModule initialization complete.\n" );
     __cio_puts( "-------------------------------\n" );
