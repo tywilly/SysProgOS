@@ -15,8 +15,10 @@ ifeq ($(USER_TEST),y)
 USR_C_SRC = users.c ulibc.c
 USR_C_OBJ = users.o ulibc.o
 else
-USR_C_SRC = bin/userland.c lib/ulibc.c bin/consh.c
-USR_C_OBJ = bin/userland.o lib/ulibc.o bin/consh.o
+USR_C_SRC = lib/ulibc.c \
+	    bin/userland.c bin/consh.c bin/ramdisk.c
+USR_C_OBJ = lib/ulibc.o \
+	    bin/userland.o bin/consh.o bin/ramdisk.o
 endif
 
 USR_S_SRC = lib/ulibs.S
@@ -134,11 +136,13 @@ depend:
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 
-bin/userland.o: ./include/common.h ./include/types.h ./include/udefs.h
-bin/userland.o: ./include/ulib.h bin/userland.h bin/consh.h
 lib/ulibc.o: ./include/common.h ./include/types.h ./include/udefs.h
 lib/ulibc.o: ./include/ulib.h
+bin/userland.o: ./include/common.h ./include/types.h ./include/udefs.h
+bin/userland.o: ./include/ulib.h bin/userland.h bin/consh.h
 bin/consh.o: ./include/common.h ./include/types.h ./include/udefs.h
-bin/consh.o: ./include/ulib.h bin/consh.h bin/userland.h
+bin/consh.o: ./include/ulib.h bin/consh.h bin/userland.h bin/ramdisk.h
+bin/ramdisk.o: ./include/ulib.h ./include/types.h ./include/kernel/ramdisk.h
+bin/ramdisk.o: bin/ramdisk.h
 lib/ulibs.o: ./include/syscalls.h ./include/common.h ./include/types.h
 lib/ulibs.o: ./include/udefs.h ./include/ulib.h

@@ -2,9 +2,12 @@
 #include "ulib.h"
 #include "consh.h"
 #include "userland.h"
+#include "ramdisk.h"
 
 // Function prototypes
 static int runcmd( char* argv[] );
+static int parse_and_run( char* cmd );
+
 static int consh_help( char* argv[] );
 static int consh_exit( char* argv[] );
 static int consh_getpid( char* argv[] );
@@ -16,6 +19,8 @@ int consh_main( int argc, char* args );
 static int consh_echo( int argc, char* args );
 static int consh_kill( int argc, char* args );
 static int consh_sleep( int argc, char* args );
+
+#define ARRAY_SIZE(x) ((sizeof x) / (sizeof *x))
 
 #define CONSH_LINE_LEN 256
 #define CONSH_MAX_ARGC 32
@@ -37,7 +42,6 @@ struct command_applet {
 
 // An array of built in commands for consh. Add builtins here. Make sure to
 // update consh_num_builtins.
-static const int consh_num_builtins = 4;
 static const struct command_builtin consh_builtins[] = {
 	{"help", consh_help,	"Display a help message."},
 	{"exit", consh_exit,	"Exit the shell."},
@@ -47,16 +51,19 @@ static const struct command_builtin consh_builtins[] = {
 	/*{"getstat", consh_getstat,
 		"Print the exit status of the last process."}*/
 };
+static const int consh_num_builtins = ARRAY_SIZE(consh_builtins);
 
 // An array of command applets for consh. Add commands here. Make sure to
 // update consh_num_applets.
-static const int consh_num_applets = 4;
 static const struct command_applet consh_applets[] = {
 	{"consh", consh_main,	"The interactive console shell."},
 	{"echo", consh_echo,	"Echo the arguments back to stdout."},
 	{"kill", consh_kill,	"Kill the specified process."},
-	{"sleep", consh_sleep,	"Sleep the specified number of milliseconds."}
+	{"sleep", consh_sleep,	"Sleep the specified number of milliseconds."},
+	{"ramdisk", ramdisk_main,
+		"Ramdisk management utility."}
 };
+static const int consh_num_applets = ARRAY_SIZE(consh_applets);
 
 /* Simple console shell
 ** 
@@ -66,8 +73,8 @@ static const struct command_applet consh_applets[] = {
 */
 int consh_main( int argc, char* args) {
 	char buf[CONSH_LINE_LEN];
-	int i, n;
-	char* pargs[CONSH_MAX_ARGC+1];
+	char cmdname[32];
+	int n;
 
 	while(1) {
 		n = readline(consh_prompt, buf, CONSH_LINE_LEN, stdin, stdout);
@@ -77,40 +84,51 @@ int consh_main( int argc, char* args) {
 		if (buf[n] == '\n')
 			buf[n] = '\0';
 
-		// Parse args
-		pargs[0] = buf;
-		for (i = 1; i < CONSH_MAX_ARGC; i++) {
-			pargs[i] = strsplit(pargs[i-1], " \t\n");
-			if (pargs[i] == NULL)
-				break;
-		}
-		pargs[i] = NULL;  // In case we have the max number of args
-		
 		// Run the command
-		n = runcmd(pargs);
+		n = parse_and_run(buf);
+		strsplit(buf, " \t\n");
+		strcpy (cmdname, buf);
 		if ( n < 0 ) {
-			sprint(pargs[1], "Failed to run %s\n", pargs[0]);
-			fputs(pargs[1], stderr);
-			sprint(pargs[1], "%s: command not found. "
+			sprint(buf, "Failed to run %s\n", cmdname);
+			fputs(buf, stderr);
+			sprint(buf, "%s: command not found. "
 					"Run help for a list of commands.\r\n",
-					pargs[0]);
-			fputs(pargs[1], stdout);
+					cmdname);
+			fputs(buf, stdout);
 		}
 		else if ( n != 0 ) {
 			int32 status;
-			sprint(pargs[1], "Started %s as process %d\n",
-					pargs[0], n);
-			fputs(pargs[1], stderr);
+			sprint(buf, "Started %s as process %d\n",
+					cmdname, n);
+			fputs(buf, stderr);
 			wait(n, &status);
-			/*sprint(pargs[1], "%s (%d) exited with status %d\r\n",
-					pargs[0], n, status);
-			fputs(pargs[1], stderr);*/
 		}
 	}
 	
 	exit( 0 );
 	
 	return( 42 );  // shut the compiler up!
+}
+
+/*
+** Parses the cmd into an argv array and then runs it with runcmd.
+**
+** @param args	The argument string to parse
+**
+** @return the return value of runcmd
+*/
+static int parse_and_run( char* cmd ) {
+	char* argv[CONSH_MAX_ARGC+1];
+	int i;
+
+	argv[0] = cmd;
+	for (i = 1; i < CONSH_MAX_ARGC; i++) {
+		argv[i] = strsplit(argv[i-1], " \t\n");
+		if (argv[i] == NULL)
+			break;
+	}
+	argv[i] = NULL;  // In case we have the max number of args
+	return runcmd(argv);
 }
 
 /*
