@@ -30,6 +30,7 @@ static void list(void);
 static void help(void);
 static void create(int disknum, uint32 size);
 static void destroy(int disknum);
+static void test(int disknum);
 
 int ramdisk_main( int argc, char* args ) {
 	int i;
@@ -69,12 +70,21 @@ int ramdisk_main( int argc, char* args ) {
 	}
 	else if (strcmp(argv[1], "destroy") == 0) {
 		if (argc != 3) {
-			fputs("Usage: ramdisk create <device_number>\r\n",
+			fputs("Usage: ramdisk destroy <device_number>\r\n",
 					stdout);
 			exit(1);
 		}
 		int disknum = str2int(argv[2], 10);
 		destroy(disknum);
+	}
+	else if (strcmp(argv[1], "test") == 0) {
+		if (argc != 3) {
+			fputs("Usage: ramdisk test <device_number>\r\n",
+					stdout);
+			exit(1);
+		}
+		int disknum = str2int(argv[2], 10);
+		test(disknum);
 	}
 	else {
 		fputs(	"Usage: ramdisk <subcommand>\r\n"
@@ -95,11 +105,11 @@ static void list(void) {
 	RamDisk r;
 	char buf[64];
 
-	fputs("Number\tUsed\tStart Address\tSize\r\n", stdout);
+	fputs("Number\tUsed\tStart Address\tSize\t\tSeek\r\n", stdout);
 	for (i = 0; i < MAX_RAMDISKS; i++) {
 		r = _ramdisk_get(i);
-		sprint(buf, "%d\t%d\t0x%08x\t0x%08x\r\n",
-				i, r.used, r.start, r.size);
+		sprint(buf, "%d\t%d\t0x%08x\t0x%08x\t%d\r\n",
+				i, r.used, r.start, r.size, r.seek);
 		fputs(buf, stdout);
 	}
 }
@@ -131,5 +141,32 @@ static void destroy(int disknum) {
 
 	sprint(buf, "Destroyed ramdisk %d\r\n", n);
 	fputs(buf, stdout);
+}
+
+static void test(int disknum) {
+	int n;
+	char buf[64];
+	char buf2[64];
+
+	// Test _ramdisk_write
+	fputs("Writing test data 0123456789ABCDEF\r\n", stdout);
+	n = _ramdisk_write(disknum, "0123456789ABCDEF", 16);
+	sprint(buf, "Wrote %d bytes\r\n", n);
+	fputs(buf, stdout);
+
+	// Test _ramdisk_seek
+	fputs("Seeking\r\n", stdout);
+	n = _ramdisk_seek(disknum, SEEK_SET, 0);
+	sprint(buf, "Seeked to offset %d\r\n", n);
+	fputs(buf, stdout);
+
+	// Test _ramdisk_read
+	fputs("Reading test data\r\n", stdout);
+	n = _ramdisk_read(disknum, buf2, 16);
+	buf2[n] = '\0';
+	sprint(buf, "Read %d bytes: %s\r\n", n, buf2);
+	fputs(buf, stdout);
+
+
 }
 

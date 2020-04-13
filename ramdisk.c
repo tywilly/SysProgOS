@@ -19,6 +19,7 @@ void _ramdisk_init(void) {
 	empty_disk.used = false;
 	empty_disk.start = NULL;
 	empty_disk.size = 0;
+	empty_disk.seek = 0;
 	for (i = 0; i < MAX_RAMDISKS; i++) {
 		__memcpy(&disks[i], &empty_disk, sizeof(RamDisk));
 	}
@@ -39,7 +40,8 @@ void _ramdisk_init(void) {
 int _ramdisk_create(int disknum, unsigned int size) {
 	uint32 num_slabs;
 
-	if ( disknum < -1 || disknum >= MAX_RAMDISKS )
+	if ( disknum < -1 || disknum >= MAX_RAMDISKS \
+			|| disks[disknum].used == true)
 		return -1;
 
 	// Dynamic device selection
@@ -88,7 +90,8 @@ int _ramdisk_create(int disknum, unsigned int size) {
 ** @return The number of the device destroyed, or -1 if there was an error.
 */
 int _ramdisk_destroy(int disknum) {
-	if ( disknum < 0 || disknum >= MAX_RAMDISKS )
+	if ( disknum < 0 || disknum >= MAX_RAMDISKS \
+			|| disks[disknum].used == false )
 		return -1;
 	if ( disks[disknum].used == false )
 		return -1;
@@ -97,6 +100,80 @@ int _ramdisk_destroy(int disknum) {
 	disks[disknum].size = 0;
 	disks[disknum].used = false;
 	return disknum;
+}
+
+/*
+** Reads from a Ramdisk
+**
+** @param chan  The number of the disk to write to.
+** @param buf   The buffer to read data in to.
+** @param len   The number of bytes to read.
+**
+** @return The number of bytes read.
+*/
+int _ramdisk_read(int chan, void* buf, uint32 len) {
+	if ( chan < 0 || chan >= MAX_RAMDISKS || disks[chan].used == false )
+		return E_BAD_CHANNEL;
+
+	if ( len + disks[chan].seek >= disks[chan].size )
+		len = disks[chan].size - disks[chan].seek;
+
+	__memcpy( buf, disks[chan].start + disks[chan].seek, len );
+	disks[chan].seek += len;
+	return len;
+}
+
+/*
+** Writes to a Ramdisk
+**
+** @param chan  The number of the disk to write to.
+** @param buf   The buffer containing the data to write.
+** @param len   The length of the data to write.
+**
+** @return The number of bytes written.
+*/
+int _ramdisk_write(int chan, const void* buf, uint32 len) {
+	if ( chan < 0 || chan >= MAX_RAMDISKS || disks[chan].used == false )
+		return E_BAD_CHANNEL;
+
+	if ( len + disks[chan].seek >= disks[chan].size )
+		len = disks[chan].size - disks[chan].seek;
+
+	__memcpy( disks[chan].start + disks[chan].seek, buf, len );
+	disks[chan].seek += len;
+	return len;
+}
+
+/*
+** Moves the seek offset for a Ramdisk
+**
+** @param chan  	The number of the disk to move the offset for.
+** @param offset	The offset from whence to position the seek location.
+** @param whence	The whence to seek relative to (see types.h).
+**
+** @return The resulting offset location as measured  in bytes from the
+** beginning of the file. On error, a negative value is returned, indicating
+** the error type.
+*/
+int _ramdisk_seek(int chan, int offset, int whence) {
+	if ( chan < 0 || chan >= MAX_RAMDISKS || disks[chan].used == false )
+		return E_BAD_CHANNEL;
+
+	switch (whence) {
+		case SEEK_SET:
+			disks[chan].seek = offset;
+			break;
+		case SEEK_CUR:
+			disks[chan].seek += offset;
+			break;
+		case SEEK_END:
+			disks[chan].seek = disks[chan].size + offset;
+			break;
+		default:
+			return E_INVALID;
+	}
+
+	return disks[chan].seek;
 }
 
 /*

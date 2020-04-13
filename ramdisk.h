@@ -19,6 +19,7 @@ struct ramdisk_s {
 	bool used;		// Whether or not texit(17);his ramdisk is in use
 	uint8* start;		// The start address
 	unsigned int size;	// The size of the ramdisk in bytes
+	uint32 seek;		// The current seek offset in bytes
 };
 
 typedef struct ramdisk_s RamDisk;
@@ -50,6 +51,40 @@ int _ramdisk_create(int disknum, unsigned int size);
 ** @return The number of the device destroyed, or -1 if there was an error.
 */
 int _ramdisk_destroy(int disknum);
+
+/*
+** Reads from a Ramdisk
+**
+** @param chan  The number of the disk to write to.
+** @param buf   The buffer to read data in to.
+** @param len   The number of bytes to read.
+**
+** @return The number of bytes read.
+*/
+int _ramdisk_read(int chan, void* buf, uint32 len);
+
+/*
+** Writes to a Ramdisk
+**
+** @param chan  The number of the disk to write to.
+** @param buf   The buffer containing the data to write.
+** @param len   The length of the data to write.
+**
+** @return The number of bytes written.
+*/
+int _ramdisk_write(int chan, const void* buf, uint32 len);
+
+/*
+** Moves the seek offset for a Ramdisk
+**
+** @param chan  	The number of the disk to move the offset for.
+** @param offset	The offset from whence to position the seek location.
+** @param whence	The whence to seek relative to (see types.h).
+**
+** @return The resulting offset location as measured  in bytes from the
+** beginning of the file. On error, the value (off_t) -1 is returned.
+*/
+int _ramdisk_seek(int chan, int offset, int whence);
 
 /*
 ** Gets a copy of the Ramdisk struct for a given ramdisk
