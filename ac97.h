@@ -34,6 +34,7 @@
 #define AC97_PCM_OUT_CR     0x1B    // PCM Output Control Register offset
 #define AC97_PCM_OUT_SR     0x16    // PCM Output Status Register Offset
 #define AC97_PCM_OUT_LVI    0x15    // Last Valid Index
+#define AC97_PCM_OUT_CIV    0x14    // Current Index Value Register
 #define AC97_PCM_OUT_BDBAR  0x10    // PCM Output Buffer Descriptor Base Addr
 
 // PCM Output Status Register Fields
@@ -76,6 +77,9 @@ typedef struct ac97_dev {
     AC97BufferDescriptor *bdl;
     uint8 lvi;  // last valid index
     uint8 vol_bits; // bits of volume this device supports (5 or 6)
+    uint8 head;
+    uint8 tail;
+    uint8 free_buffers;
 } AC97Dev;
 
 /**

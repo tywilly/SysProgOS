@@ -23,9 +23,12 @@
 static AC97Dev dev;
 static AC97BufferDescriptor bdl_array[AC97_BDL_LEN];
 extern const uint32 _binary_winstart_wav_start;
+extern const uint32 _binary_winstart_wav_end;
+void *pos;
 
 // Detect and configure the ac97 device.
 void _ac97_init(void) {
+    pos = (void *) _binary_winstart_wav_start;
     // print out that init is starting
     __cio_puts(" AC97");
     dev.status = AC97_STATUS_OK;
@@ -58,15 +61,9 @@ void _ac97_init(void) {
         // set up buffer desciptor list using a statically allocated hunk
         __memclr(bdl_array, sizeof(AC97BufferDescriptor) * AC97_BDL_LEN);
         dev.bdl = bdl_array;
-        void *pos = (void *) _binary_winstart_wav_start;
         for (int i = 0; i < AC97_BDL_LEN; ++i) {
             bdl_array[i].pointer = (uint32) _kalloc_page(1);
-            // What we want to do is clear memory
-            //__memclr((void *) bdl_array[i].pointer, AC97_BUFFER_LEN);
-
-            // but I'm hacking this to play the windows xp startup sound.
-            __memcpy((void *) bdl_array[i].pointer, pos, 4096);
-            pos = (void *)((uint32) pos + 4096);
+            __memclr((void *) bdl_array[i].pointer, AC97_BUFFER_LEN);
             bdl_array[i].control |= AC97_BDL_IOC; // set interrupt on completion
 
             // set length in number of 16 bit samples
@@ -79,7 +76,7 @@ void _ac97_init(void) {
 
         // set the last valid index to 2
         // TODO DCB why??
-        dev.lvi = 30;
+        dev.lvi = 0;
         __outb(dev.nabmbar + AC97_PCM_OUT_LVI, dev.lvi);
 
         // determine the number of volume bits this device supports
@@ -96,7 +93,13 @@ void _ac97_init(void) {
         }
 
         // prevent deafness
-        _ac97_set_volume(16); // set to ~25%
+        // TODO DCB cause deafness?? (change to about 25% (16) for read hw)
+        _ac97_set_volume(63);
+
+        // index into the BDL
+        dev.head = 0;
+        dev.tail = 0;
+        dev.free_buffers = AC97_NUM_BUFFERS;
 
         // set things to play
         __outb(dev.nabmbar + AC97_PCM_OUT_CR, 
@@ -120,15 +123,53 @@ void _ac97_isr(int vector, int code) {
         return;
     }
 
-    if (status & AC97_PCM_OUT_SR_LVBCI) {
+    if (status & AC97_PCM_OUT_SR_BCIS) {
+        __cio_printf("AC97: BCIS [%02x]\n", status);
+
+        // update the descriptor list
+        uint8 cur_index = __inb(dev.nabmbar + AC97_PCM_OUT_CIV) & 0x1F;
+        __cio_printf("CURRENT INDEX: %x\n", cur_index);
+        while (dev.head != cur_index) {
+            // TODO DCB free head???
+            //__cio_printf("FREED A BUFFER [%d]\n", dev.free_buffers);
+            dev.free_buffers++;
+            if (dev.head == AC97_BDL_LEN - 1) {
+                // end of the list
+                dev.head = 0;
+            } else {
+                // still somewhere in the list
+                dev.head++;
+            }
+        }
+
+        // fill new buffers at the tail of the list
+        while (dev.free_buffers > 0) {
+            dev.free_buffers--;
+            //__cio_printf("GRABBING A NEW BUFFER [%d]\n", dev.free_buffers);
+            dev.tail = ((dev.tail + 1) % AC97_NUM_BUFFERS);
+            //__cio_printf("MOVING TAIL to %d\n", dev.tail);
+
+            // init the new buffer
+            // everything should still be all set from last time it was used
+            // copy data into buffer
+            AC97BufferDescriptor desc = bdl_array[dev.tail];
+            __memcpy((void *) desc.pointer, pos, AC97_BUFFER_LEN);
+            pos = (void *) ((uint32) pos + AC97_BUFFER_LEN);
+            __cio_printf("CONTROL: %08x\n", desc.control);
+            desc.control |= AC97_BDL_IOC; // set interrupt on completion
+
+            dev.lvi = dev.tail;
+            __outb(dev.nabmbar + AC97_PCM_OUT_LVI, dev.lvi);
+            //__cio_printf("SETTING LVI TO %d\n", dev.lvi);
+        }
+    } else if (status & AC97_PCM_OUT_SR_LVBCI) {
         // last valid buffer complete interrupt
-        __cio_printf("AC97: LVBCI [%04x]\n", status);
+        __cio_printf("AC97: LVBCI [%02x]\n", status);
     } else if (status & AC97_PCM_OUT_SR_FIFOE) {
         // fifo error interrupt
-        __cio_printf("AC97: FIFOE [%04x]\n", status);
-    } else if (status & AC97_PCM_OUT_SR_BCIS) {
-        // TODO DCB put more data into buffers
-        __cio_printf("Put more data in buffers...\n");
+        __cio_printf("AC97: FIFOE [%02x]\n", status);
+    } else {
+        __cio_printf("AC97: ignoring interrupt [%02x]\n", status);
     }
 
     // clear DMA halt
