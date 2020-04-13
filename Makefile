@@ -12,11 +12,11 @@
 
 OS_C_SRC = clock.c kernel.c klibc.c kmem.c process.c \
 	queues.c scheduler.c sio.c stacks.c syscalls.c pci.c \
-	usb.c usb_uhci.c usbhd.c usbd.c
+	usb.c usb_uhci.c usbhd.c usbd.c ramdisk.c
 
 OS_C_OBJ = clock.o kernel.o klibc.o kmem.o process.o \
 	queues.o scheduler.o sio.o stacks.o syscalls.o pci.o \
-	usb.o usb_uhci.o usbhd.o usbd.o
+	usb.o usb_uhci.o usbhd.o usbd.o ramdisk.o
 
 OS_S_SRC = klibs.S
 OS_S_OBJ = klibs.o
@@ -26,16 +26,23 @@ OS_LIBS =
 OS_SRCS = $(OS_C_SRC) $(OS_S_SRC)
 OS_OBJS = $(OS_C_OBJ) $(OS_S_OBJ)
 
+ifeq ($(USER_TEST),y)
 USR_C_SRC = users.c ulibc.c
 USR_C_OBJ = users.o ulibc.o
+else
+#USR_C_SRC = userland.c ulibc.c consh.c
+#USR_C_OBJ = userland.o ulibc.o consh.o
+endif
 
-USR_S_SRC = ulibs.S
-USR_S_OBJ = ulibs.o
+#USR_S_SRC = ulibs.S
+#USR_S_OBJ = ulibs.o
 
 USR_LIBS =
 
-USR_SRCS = $(USR_C_SRC) $(USR_S_SRC)
-USR_OBJS = $(USR_C_OBJ) $(USR_S_OBJ)
+#USR_SRCS = $(USR_C_SRC) $(USR_S_SRC)
+#USR_OBJS = $(USR_C_OBJ) $(USR_S_OBJ)
+USR_SRCS = 
+USR_OBJS = user/user.o
 
 #
 # Framework files
@@ -203,6 +210,14 @@ Offsets:	Offsets.c
 	$(CC) -mx32 -std=c99 $(INCLUDES) -o Offsets Offsets.c
 
 #
+# Targets for subdirectories
+#
+
+.PHONY: user/user.o
+user/user.o:
+	make -C user
+
+#
 # Clean out this directory
 #
 
@@ -243,27 +258,26 @@ startup.o: bootstrap.h
 isr_stubs.o: bootstrap.h
 cio.o: cio.h klib.h types.h support.h x86arch.h x86pic.h
 support.o: support.h klib.h types.h cio.h x86arch.h x86pic.h bootstrap.h
-support.o: process.h common.h udefs.h ulib.h stacks.h kmem.h queues.h
-clock.o: x86arch.h x86pic.h ./x86pit.h common.h types.h udefs.h ulib.h klib.h
-clock.o: clock.h process.h stacks.h kmem.h queues.h bootstrap.h scheduler.h
-kernel.o: common.h types.h udefs.h ulib.h kernel.h x86arch.h process.h
+support.o: process.h common.h ./udefs.h ulib.h stacks.h kmem.h queues.h
+clock.o: x86arch.h x86pic.h ./x86pit.h common.h types.h ./udefs.h ulib.h
+clock.o: klib.h clock.h process.h stacks.h kmem.h queues.h bootstrap.h
+clock.o: scheduler.h
+kernel.o: common.h types.h ./udefs.h ulib.h kernel.h x86arch.h process.h
 kernel.o: stacks.h kmem.h queues.h bootstrap.h clock.h syscalls.h cio.h sio.h
-kernel.o: scheduler.h users.h
-klibc.o: common.h types.h udefs.h ulib.h
-kmem.o: common.h types.h udefs.h ulib.h klib.h x86arch.h bootstrap.h kmem.h
+kernel.o: scheduler.h ramdisk.h users.h
+klibc.o: common.h types.h ./udefs.h ulib.h
+kmem.o: common.h types.h ./udefs.h ulib.h klib.h x86arch.h bootstrap.h kmem.h
 kmem.o: cio.h
-process.o: common.h types.h udefs.h ulib.h process.h stacks.h kmem.h queues.h
-process.o: bootstrap.h
-queues.o: common.h types.h udefs.h ulib.h queues.h process.h stacks.h kmem.h
-queues.o: bootstrap.h
-scheduler.o: common.h types.h udefs.h ulib.h scheduler.h
-sio.o: common.h types.h udefs.h ulib.h ./uart.h x86arch.h x86pic.h sio.h
+process.o: common.h types.h ./udefs.h ulib.h process.h stacks.h kmem.h
+process.o: queues.h bootstrap.h
+queues.o: common.h types.h ./udefs.h ulib.h queues.h process.h stacks.h
+queues.o: kmem.h bootstrap.h
+scheduler.o: common.h types.h ./udefs.h ulib.h scheduler.h
+sio.o: common.h types.h ./udefs.h ulib.h ./uart.h x86arch.h x86pic.h sio.h
 sio.o: queues.h process.h stacks.h kmem.h bootstrap.h scheduler.h kernel.h
 sio.o: klib.h
-stacks.o: common.h types.h udefs.h ulib.h stacks.h kmem.h
-syscalls.o: common.h types.h udefs.h ulib.h x86arch.h x86pic.h ./uart.h
+stacks.o: common.h types.h ./udefs.h ulib.h stacks.h kmem.h
+syscalls.o: common.h types.h ./udefs.h ulib.h x86arch.h x86pic.h ./uart.h
 syscalls.o: support.h klib.h syscalls.h queues.h scheduler.h process.h
 syscalls.o: stacks.h kmem.h bootstrap.h clock.h cio.h sio.h
-users.o: common.h types.h udefs.h ulib.h users.h
-ulibc.o: common.h types.h udefs.h ulib.h
-ulibs.o: syscalls.h common.h types.h udefs.h ulib.h queues.h
+ramdisk.o: types.h cio.h kmem.h common.h ./udefs.h ulib.h klib.h ramdisk.h

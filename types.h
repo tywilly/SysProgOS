@@ -67,6 +67,9 @@ typedef uint64 Time;
 
 typedef int Status;
 
+// NULL pointer
+#define NULL 0
+
 // Error return values
 
 #define SUCCESS         (0)
@@ -84,6 +87,14 @@ typedef int Status;
 #define E_NO_MEMORY     (-10)
 #define E_PARAM         (-11)
 #define E_SPACE         (-12)
+
+// Seek whence defines
+// The file offset is set to offset bytes.
+#define SEEK_SET	(0)
+// The  file  offset  is  set  to  its current location plus offset bytes.
+#define SEEK_CUR	(1)
+// The file offset is set to the  size  of  the  file  plus  offset bytes.
+#define SEEK_END	(2)
 
 #endif
 
