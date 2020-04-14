@@ -32,6 +32,10 @@
 /*
 ** Globals
 */
+#define NULL 0
+#define stdin CHAN_SIO
+#define stdout CHAN_SIO
+#define stderr CHAN_CONS
 
 /*
 ** Prototypes
@@ -308,6 +312,18 @@ char *strcat( register char *dst, register const char *src );
 int strcmp( register const char *s1, register const char *s2 );
 
 /*
+** Splits the string s at the first occurrance of a character in the delim
+** string, replacing the delimiter with a null byte.
+**
+** @param s	The string to parse
+** @param delim	A character array of delimiters to split at
+**
+** @return A pointer to the beginning of the rest of the string after after the
+** delimiter, or NULL if no delimiters were found.
+*/
+char* strsplit (char* s, const char* delim);
+
+/*
 ** pad(dst,extra,padchar) - generate a padding string
 **
 ** @param dst     Pointer to where the padding should begin
@@ -354,6 +370,68 @@ char *padstr( char *dst, char *str, int len, int width,
 ** 32-bit values).
 */
 void sprint( char *dst, char *fmt, ... );
+
+/* 
+** Writes the character c to stream.
+**
+** @param c	The character to write
+** @param chan	The channel to write the character to
+**
+** @return The character written on success, -1 on error.
+*/
+int fputc(char c, int chan);
+
+/* 
+** Writes the null terminated string s to stream.
+**
+** @param s	A pointer to the null terimnated string to write. 
+** @param chan	The channel to write the character to
+**
+** @return The number of characters written.
+*/
+int fputs(const char* s, int chan);
+
+/* 
+** Reads the next character from a channel, cast the result to an int.
+**
+** @param chan	The channel to read the character from
+**
+** @return The character read cast to an int on success, -1 on error.
+*/
+int fgetc(int chan);
+
+/* 
+** Reads in at most one less than size characters from stream and
+** stores them into the buffer pointed to by s.  Reading  stops  after  an
+** EOF  or a newline.  If a newline is read, it is stored into the buffer.
+** A terminating null byte ('\0') is stored after the  last  character  in
+** the buffer.
+**
+** @param s	The buffer to read the string into
+** @param size	The maximum number of characters to read
+** @param chan	The channel to read the character from
+**
+** @return s on success, and NULL on error or EOF.
+*/
+char* fgets(char* s, int size, int chan);
+
+/*
+** Gets a line with user editing, saving it to buf and null terminating it.
+** Reads until one of the following happens: size-1 characters are read, a '\n'
+** is read, or EOF.
+**
+** @param prompt	The prompt to display at the beginning of the line. If
+**			this is NULL or an empty string, no prompt will be
+**			printed.
+** @param buf		The buffer to save the read string to.
+** @param size		The size of buffer. At most, size-1 characters will be
+**			read.
+** @param chanin	The channel to read input from
+** @param chanout	The channel to write output to
+**
+** @return The number of characters read.
+*/
+int readline(const char* prompt, char* buf, int size, int chanin, int chanout);
 
 /*
 **********************************************

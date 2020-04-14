@@ -250,6 +250,30 @@ int strcmp( register const char *s1, register const char *s2 ) {
     return( *(const unsigned char *)s1 - *(const unsigned char *)s2 );
 }
 
+/*
+** Splits the string s at the first occurrance of a character in the delim
+** string, replacing the delimiter with a null byte.
+**
+** @param s	The string to parse
+** @param delim	A character array of delimiters to split at
+**
+** @return A pointer to the beginning of the rest of the string after after the
+** delimiter, or NULL if no delimiters were found.
+*/
+char* strsplit (char* s, const char* delim) {
+	int i, j;
+	int numdelim = strlen(delim);
+	for (i = 0; i < strlen(s); i++) {
+		for (j = 0; j < numdelim; j++) {
+			if ( s[i] == delim[j] ) {
+				s[i] = '\0';
+				return &s[i+1];
+			}
+		}
+	}
+	return NULL;
+}
+
 
 /*
 ** pad(dst,extra,padchar) - generate a padding string
@@ -401,7 +425,7 @@ void sprint( char *dst, char *fmt, ... ) {
                 break;
 
             case 'x':
-                len = cvt_hex( buf, *ap++ ) + 2;
+                len = cvt_hex( buf, *ap++ );
                 dst = padstr( dst, buf, len, width, leftadjust, padchar );
                 break;
 
@@ -420,6 +444,131 @@ void sprint( char *dst, char *fmt, ... ) {
     // NUL-terminate the result
     *dst = '\0';
 }
+
+/* 
+** Writes the character c to stream.
+**
+** @param c	The character to write
+** @param chan	The channel to write the character to
+**
+** @return The character written on success, -1 on error.
+*/
+int fputc(char c, int chan) {
+	return write(chan, &c, 1);
+}
+
+/* 
+** Writes the null terminated string s to stream.
+**
+** @param s	A pointer to the null terimnated string to write. 
+** @param chan	The channel to write the character to
+**
+** @return The number of characters written.
+*/
+int fputs(const char* s, int chan) {
+	return write(chan, s, strlen(s));
+}
+
+/* 
+** Reads the next character from a channel, cast the result to an int.
+**
+** @param chan	The channel to read the character from
+**
+** @return The character read cast to an int on success, -1 on error.
+*/
+int fgetc(int chan) {
+	char c;
+	int stat;
+	stat = read(chan, &c, 1);
+	if (stat != 1)
+		return -1;
+	return (int) c;
+}
+
+/* 
+** Reads in at most one less than size characters from stream and
+** stores them into the buffer pointed to by s.  Reading  stops  after  an
+** EOF  or a newline.  If a newline is read, it is stored into the buffer.
+** A terminating null byte ('\0') is stored after the  last  character  in
+** the buffer.
+**
+** @param s	The buffer to read the string into
+** @param size	The maximum number of characters to read
+** @param chan	The channel to read the character from
+**
+** @return s on success, and NULL on error or EOF.
+*/
+char* fgets(char* s, int size, int chan) {
+	int i;
+	int stat;
+	char c;
+	for (i = 0; i < size - 1; i++) {
+		stat = read(chan, &c, 1);
+		if (stat != 1) {
+			s[i] = '\0';
+			return NULL;
+		}
+		s[i] = c;
+	}
+	s[i] = '\0';
+	return s;
+}
+
+/*
+** Gets a line with user editing, saving it to buf and null terminating it.
+** Reads until one of the following happens: size-1 characters are read, a '\n'
+** is read, or EOF.
+**
+** @param prompt	The prompt to display at the beginning of the line. If
+**			this is NULL or an empty string, no prompt will be
+**			printed.
+** @param buf		The buffer to save the read string to.
+** @param size		The size of buffer. At most, size-1 characters will be
+**			read.
+** @param chanin	The channel to read input from
+** @param chanout	The channel to write output to
+**
+** @return The number of characters read.
+*/
+int readline(const char* prompt, char* buf, int size, int chanin, int chanout) {
+	int i;
+
+	if (prompt != NULL && prompt[0] != '\0')
+		fputs(prompt, chanout);
+
+	for (i = 0; i < size; i++) {
+		int n;
+		char c; 
+		n = fgetc(chanin);
+
+		if (n == -1) {
+			buf[i] = '\0';
+			return i;
+		}
+
+		c = (char) n;
+		switch (c) {
+			case '\n':
+				buf[i] = '\n';
+				buf[i+1] = '\0';
+				fputc('\n', chanout);
+				return i;
+			// Delete character (backspace on serial terminals)
+			case 0x7f:
+				if (i == 0) break;
+				i-=2;
+				fputs("\b \b", chanout);
+				break;
+			default:
+				fputc(c, chanout);
+				buf[i] = c;
+		}
+	}
+
+	buf[i] = '\0';
+	return i;
+}
+
 
 /*
 **********************************************
