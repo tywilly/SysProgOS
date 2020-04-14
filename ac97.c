@@ -171,10 +171,15 @@ void _ac97_isr(int vector, int code) {
 
     // status registers are clear-on-write
     // Don't write to the DMA halt bit--it's read only
-    __outw(dev.nabmbar + AC97_PCM_OUT_SR, status & 0x1E);
+    __outw(dev.nabmbar + AC97_PCM_OUT_SR, status & 0x1C);
 
     // acknowledge interrupt
-    __outb(PIC_MASTER_CMD_PORT, PIC_EOI);
+    if (vector >= 0x20 && vector < 0x30) {
+        __outb(PIC_MASTER_CMD_PORT, PIC_EOI);
+        if (vector > 0x27) {
+            __outb(PIC_SLAVE_CMD_PORT, PIC_EOI);
+        }
+    }
 }
 
 void _ac97_set_volume(uint8 vol) {
