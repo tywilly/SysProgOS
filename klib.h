@@ -75,6 +75,16 @@ void __memcpy( void *dst, register const void *src,
                register unsigned int len );
 
 /*
+** __str2int(str,base) - convert a string to a number in the specified base
+**
+** @param str   The string to examine
+** @param base  The radix to use in the conversion
+**
+** @returns The converted integer
+*/
+int __str2int( register const char *str, register int base );
+
+/*
 ** Name:        __strlen
 **
 ** Description: Calculate the length of a C-style string.
@@ -96,6 +106,18 @@ unsigned int __strlen( register const char *str );
 ** @returns < 0 if s1 < s2; 0 if equal; > 0 if s1 > s2
 */
 int __strcmp( register const char *s1, register const char *s2 );
+
+/*
+** Splits the string s at the first occurrance of a character in the delim
+** string, replacing the delimiter with a null byte.
+**
+** @param s     The string to parse
+** @param delim A character array of delimiters to split at
+**
+** @return A pointer to the beginning of the rest of the string after after the
+** delimiter, or NULL if no delimiters were found.
+*/
+char* __strsplit( char* s, const char* delim );
 
 /*
 ** Name:        __strcpy

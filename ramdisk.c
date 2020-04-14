@@ -1,8 +1,8 @@
-#include "types.h"
-#include "cio.h"
-#include "kmem.h"
-#include "klib.h"
-#include "ramdisk.h"
+#include <types.h>
+#include <cio.h>
+#include <kmem.h>
+#include <klib.h>
+#include <ramdisk.h>
 
 static RamDisk disks[MAX_RAMDISKS];
 static RamDisk empty_disk;

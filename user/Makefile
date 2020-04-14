@@ -16,9 +16,9 @@ USR_C_SRC = users.c ulibc.c
 USR_C_OBJ = users.o ulibc.o
 else
 USR_C_SRC = lib/ulibc.c \
-	    bin/userland.c bin/consh.c bin/ramdisk.c
+	    bin/userland.c bin/consh.c bin/ramdisk.c bin/fileutils.c
 USR_C_OBJ = lib/ulibc.o \
-	    bin/userland.o bin/consh.o bin/ramdisk.o
+	    bin/userland.o bin/consh.o bin/ramdisk.o bin/fileutils.o
 endif
 
 USR_S_SRC = lib/ulibs.S
