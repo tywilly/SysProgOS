@@ -3,6 +3,7 @@
 #include "consh.h"
 #include "userland.h"
 #include "ramdisk.h"
+#include "fileutils.h"
 
 // Function prototypes
 static int runcmd( char* argv[] );
@@ -56,12 +57,14 @@ static const int consh_num_builtins = ARRAY_SIZE(consh_builtins);
 // An array of command applets for consh. Add commands here. Make sure to
 // update consh_num_applets.
 static const struct command_applet consh_applets[] = {
+	{"cat", cat_main,	"Print the contents of a file."},
 	{"consh", consh_main,	"The interactive console shell."},
 	{"echo", consh_echo,	"Echo the arguments back to stdout."},
 	{"kill", consh_kill,	"Kill the specified process."},
 	{"sleep", consh_sleep,	"Sleep the specified number of milliseconds."},
 	{"ramdisk", ramdisk_main,
-		"Ramdisk management utility."}
+		"Ramdisk management utility."},
+	{"write", write_main,	"Write a string to a file."}
 };
 static const int consh_num_applets = ARRAY_SIZE(consh_applets);
 

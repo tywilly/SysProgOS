@@ -24,6 +24,7 @@
 #include "sio.h"
 #include "scheduler.h"
 #include "ramdisk.h"
+#include "fs.h"
 #include "pci.h"
 #include "usb.h"
 
@@ -157,7 +158,8 @@ void _init( void ) {
     _pci_init();     // PCI
     _usb_init();     // USB
 
-    _ramdisk_init();   // ramdisk
+    _ramdisk_init(); // ramdisk
+    _fs_init();	     // filesystem
 
     __cio_puts( "\nModule initialization complete.\n" );
     __cio_puts( "-------------------------------\n" );

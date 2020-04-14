@@ -13,6 +13,8 @@
 #ifndef _RAMDISK_H_
 #define _RAMDISK_H_
 
+#include <types.h>
+
 #define MAX_RAMDISKS 8
 
 struct ramdisk_s {
@@ -55,7 +57,7 @@ int _ramdisk_destroy(int disknum);
 /*
 ** Reads from a Ramdisk
 **
-** @param chan  The number of the disk to write to.
+** @param chan  The number of the disk to read from.
 ** @param buf   The buffer to read data in to.
 ** @param len   The number of bytes to read.
 **
