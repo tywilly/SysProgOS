@@ -9,6 +9,7 @@
 
 #define FILE_MODE_READ		(0x1)
 #define FILE_MODE_WRITE		(0x2)
+#define FILE_MODE_APPEND	(0x4)
 
 typedef struct file_s {
 	char path[MAX_PATH_LEN];
@@ -20,7 +21,7 @@ typedef struct vfs_driver_s {
 	int(*write)(int,int,const void*,uint32);
 	int(*read)(int,int,void*,uint32);
 	int(*lseek)(int,int,int,int);
-	int(*open)(int,const char*,int);
+	int(*open)(int,int,const char*,int);
 	int(*close)(int);
 	//int(*unlink)(const char*);
 	//int(*getfiles)(const char*,File*,uint32);

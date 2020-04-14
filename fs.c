@@ -8,21 +8,30 @@
 #define MAX_DRIVES 27
 
 typedef struct filesystem {
-	bool used;
+	bool open;
 	char devname[MAX_PATH_LEN];
 	FsDriver driver;
 	int chan;
 } FileSystem;
 
 typedef struct open_file {
-	bool used;
+	bool open;
 	uint8 mode;
-	int drv_fd;
-	FileSystem fs;
+	FileSystem* fs;
 } OpenFile;
 
 static FileSystem fs[MAX_DRIVES];
 static OpenFile ofs[MAX_FILES];
+
+/* Gets the next OpenFile. */
+static int get_next_unopen_file(void) {
+	int i;
+	for ( i = 0; i < MAX_FILES; i++ ) {
+		if ( ofs[i].open == false )
+			return i;
+	}
+	return -1;
+}
 
 void _fs_init(void) {
 	__memset(fs, sizeof(fs), 0);
@@ -49,13 +58,13 @@ void _fs_init(void) {
 ** @return 0 on success, a negative value on error.
 */
 int _fs_map(uint8 drivenum, char* devname, FsDriver* driver, int chan) {
-	if ( drivenum > MAX_DRIVES || fs[drivenum].used == true )
+	if ( drivenum > MAX_DRIVES || fs[drivenum].open == true )
 		return E_BAD_CHANNEL;
 
 	__strcpy( fs[drivenum].devname, devname );
 	__memcpy( &fs[drivenum].driver, driver, sizeof(FsDriver) );
 	fs[drivenum].chan = chan;
-	fs[drivenum].used = true;
+	fs[drivenum].open = true;
 
 	return 0;
 }
@@ -69,7 +78,7 @@ void _fs_print(void) {
 
 	__cio_puts( "Drive | Driver | Channel | Device Name\n");
 	for ( i = 0; i < MAX_DRIVES; i++ ) {
-		if ( fs[i].used == true ) {
+		if ( fs[i].open == true ) {
 			__sprint( buf, "%c/ | %s | %d | \n",
 					i + 64,
 					fs[i].driver.name,
@@ -123,7 +132,44 @@ int _fs_seek(int fd, int offset, int whence) { return -1; }
 ** @return The file descriptor if open was successful, or a negative value if
 ** the open operation failed.
 */
-int _fs_open(const char* path, int mode) { return -1; }
+int _fs_open(const char* path, int mode) {
+        int fd;
+	int fs_num;
+        char fs_name[MAX_PATH_LEN];
+        char* fs_path;
+
+        // Get an fd
+        fd = get_next_unopen_file();
+        if ( fd < 0 )
+                return E_NO_MEMORY;
+
+        // Parse and convert the options
+        __strcpy( fs_name, path );
+        fs_path = __strsplit( fs_name, "/" );
+        if ( fs_name[0] < 64 || fs_name[0] >= MAX_DRIVES + 64 
+			|| fs_name[1] != '\0') 
+		return E_PARAM;
+	fs_num = fs_name[0] - 64;
+
+	// Open the file
+	if ( fs[fs_num].driver.open(fs[fs_num].chan, fd, fs_path, mode) < 0 )
+		return E_BAD_CHANNEL;
+
+	// Seek to the requested offset
+	if ( mode & FILE_MODE_APPEND ) {
+		mode |= FILE_MODE_WRITE;
+		fs[fs_num].driver.lseek(fs[fs_num].chan, fd, 0, SEEK_END);
+	}
+	else if ( ( mode & FILE_MODE_WRITE ) || ( mode & FILE_MODE_READ ) ) {
+		fs[fs_num].driver.lseek(fs[fs_num].chan, fd, 0, SEEK_SET);
+	}
+
+        // Set the fd and return
+        ofs[fd].open = true;
+        ofs[fd].fs = &fs[fs_num];
+        ofs[fd].mode = mode;
+        return fd;
+}
 
 /*
 ** Closes a file.

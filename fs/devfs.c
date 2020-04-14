@@ -46,16 +46,6 @@ static DeviceClass* get_device_class(const char* name) {
 	return NULL;
 }
 
-/* Gets the next unused DevFile. */
-static int get_next_unused_devfile(void) {
-	int i;
-	for ( i = 0; i < MAX_FILES; i++ ) {
-		if ( ofs[i].used == false )
-			return i;
-	}
-	return -1;
-}
-
 void _devfs_init(void) {
 	FsDriver driver;
 
@@ -100,16 +90,14 @@ int _devfs_lseek(int chan, int fd, int offset, int whence) {
 	return ofs[fd].driver->lseek( ofs[fd].chan, offset, whence );
 }
 
-int _devfs_open(int chan, const char* path, int mode) {
-	int fd;
+int _devfs_open(int chan, int fd, const char* path, int mode) {
 	char dev_class_name[MAX_PATH_LEN];
 	char* dev_number;
 	DeviceClass* dev_class;
 	int dev_chan;
 
-	// Get an fd
-	fd = get_next_unused_devfile();
-	if ( fd < 0 )
+	// Check the fd
+	if ( fd < 0 || fd >= MAX_FILES || ofs[fd].used == true )
 		return -1;
 
 	// Parse and convert the options
