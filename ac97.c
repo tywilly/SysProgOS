@@ -38,15 +38,13 @@ void _ac97_init(void) {
                                          AC97_PCI_CLASS, AC97_PCI_SUBCL);
 
     if (pci_dev != 0) {
+        dev.pci_dev = pci_dev;
         // keep track of the pci device's base address registers
         dev.nambar = pci_dev->bar0 & ~((uint32) 1);
         dev.nabmbar = pci_dev->bar1 & ~((uint32) 1);
 
         // install ac97 interrupt service routine
-        __cio_printf("\nPCI Reported Interrupt: %02x\n", pci_dev->interrupt);
-        __cio_printf("Actual Interrupt PIN:   %02x\n", _pci_config_read8(pci_dev, 0x3D));
-        __cio_printf("Actual Interrupt LINE:  %02x\n", _pci_config_read8(pci_dev, 0x3C));
-        __install_isr(43, _ac97_isr); // TODO DCB why is this 43?
+        __install_isr(pci_dev->interrupt + PIC_EOI, _ac97_isr);
 
         // enable ac97 interrupts
         // Write to PCM Out Control Register with FIFO Error Interrupt Enable,
@@ -74,11 +72,6 @@ void _ac97_init(void) {
         // inform the ICH where the BDL lives
         __outl(dev.nabmbar + AC97_PCM_OUT_BDBAR, (uint32) dev.bdl);
 
-        // set the last valid index to 2
-        // TODO DCB why??
-        dev.lvi = 0;
-        __outb(dev.nabmbar + AC97_PCM_OUT_LVI, dev.lvi);
-
         // determine the number of volume bits this device supports
         // write 6 bits to the volume
         // 0x2020 sets the left and right levels with a 1 in the 6th bit posn.
@@ -96,6 +89,12 @@ void _ac97_init(void) {
         // TODO DCB cause deafness?? (change to about 25% (16) for read hw)
         _ac97_set_volume(63);
 
+
+        // set the last valid index to 2
+        // TODO DCB why??
+        dev.lvi = 0;
+        __outb(dev.nabmbar + AC97_PCM_OUT_LVI, dev.lvi);
+
         // index into the BDL
         dev.head = 0;
         dev.tail = 0;
@@ -112,11 +111,12 @@ void _ac97_init(void) {
         // indicate that init didn't work
         __cio_putchar('!');
     }
+
+    _ac97_status();
 }
 
 // ac97 interrupt service routine
 void _ac97_isr(int vector, int code) {
-    __cio_printf("\n\nAC97 ISR!!\n\n");
     uint16 status = __inw(dev.nabmbar + AC97_PCM_OUT_SR);
 
     if (status == 0) {
@@ -126,27 +126,25 @@ void _ac97_isr(int vector, int code) {
     if (status & AC97_PCM_OUT_SR_BCIS) {
         __cio_printf("AC97: BCIS [%02x]\n", status);
 
-        // update the descriptor list
-        uint8 cur_index = __inb(dev.nabmbar + AC97_PCM_OUT_CIV) & 0x1F;
-        __cio_printf("CURRENT INDEX: %x\n", cur_index);
+        uint8 cur_index = __inb(dev.nabmbar + AC97_PCM_OUT_CIV);
+        // mark buffers before cur_index as free
         while (dev.head != cur_index) {
             // TODO DCB free head???
-            //__cio_printf("FREED A BUFFER [%d]\n", dev.free_buffers);
             dev.free_buffers++;
-            if (dev.head == AC97_BDL_LEN - 1) {
-                // end of the list
-                dev.head = 0;
-            } else {
-                // still somewhere in the list
-                dev.head++;
+            if (dev.head != dev.tail) {
+                dev.head = ((dev.head + 1) % AC97_BDL_LEN);
             }
         }
 
         // fill new buffers at the tail of the list
         while (dev.free_buffers > 0) {
-            dev.free_buffers--;
             //__cio_printf("GRABBING A NEW BUFFER [%d]\n", dev.free_buffers);
-            dev.tail = ((dev.tail + 1) % AC97_NUM_BUFFERS);
+            dev.free_buffers--;
+            if (!(dev.head == dev.tail && dev.free_buffers == AC97_BDL_LEN - 1)) {
+                // don't advance the tail
+                dev.tail = ((dev.tail + 1) % AC97_BDL_LEN);
+            }
+
             //__cio_printf("MOVING TAIL to %d\n", dev.tail);
 
             // init the new buffer
@@ -155,12 +153,11 @@ void _ac97_isr(int vector, int code) {
             AC97BufferDescriptor desc = bdl_array[dev.tail];
             __memcpy((void *) desc.pointer, pos, AC97_BUFFER_LEN);
             pos = (void *) ((uint32) pos + AC97_BUFFER_LEN);
-            __cio_printf("CONTROL: %08x\n", desc.control);
+            //__cio_printf("CONTROL: %08x\n", desc.control);
             desc.control |= AC97_BDL_IOC; // set interrupt on completion
 
             dev.lvi = dev.tail;
             __outb(dev.nabmbar + AC97_PCM_OUT_LVI, dev.lvi);
-            //__cio_printf("SETTING LVI TO %d\n", dev.lvi);
         }
     } else if (status & AC97_PCM_OUT_SR_LVBCI) {
         // last valid buffer complete interrupt
@@ -172,8 +169,9 @@ void _ac97_isr(int vector, int code) {
         __cio_printf("AC97: ignoring interrupt [%02x]\n", status);
     }
 
-    // clear DMA halt
-    __outw(dev.nabmbar + AC97_PCM_OUT_SR, status & ~(AC97_PCM_OUT_SR_DCH));
+    // status registers are clear-on-write
+    // Don't write to the DMA halt bit--it's read only
+    __outw(dev.nabmbar + AC97_PCM_OUT_SR, status & 0x1E);
 
     // acknowledge interrupt
     __outb(PIC_MASTER_CMD_PORT, PIC_EOI);
@@ -217,6 +215,19 @@ uint8 _ac97_scale(uint8 value, uint8 max_bits, uint8 target_max_bits) {
     return (value) * ((1 << target_max_bits)) / ((1 << max_bits));
 }
 
-uint16 _ac97_status(void) {
-    return __inw(dev.nabmbar + AC97_PCM_OUT_SR);
+void _ac97_status(void) {
+    __cio_printf("\n== AC97 Status ==\n");
+    __cio_printf(" |  PCM OUT SR[16]:     %08x\n", __inw(dev.nabmbar + 0x16));
+    __cio_printf(" |  PCM OUT CR[8]:      %08x\n", __inb(dev.nabmbar + 0x1B));
+    __cio_printf(" |  PCM OUT CIV[5]:     %08x\n", __inb(dev.nabmbar + 0x14));
+    __cio_printf(" |  PCM OUT LVI[5]:     %08x\n", __inb(dev.nabmbar + 0x15));
+    __cio_printf(" |  PCM OUT PIV[5]:     %08x\n", __inb(dev.nabmbar + 0x1A));
+    __cio_printf(" |  PCM OUT PICB[16]:   %08x\n", __inw(dev.nabmbar + 0x18));
+    __cio_printf(" |  GLOB CONTORL[32]:   %08x\n", __inl(dev.nabmbar + 0x2C));
+    __cio_printf(" |  GLOB STATUS[32]:    %08x\n", __inl(dev.nabmbar + 0x30));
+    __cio_printf(" |  PCI Status[16]:     %08x\n", _pci_config_read16(dev.pci_dev, 0x6));
+    __cio_printf(" |  Free Buffers:          %02d/32\n", dev.free_buffers);
+    __cio_printf(" |  Head Index:               %02d\n", dev.head);
+    __cio_printf(" |  Tail Index:               %02d\n", dev.tail);
+    __cio_printf("== AC97 Status ==\n");
 }

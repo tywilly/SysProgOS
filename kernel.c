@@ -321,6 +321,11 @@ void _shell( int ch ) {
 
             _usb_status();
             break;
+
+        case 'm':
+            _ac97_status();
+            break;
+            
         default:
             __cio_printf( "shell: unknown request '0x%02x'\n", ch );
 

@@ -71,6 +71,7 @@ typedef struct buffer_descriptor_s {
   * Store everything we know about the ac97 device.
   */
 typedef struct ac97_dev {
+    PCIDev *pci_dev;
     uint8 status;
     uint16 nabmbar;
     uint16 nambar;
@@ -111,5 +112,5 @@ uint8 _ac97_scale(uint8 value, uint8 max_bits, uint8 target_max_bits);
   */
 uint8 _ac97_get_volume(void);
 
-uint16 _ac97_status(void);
+void _ac97_status(void);
 #endif
