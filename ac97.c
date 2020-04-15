@@ -22,13 +22,13 @@
 // the one and only ac97 device we will be keeping track of...at the moment
 static AC97Dev dev;
 static AC97BufferDescriptor bdl_array[AC97_BDL_LEN];
-extern const uint32 _binary_winstart_wav_start;
-extern const uint32 _binary_winstart_wav_end;
+extern const char _binary_winstart_wav_start;
+extern const char _binary_winstart_wav_end;
 void *pos;
 
 // Detect and configure the ac97 device.
 void _ac97_init(void) {
-    pos = (void *) _binary_winstart_wav_start;
+    pos = (void *) &_binary_winstart_wav_start;
     // print out that init is starting
     __cio_puts(" AC97");
     dev.status = AC97_STATUS_OK;
@@ -42,6 +42,18 @@ void _ac97_init(void) {
         // keep track of the pci device's base address registers
         dev.nambar = pci_dev->bar0 & ~((uint32) 1);
         dev.nabmbar = pci_dev->bar1 & ~((uint32) 1);
+
+        // enable variable rate PCM audio mode
+        uint16 ext = __inw(dev.nambar + AC97_EXT_AUDIO_CR);
+        __outw(dev.nambar + AC97_EXT_AUDIO_CR, ext | AC97_PCM_VRA_EN);
+
+        // set sample rate to 8khz (low quality, but smallish file size)
+        // TODO DCB do I really need to set every DAC and an ADC??
+        __outw(dev.nambar + AC97_PCM_FR_DAC_RATE, AC97_SAMPLE_RATE_8K);
+        __outw(dev.nambar + AC97_PCM_SUR_DAC_RATE, AC97_SAMPLE_RATE_8K);
+        __outw(dev.nambar + AC97_PCM_LFE_DAC_RATE, AC97_SAMPLE_RATE_8K);
+        __outw(dev.nambar + AC97_PCM_LR_ADC_RATE, AC97_SAMPLE_RATE_8K);
+        dev.splrate = AC97_SAMPLE_RATE_8K;
 
         // install ac97 interrupt service routine
         __install_isr(pci_dev->interrupt + PIC_EOI, _ac97_isr);
@@ -111,8 +123,6 @@ void _ac97_init(void) {
         // indicate that init didn't work
         __cio_putchar('!');
     }
-
-    _ac97_status();
 }
 
 // ac97 interrupt service routine
@@ -153,7 +163,6 @@ void _ac97_isr(int vector, int code) {
             AC97BufferDescriptor desc = bdl_array[dev.tail];
             __memcpy((void *) desc.pointer, pos, AC97_BUFFER_LEN);
             pos = (void *) ((uint32) pos + AC97_BUFFER_LEN);
-            //__cio_printf("CONTROL: %08x\n", desc.control);
             desc.control |= AC97_BDL_IOC; // set interrupt on completion
 
             dev.lvi = dev.tail;
@@ -234,5 +243,6 @@ void _ac97_status(void) {
     __cio_printf(" |  Free Buffers:          %02d/32\n", dev.free_buffers);
     __cio_printf(" |  Head Index:               %02d\n", dev.head);
     __cio_printf(" |  Tail Index:               %02d\n", dev.tail);
+    __cio_printf(" |  Sample Rate:        %05d Hz\n", dev.splrate);
     __cio_printf("== AC97 Status ==\n");
 }

@@ -21,10 +21,17 @@
 #define AC97_PCI_CLASS  0x04    // Multimedia Controller
 #define AC97_PCI_SUBCL  0x01    // Multimedia Audio Controller
 
-#define AC97_MUTE       0x8000  // Set bit 15 to mute
+#define AC97_MUTE           0x8000  // Set bit 15 to mute
+#define AC97_SAMPLE_RATE_8K 8000    // bad quality, but small file size
 
 // Register Offsets from Native Audio Mixer Base Address Register
-// TODO DCB none yet...
+#define AC97_EXT_AUDIO_CR       0x2A // Extended Audio Control/Status Register
+#define AC97_PCM_FR_DAC_RATE    0x2C // PCM Front DAC Rate
+#define AC97_PCM_SUR_DAC_RATE   0x2E // PCM Surround DAC Rate
+#define AC97_PCM_LFE_DAC_RATE   0x30 // PCM LFE DAC Rate
+#define AC97_PCM_LR_ADC_RATE    0x32 // PCM Left/Right ADC Sample Rate
+
+#define AC97_PCM_VRA_EN         (1 << 0)    // Enable PCM Variable Rate Audio
 
 // Mixer IO Port Offsets
 #define AC97_PCM_OUT_VOLUME 0x18    // PCM Output Volume
@@ -81,6 +88,7 @@ typedef struct ac97_dev {
     uint8 head;
     uint8 tail;
     uint8 free_buffers;
+    uint16 splrate;
 } AC97Dev;
 
 /**
