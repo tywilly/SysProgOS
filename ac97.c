@@ -24,10 +24,12 @@ static AC97Dev dev;
 static AC97BufferDescriptor bdl_array[AC97_BDL_LEN];
 extern const char _binary_winstart_wav_start;
 extern const char _binary_winstart_wav_end;
+static bool stopnext;
 void *pos;
 
 // Detect and configure the ac97 device.
 void _ac97_init(void) {
+    stopnext = false;
     pos = (void *) &_binary_winstart_wav_start;
     // print out that init is starting
     __cio_puts(" AC97");
@@ -128,6 +130,12 @@ void _ac97_init(void) {
 // ac97 interrupt service routine
 void _ac97_isr(int vector, int code) {
     uint16 status = __inw(dev.nabmbar + AC97_PCM_OUT_SR);
+    if (stopnext) {
+        __cio_printf("AC97: DONEZO\n");
+        stopnext = false;
+        __outb(dev.nabmbar + AC97_PCM_OUT_CR, 
+               __inb(dev.nabmbar + AC97_PCM_OUT_CR) & ~((uint8) AC97_PCM_OUT_CR_RPBM));
+    }
 
     if (status == 0) {
         return;
@@ -163,6 +171,9 @@ void _ac97_isr(int vector, int code) {
             AC97BufferDescriptor desc = bdl_array[dev.tail];
             __memcpy((void *) desc.pointer, pos, AC97_BUFFER_LEN);
             pos = (void *) ((uint32) pos + AC97_BUFFER_LEN);
+            if (pos > (void *) &_binary_winstart_wav_end) {
+                stopnext = true;
+            }
             desc.control |= AC97_BDL_IOC; // set interrupt on completion
 
             dev.lvi = dev.tail;
