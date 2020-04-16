@@ -118,4 +118,6 @@ uint8 _ac97_scale(uint8 value, uint8 max_bits, uint8 target_max_bits);
 uint8 _ac97_get_volume(void);
 
 void _ac97_status(void);
+
+void *_wav_start(const char *start_sym);
 #endif

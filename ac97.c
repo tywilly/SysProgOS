@@ -30,7 +30,7 @@ void *pos;
 // Detect and configure the ac97 device.
 void _ac97_init(void) {
     stopnext = false;
-    pos = (void *) &_binary_winstart_wav_start;
+    pos = _wav_start(&_binary_winstart_wav_start);
     // print out that init is starting
     __cio_puts(" AC97");
     dev.status = AC97_STATUS_OK;
@@ -52,9 +52,6 @@ void _ac97_init(void) {
         // set sample rate to 8khz (low quality, but smallish file size)
         // TODO DCB do I really need to set every DAC and an ADC??
         __outw(dev.nambar + AC97_PCM_FR_DAC_RATE, AC97_SAMPLE_RATE_8K);
-        //__outw(dev.nambar + AC97_PCM_SUR_DAC_RATE, AC97_SAMPLE_RATE_8K);
-        //__outw(dev.nambar + AC97_PCM_LFE_DAC_RATE, AC97_SAMPLE_RATE_8K);
-        //__outw(dev.nambar + AC97_PCM_LR_ADC_RATE, AC97_SAMPLE_RATE_8K);
         dev.splrate = AC97_SAMPLE_RATE_8K;
 
         // install ac97 interrupt service routine
@@ -253,4 +250,14 @@ void _ac97_status(void) {
     __cio_printf(" |  Tail Index:               %02d\n", dev.tail);
     __cio_printf(" |  Sample Rate:        %05d Hz\n", dev.splrate);
     __cio_printf("== AC97 Status ==\n");
+}
+
+void *_wav_start(const char *start_sym) {
+    for (char *i = (char *)start_sym; i < start_sym + 256; ++i) {
+        if (*i == 'd' && *(i + 1) == 'a' && *(i + 2) == 't' && *(i + 3) == 'a') {
+            return (void *) (i + 4);
+        }
+    }
+
+    return 0;
 }
