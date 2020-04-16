@@ -22,13 +22,14 @@
 // the one and only ac97 device we will be keeping track of...at the moment
 static AC97Dev dev;
 static AC97BufferDescriptor bdl_array[AC97_BDL_LEN];
-static bool stopnext;
-uint32 *pos;
+static bool stopnext;   // TODO DCB remove this once I don't need it anymore
+uint32 *pos;            // TODO DCB remove this once I don't need it anymore
 
 // Detect and configure the ac97 device.
 void _ac97_init(void) {
     stopnext = false;
     pos = ((uint32 *) ((&_binary_winstart_wav_start) + 44));
+
     // print out that init is starting
     __cio_puts(" AC97");
     dev.status = AC97_STATUS_OK;
@@ -38,8 +39,8 @@ void _ac97_init(void) {
                                          AC97_PCI_CLASS, AC97_PCI_SUBCL);
 
     if (pci_dev != 0) {
+        // Keep track of the PCI Device and its relevant BARs
         dev.pci_dev = pci_dev;
-        // keep track of the pci device's base address registers
         dev.nambar = pci_dev->bar0 & ~((uint32) 1);
         dev.nabmbar = pci_dev->bar1 & ~((uint32) 1);
 
@@ -47,16 +48,16 @@ void _ac97_init(void) {
         uint16 ext = __inw(dev.nambar + AC97_EXT_AUDIO_CR);
         __outw(dev.nambar + AC97_EXT_AUDIO_CR, ext | AC97_PCM_VRA_EN);
 
+        // TODO DCB move this into a function that can do it on the fly once/if nultiple sample rates are supported
         // set sample rate to 8khz (low quality, but smallish file size)
         __outw(dev.nambar + AC97_PCM_FR_DAC_RATE, AC97_SAMPLE_RATE);
         dev.splrate = AC97_SAMPLE_RATE;
 
-        // install ac97 interrupt service routine
+        // set the ac97 interrupt service routine function
+        // the interrupt comes through the PIC
         __install_isr(pci_dev->interrupt + PIC_EOI, _ac97_isr);
 
-        // enable ac97 interrupts
-        // Write to PCM Out Control Register with FIFO Error Interrupt Enable,
-        // and Interrupt on Completion Enable
+        // enable ac97 interrupts for FIFO Errors and Interrupt On Completion
         __outb(dev.nabmbar + AC97_PCM_OUT_CR, 
                AC97_PCM_OUT_CR_IOCE | AC97_PCM_OUT_CR_FEIE);
 
@@ -64,17 +65,20 @@ void _ac97_init(void) {
         // allows the controller to initiate DMA transfers
         _pci_write_field16(pci_dev, PCI_COMMAND, 0x5);
 
-        // set up buffer desciptor list using a statically allocated hunk
+        // set up buffer desciptor list using a statically allocated memory hunk
         __memclr(bdl_array, sizeof(AC97BufferDescriptor) * AC97_BDL_LEN);
         dev.bdl = bdl_array;
         for (int i = 0; i < AC97_BDL_LEN; ++i) {
+            // carve out a brand new page for our buffer
             bdl_array[i].pointer = (uint32) _kalloc_page(1);
+
+            // clean it up
             __memclr((void *) bdl_array[i].pointer, AC97_BUFFER_LEN);
-            bdl_array[i].control |= AC97_BDL_IOC; // set interrupt on completion
 
             // set length in number of 16 bit samples
             bdl_array[i].control &= ~((uint32) AC97_BDL_LEN_MASK);
             bdl_array[i].control |= (AC97_BUFFER_SAMPLES & AC97_BDL_LEN_MASK);
+            bdl_array[i].control |= AC97_BDL_IOC; // set interrupt on completion
         }
 
         // inform the ICH where the BDL lives
@@ -93,30 +97,24 @@ void _ac97_init(void) {
             dev.vol_bits = 6;
         }
 
-        // prevent deafness
-        // TODO DCB cause deafness?? (change to about 25% (16) for read hw)
+        // set output volume to full, which works best for use in emulators
+        // this will be deafening on real hardware
         _ac97_set_volume(63);
 
-
-        // set the last valid index to 2
-        // TODO DCB why??
+        // initialize last valid index, and the head and tail pointers
         dev.lvi = 0;
         __outb(dev.nabmbar + AC97_PCM_OUT_LVI, dev.lvi);
-
-        // index into the BDL
         dev.head = 0;
         dev.tail = 0;
         dev.free_buffers = AC97_NUM_BUFFERS;
 
+        // TODO DCB consider changing this so that it doesn't play unless there's something to do
         // set things to play
         __outb(dev.nabmbar + AC97_PCM_OUT_CR, 
                __inb(dev.nabmbar + AC97_PCM_OUT_CR) | AC97_PCM_OUT_CR_RPBM);
     } else {
+        // There's no AC97 device installed in the system
         dev.status = AC97_STATUS_NOT_PRESENT;
-    }
-
-    if (dev.status != AC97_STATUS_OK) {
-        // indicate that init didn't work
         __cio_putchar('!');
     }
 }
