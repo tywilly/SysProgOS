@@ -25,12 +25,12 @@ static AC97BufferDescriptor bdl_array[AC97_BDL_LEN];
 extern const char _binary_winstart_wav_start;
 extern const char _binary_winstart_wav_end;
 static bool stopnext;
-void *pos;
+uint32 *pos;
 
 // Detect and configure the ac97 device.
 void _ac97_init(void) {
     stopnext = false;
-    pos = _wav_start(&_binary_winstart_wav_start);
+    pos = ((uint32 *) ((&_binary_winstart_wav_start) + 44));
     // print out that init is starting
     __cio_puts(" AC97");
     dev.status = AC97_STATUS_OK;
@@ -50,7 +50,6 @@ void _ac97_init(void) {
         __outw(dev.nambar + AC97_EXT_AUDIO_CR, ext | AC97_PCM_VRA_EN);
 
         // set sample rate to 8khz (low quality, but smallish file size)
-        // TODO DCB do I really need to set every DAC and an ADC??
         __outw(dev.nambar + AC97_PCM_FR_DAC_RATE, AC97_SAMPLE_RATE_8K);
         dev.splrate = AC97_SAMPLE_RATE_8K;
 
@@ -166,10 +165,19 @@ void _ac97_isr(int vector, int code) {
             // everything should still be all set from last time it was used
             // copy data into buffer
             AC97BufferDescriptor desc = bdl_array[dev.tail];
-            __memcpy((void *) desc.pointer, pos, AC97_BUFFER_LEN);
-            pos = (void *) ((uint32) pos + AC97_BUFFER_LEN);
-            if (pos > (void *) &_binary_winstart_wav_end) {
-                stopnext = true;
+            uint32 *dest = (uint32 *) desc.pointer;
+
+            int offset = 0;
+            for (int i = AC97_BUFFER_SAMPLES; i > 0; i-= 2) {
+                dest[offset] = *pos;
+                offset++;
+                pos++;
+
+                if (pos > (uint32 *) &_binary_winstart_wav_end) {
+                    stopnext = true;
+                    // TODO DCB change the buffer length??
+                    break;
+                }
             }
             desc.control |= AC97_BDL_IOC; // set interrupt on completion
 
@@ -250,14 +258,4 @@ void _ac97_status(void) {
     __cio_printf(" |  Tail Index:               %02d\n", dev.tail);
     __cio_printf(" |  Sample Rate:        %05d Hz\n", dev.splrate);
     __cio_printf("== AC97 Status ==\n");
-}
-
-void *_wav_start(const char *start_sym) {
-    for (char *i = (char *)start_sym; i < start_sym + 256; ++i) {
-        if (*i == 'd' && *(i + 1) == 'a' && *(i + 2) == 't' && *(i + 3) == 'a') {
-            return (void *) (i + 4);
-        }
-    }
-
-    return 0;
 }

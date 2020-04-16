@@ -61,7 +61,7 @@
 #define AC97_BUFFER_LEN     4096
 #define AC97_SAMPLE_WIDTH   16
 #define AC97_BUFFER_SAMPLES AC97_BUFFER_LEN / AC97_SAMPLE_WIDTH
-#define AC97_NUM_BUFFERS    32
+#define AC97_NUM_BUFFERS    AC97_BDL_LEN
 #define AC97_BDL_IOC        ((uint32) 1 << 31); // interrupt on completion
 #define AC97_BDL_BUP        ((uint32) 1 << 30);
 #define AC97_BDL_LEN_MASK   0xFFFF
@@ -118,6 +118,4 @@ uint8 _ac97_scale(uint8 value, uint8 max_bits, uint8 target_max_bits);
 uint8 _ac97_get_volume(void);
 
 void _ac97_status(void);
-
-void *_wav_start(const char *start_sym);
 #endif
