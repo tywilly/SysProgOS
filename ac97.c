@@ -52,9 +52,9 @@ void _ac97_init(void) {
         // set sample rate to 8khz (low quality, but smallish file size)
         // TODO DCB do I really need to set every DAC and an ADC??
         __outw(dev.nambar + AC97_PCM_FR_DAC_RATE, AC97_SAMPLE_RATE_8K);
-        __outw(dev.nambar + AC97_PCM_SUR_DAC_RATE, AC97_SAMPLE_RATE_8K);
-        __outw(dev.nambar + AC97_PCM_LFE_DAC_RATE, AC97_SAMPLE_RATE_8K);
-        __outw(dev.nambar + AC97_PCM_LR_ADC_RATE, AC97_SAMPLE_RATE_8K);
+        //__outw(dev.nambar + AC97_PCM_SUR_DAC_RATE, AC97_SAMPLE_RATE_8K);
+        //__outw(dev.nambar + AC97_PCM_LFE_DAC_RATE, AC97_SAMPLE_RATE_8K);
+        //__outw(dev.nambar + AC97_PCM_LR_ADC_RATE, AC97_SAMPLE_RATE_8K);
         dev.splrate = AC97_SAMPLE_RATE_8K;
 
         // install ac97 interrupt service routine
@@ -210,7 +210,6 @@ void _ac97_set_volume(uint8 vol) {
     // set PCM to full volume
     // control loudness with master volume
     __outw(dev.nambar + AC97_PCM_OUT_VOLUME, 0x0);
-    __cio_printf("PCM VOL: %04x\n", __inw(dev.nambar + AC97_PCM_OUT_VOLUME));
 
     if (vol == 0) {
         // mute
@@ -224,8 +223,6 @@ void _ac97_set_volume(uint8 vol) {
         
         __outw(dev.nambar + AC97_MASTER_VOLUME, vol16);
     }
-
-    __cio_printf("MASTER: %04x\n", __inw(dev.nambar + AC97_MASTER_VOLUME));
 }
 
 // see what the master volume is set to

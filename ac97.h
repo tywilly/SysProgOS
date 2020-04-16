@@ -27,9 +27,6 @@
 // Register Offsets from Native Audio Mixer Base Address Register
 #define AC97_EXT_AUDIO_CR       0x2A // Extended Audio Control/Status Register
 #define AC97_PCM_FR_DAC_RATE    0x2C // PCM Front DAC Rate
-#define AC97_PCM_SUR_DAC_RATE   0x2E // PCM Surround DAC Rate
-#define AC97_PCM_LFE_DAC_RATE   0x30 // PCM LFE DAC Rate
-#define AC97_PCM_LR_ADC_RATE    0x32 // PCM Left/Right ADC Sample Rate
 
 #define AC97_PCM_VRA_EN         (1 << 0)    // Enable PCM Variable Rate Audio
 
