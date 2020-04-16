@@ -22,8 +22,6 @@
 // the one and only ac97 device we will be keeping track of...at the moment
 static AC97Dev dev;
 static AC97BufferDescriptor bdl_array[AC97_BDL_LEN];
-extern const char _binary_winstart_wav_start;
-extern const char _binary_winstart_wav_end;
 static bool stopnext;
 uint32 *pos;
 
@@ -50,8 +48,8 @@ void _ac97_init(void) {
         __outw(dev.nambar + AC97_EXT_AUDIO_CR, ext | AC97_PCM_VRA_EN);
 
         // set sample rate to 8khz (low quality, but smallish file size)
-        __outw(dev.nambar + AC97_PCM_FR_DAC_RATE, AC97_SAMPLE_RATE_8K);
-        dev.splrate = AC97_SAMPLE_RATE_8K;
+        __outw(dev.nambar + AC97_PCM_FR_DAC_RATE, AC97_SAMPLE_RATE);
+        dev.splrate = AC97_SAMPLE_RATE;
 
         // install ac97 interrupt service routine
         __install_isr(pci_dev->interrupt + PIC_EOI, _ac97_isr);
