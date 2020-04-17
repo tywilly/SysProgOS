@@ -10,6 +10,33 @@
 
 #define ARRAY_SIZE(x) ((sizeof x) / (sizeof *x))
 
+// Wrapper functions for the CIO and SIO drivers.
+
+/* A dummy lseek function for devices that lack the hardware capability to
+ * seek.
+ */
+static int dummy_seek(int chan, int offset, int whence) {
+	return E_INVALID;
+}
+
+static int cio_write(int chan, const void* buf, uint32 len) {
+	__cio_write(buf, len);
+	return len;
+}
+
+static int cio_read(int chan, void* buf, uint32 len) {
+	return __cio_gets(buf, len);
+}
+
+static int sio_write(int chan, const void* buf, uint32 len) {
+	_sio_write(buf, len);
+	return len;
+}
+
+static int sio_read(int chan, void* buf, uint32 len) {
+	return _sio_reads(buf, len);
+}
+
 static char* module_name = "devfs";
 
 typedef struct dev_file_s {
@@ -28,8 +55,8 @@ static DevFile ofs[MAX_FILES];
 
 /* Device classes and drivers */
 static DeviceClass class[] = {
-	{ "console", {"cio",NULL,NULL,NULL}, 1 },
-	{ "serial", {"sio",NULL,NULL,NULL}, 1 },
+	{ "console", {"cio",cio_write,cio_read,dummy_seek}, 1 },
+	{ "serial", {"sio",sio_write,sio_read,dummy_seek}, 1 },
 	{ "ramdisk",
 		{"ramdisk",_ramdisk_write,_ramdisk_read,_ramdisk_seek},
 		MAX_RAMDISKS }
