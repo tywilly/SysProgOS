@@ -17,13 +17,20 @@ typedef struct pci_device_s {
 
 void _pci_init( void );
 
-uint16 _pci_get_command( uint8 bus, uint8 device, uint8 function );
+uint32 _pci_cfg_read_l( uint8 bus, uint8 device, uint8 function, uint8 offset );
+uint16 _pci_cfg_read_w( uint8 bus, uint8 device, uint8 function, uint8 offset );
+uint8 _pci_cfg_read_b( uint8 bus, uint8 device, uint8 function, uint8 offset );
 
-void _pci_command_enable( uint8 bus, uint8 device, uint8 function, uint16 command );
-void _pci_command_disable( uint8 bus, uint8 device, uint8 function, uint16 command );
+void _pci_cfg_write_l( uint8 bus, uint8 device, uint8 function, uint8 offset, uint32 value );
+void _pci_cfg_write_w( uint8 bus, uint8 device, uint8 function, uint8 offset, uint16 value );
+void _pci_cfg_write_b( uint8 bus, uint8 device, uint8 function, uint8 offset, uint8 value );
+
+void _pci_set_command( uint8 bus, uint8 device, uint8 function, uint16 value );
+uint16 _pci_get_status( uint8 bus, uint8 device, uint8 function );
 
 PCIDevice *_pci_dev_class( uint8 class, uint8 subClass, uint8 progIF );
 
 void _pci_dump_all( void );
+void _pci_dump_header( uint8 bus, uint8 device, uint8 function, uint8 nlines );
 
 #endif

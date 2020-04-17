@@ -133,7 +133,7 @@ void _usb_init( void ) {
     __cio_puts( "\n--------------------USB SHIT--------------------\n" );
 
     // Enable Bus Master and Memory Space
-    _pci_command_enable( _usb_bus, _usb_device, _usb_function, 0x0006 );
+    _usb_set_pci_command( 0x0146 );
 
     PCIDevice *dev = _pci_dev_class( USB_CLASS, USB_SUBCLASS, USB_EHCI_PROGIF );
 
@@ -144,6 +144,7 @@ void _usb_init( void ) {
     _usb_bus = dev->bus;
     _usb_device = dev->device;
     _usb_function = dev->function;
+
     // store capability registers and operation registers base address
     _usb_base = dev->bar0;
     _usb_op_base = _usb_base + _usb_read_b( _usb_base, USB_CAP_LEN );

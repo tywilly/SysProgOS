@@ -46,33 +46,6 @@ static void _pci_check_bus( uint8 );
  * Private functions
 */
 
-static uint32 _pci_cfg_read_l( uint8 bus, uint8 device, uint8 function, uint8 offset ) {
-    uint32 address;
-    uint32 lbus  = (uint32)bus;
-    uint32 ldevice = (uint32)device;
-    uint32 lfunction = (uint32)function;
-
-    address = (uint32)((lbus << 16) | ((ldevice & 0x1F) << 11) |
-              ((lfunction & 0x07) << 8) | (offset & 0xFC) | ((uint32)0x80000000));
- 
-    // write out the address
-    __outl( 0xCF8, address );
-    // read in the data
-    return( __inl( 0xCFC ) );
-}
-
-static uint16 _pci_cfg_read_w( uint8 bus, uint8 device, uint8 function, uint8 offset ) {
-    uint32 tmp = _pci_cfg_read_l( bus, device, function, offset );
-    // (offset & 2) * 8) = 0 will choose the first word of the 32 bits register
-    return( (uint16)((tmp >> ((offset & 2) * 8)) & 0xFFFF) );
-}
-
-static uint8 _pci_cfg_read_b( uint8 bus, uint8 device, uint8 function, uint8 offset ) {
-    uint16 tmp = _pci_cfg_read_w( bus, device, function, offset );
-    // use offset to pick the right byte in tmp
-    return(( tmp >> ((offset & 1) * 8)) & 0xFF );
-}
-
 static void _pci_check_function( uint8 bus, uint8 device, uint8 function ) {
     uint32 bar0;
     uint16 vendorID;
@@ -105,12 +78,13 @@ static void _pci_check_function( uint8 bus, uint8 device, uint8 function ) {
     newDevice->progIF = progIF;
     newDevice->vendorID = vendorID;
     newDevice->deviceID = deviceID;
-    if( bar0 & 1 ) {                // I/O Space BAR layout
+
+    if( bar0 & 1 ) {                        // I/O Space BAR layout
         newDevice->bar0 = bar0 & 0xFFFFFFFC;
-    } else {                        // Memory Space BAR Layout
-        if( (bar0 & 0b110) >> 1 == 0 ) { // BAR is 32-bits wide
+    } else {                                // Memory Space BAR Layout
+        if( (bar0 & 0b110) >> 1 == 0 ) {        // BAR is 32-bits wide
             newDevice->bar0 = bar0 & 0xFFFFFFF0;
-        } else {                        // Should not happen
+        } else {                                // Should not happen
             newDevice->bar0 = 0xFFFFFFFF;
             __cio_puts( " PCI: unsupported base address field" );
         }
@@ -166,6 +140,33 @@ static void _pci_check_buses() {
  * Public functions
 */
 
+uint32 _pci_cfg_read_l( uint8 bus, uint8 device, uint8 function, uint8 offset ) {
+    uint32 address;
+    uint32 lbus  = (uint32)bus;
+    uint32 ldevice = (uint32)device;
+    uint32 lfunction = (uint32)function;
+
+    address = (uint32)((lbus << 16) | ((ldevice & 0x1F) << 11) |
+              ((lfunction & 0x07) << 8) | (offset & 0xFC) | ((uint32)0x80000000));
+ 
+    // write out the address
+    __outl( 0xCF8, address );
+    // read in the data
+    return( __inl( 0xCFC ) );
+}
+
+uint16 _pci_cfg_read_w( uint8 bus, uint8 device, uint8 function, uint8 offset ) {
+    uint32 tmp = _pci_cfg_read_l( bus, device, function, offset );
+    // (offset & 2) * 8) = 0 will choose the first word of the 32 bits register
+    return( (uint16)((tmp >> ((offset & 2) * 8)) & 0xFFFF) );
+}
+
+uint8 _pci_cfg_read_b( uint8 bus, uint8 device, uint8 function, uint8 offset ) {
+    uint16 tmp = _pci_cfg_read_w( bus, device, function, offset );
+    // use offset to pick the right byte in tmp
+    return(( tmp >> ((offset & 1) * 8)) & 0xFF );
+}
+
 void _pci_init() {
     _pci_check_buses();
     __cio_puts( " PCI" );
@@ -204,41 +205,13 @@ void _pci_cfg_write_b( uint8 bus, uint8 device, uint8 function, uint8 offset, ui
     _pci_cfg_write_w( bus, device, function, offset, newValue);
 }
 
-uint16 _pci_get_command( uint8 bus, uint8 device, uint8 function ) {
-    return( _pci_cfg_read_w( bus, device, function, PCI_COMMAND ));
+void _pci_set_command( uint8 bus, uint8 device, uint8 function, uint16 value ) {
+    _pci_cfg_write_w( bus, device, function, PCI_COMMAND, value );
 }
 
-/**
- * Sets the command register bits specified by the command argument to 1
- * Before:  Register=0x0FFE     Argument=0x0001
- * After:   Register=0x0FFF
- */
-void _pci_command_enable( uint8 bus, uint8 device, uint8 function, uint16 command ) {
-    uint16 commandReg;
 
-    commandReg = _pci_cfg_read_w( bus, device, function, PCI_COMMAND );
-    commandReg = commandReg | command;
-
-    _pci_cfg_write_w( bus, device, function, PCI_COMMAND, commandReg );
-}
-
-/**
- * Sets the command register bits specified by the command argument to 0
- * Before:  Register=0x0FFF     Argument=0x0001
- * After:   Register=0x0FFE
- */
-void _pci_command_disable( uint8 bus, uint8 device, uint8 function, uint16 command ) {
-    uint16 commandReg;
-
-    commandReg = _pci_cfg_read_w( bus, device, function, PCI_COMMAND );
-    commandReg = commandReg & (~command);
-
-    // _pci_cfg_write_w( bus, device, function, PCI_COMMAND, commandReg );
-    
-    __cio_printf("debug command read before %x\n", _pci_cfg_read_l( bus, device, function, PCI_COMMAND ));
-    __cio_printf("debug command written %x\n", (uint32)(commandReg | 0xFFFF0000));
-    _pci_cfg_write_l( bus, device, function, PCI_COMMAND, (uint32)(commandReg | 0xFFFF0000));
-    __cio_printf("debug command read after %x\n", _pci_cfg_read_l( bus, device, function, PCI_COMMAND ));
+uint16 _pci_get_status( uint8 bus, uint8 device, uint8 function ) {
+    return( _pci_cfg_read_w( bus, device, function, PCI_STATUS ));
 }
 
 PCIDevice *_pci_dev_class( uint8 class, uint8 subClass, uint8 progIF ) {
@@ -259,5 +232,13 @@ void _pci_dump_all() {
         PCIDevice *dev = &_pci_dev_list[i];
         __cio_printf( "%d: VendorID: %04x DeviceID: %04x Class: %02x SubClass: %02x ProgIF: %02x\n", i, dev->vendorID,
                   dev->deviceID, dev->class, dev->subClass, dev->progIF);
+    }
+}
+
+void _pci_dump_header( uint8 bus, uint8 device, uint8 function, uint8 nlines ) {
+    uint8 i;
+    __cio_puts( "\nHEADER CONTENTS:\n" );
+    for( i = 0; i<nlines; i++) {
+        __cio_printf( "LINE%d: %08x\n", i, _pci_cfg_read_l( bus, device, function, i*4 ));
     }
 }
