@@ -16,7 +16,7 @@ typedef struct filesystem {
 
 typedef struct open_file {
 	bool open;
-	uint8 mode;
+	fmode_t mode;
 	FileSystem* fs;
 } OpenFile;
 
@@ -37,6 +37,14 @@ void _fs_init(void) {
 	__memset(fs, sizeof(fs), 0);
 	__memset(ofs, sizeof(ofs), 0);
 	__cio_puts( " FS (" );
+
+	// Reserve the file descriptors for special channels
+	ofs[CHAN_CONS].open = true;
+	ofs[CHAN_CONS].mode = 
+		FILE_MODE_READ | FILE_MODE_WRITE;
+	ofs[CHAN_SIO].open = true;
+	ofs[CHAN_SIO].mode = 
+		FILE_MODE_READ | FILE_MODE_WRITE | FILE_MODE_BLOCK;
 
 	// Initialize the filesystem drivers
 	_devfs_init();
@@ -209,5 +217,21 @@ int _fs_close(int fd) {
 	if ( ofs[fd].fs->driver.close(fd) < 0 )
 		return E_INVALID;
 	return SUCCESS;
+}
+
+/*
+** Gets the mode bits on an open file
+**
+** @param fd	The file descriptor to get the mode for.
+**
+** @return the mode bits for fd, or 0 if fd is not open.
+*/
+int _fs_getmode(int fd) {
+	if ( fd < 0 || fd >= MAX_FILES )
+		return 0;
+	if ( ofs[fd].open == false )
+		return 0;
+	return ofs[fd].mode;
+	
 }
 

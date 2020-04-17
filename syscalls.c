@@ -18,6 +18,8 @@
 #include <x86pic.h>
 #include <uart.h>
 
+#include <fs.h>
+
 #include "support.h"
 #include "klib.h"
 
@@ -344,9 +346,13 @@ static void _sys_spawn( uint32 arg1, uint32 arg2, uint32 arg3 ) {
 */
 static void _sys_read( uint32 arg1, uint32 arg2, uint32 arg3 ) {
     int n = 0;
-    int32 chan = arg1;
+    int chan = arg1;
     char *buf = (char *) arg2;
     uint32 length = arg3;
+    fmode_t mode;
+
+    // get the mode bits
+    mode = _fs_getmode(chan);
 
     // try to get the next character
     switch( chan ) {
@@ -365,14 +371,13 @@ static void _sys_read( uint32 arg1, uint32 arg2, uint32 arg3 ) {
         break;
 
     default:
-        // bad channel code!
-        RET(_current) = E_BAD_CHANNEL;
-        return;
+	n = _fs_read( chan, buf, length );
     }
 
     // if there was data, return the byte count to the process;
-    // otherwise, block the process until data is available
-    if( n > 0 ) {
+    // otherwise, block the process until data is available (if
+    // file is opened with FILE_MODE_BLOCK).
+    if( n > 0 || ( mode & FILE_MODE_BLOCK ) == 0 ) {
 
         RET(_current) = n;
 
@@ -400,6 +405,7 @@ static void _sys_write( uint32 arg1, uint32 arg2, uint32 arg3 ) {
     int chan = arg1;
     const char *buf = (const char *) arg2;
     int length = arg3;
+    int written;
 
     // this is almost insanely simple, but it does separate the
     // low-level device access fromm the higher-level syscall implementation
@@ -416,7 +422,8 @@ static void _sys_write( uint32 arg1, uint32 arg2, uint32 arg3 ) {
         break;
 
     default:
-        RET(_current) = E_BAD_CHANNEL;
+	written = _fs_write( chan, buf, length );
+        RET(_current) = written;
         break;
     }
 }

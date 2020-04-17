@@ -10,6 +10,10 @@
 #define FILE_MODE_READ		(0x1)
 #define FILE_MODE_WRITE		(0x2)
 #define FILE_MODE_APPEND	(0x4)
+// Block on read if there is no input
+#define FILE_MODE_BLOCK		(0x8)
+
+typedef uint8 fmode_t;
 
 typedef struct file_s {
 	char path[MAX_PATH_LEN];
@@ -23,8 +27,7 @@ typedef struct vfs_driver_s {
 	int(*lseek)(int,int,int);
 	int(*open)(int,int,const char*,int);
 	int(*close)(int);
-	//int(*unlink)(const char*);
-	//int(*getfiles)(const char*,File*,uint32);
+	int(*unlink)(const char*);
 } FsDriver;
 
 void _fs_init(void);
@@ -99,6 +102,15 @@ int _fs_open(const char* path, int mode);
 ** @return 0 on success, a negative value if there was an error.
 */
 int _fs_close(int fd);
+
+/*
+** Gets the mode bits on an open file
+**
+** @param fd	The file descriptor to get the mode for.
+**
+** @return the mode bits for fd, or 0 if fd is not open.
+*/
+int _fs_getmode(int fd);
 
 #endif
 

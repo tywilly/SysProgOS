@@ -39,7 +39,7 @@ int write_main( int argc, char* args ) {
 	}
 
 	// Write
-	i = _fs_write(fd, argv[2], strlen(argv[2]));
+	i = write(fd, argv[2], strlen(argv[2]));
 	if ( i < 0 ) {
 		fputs("Failed to write to file\r\n", stdout);
 		i = _fs_close(fd);
@@ -85,7 +85,7 @@ int cat_main( int argc, char* args ) {
 
 	// Read data
 	for (;;) {
-		i = _fs_read(fd, data, DATA_BLOCK_SIZE);
+		i = read(fd, data, DATA_BLOCK_SIZE);
 		if ( i == 0 )
 			break;
 		else if ( i < 0 ) {
