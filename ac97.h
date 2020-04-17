@@ -109,7 +109,7 @@ void _ac97_init(void);
 void _ac97_isr(int vector, int code);
 
 /**
-  * Set the PCM Output Volume using a scale from 0 to 63 (6 bits). If the audio
+  * Set the Output Volume using a scale from 0 to 63 (6 bits). If the audio
   * device only supports 5 bits of volume resolution, the value will be scaled
   * before being passed on to the device.
   */

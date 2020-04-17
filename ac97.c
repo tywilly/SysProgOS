@@ -119,10 +119,12 @@ void _ac97_init(void) {
     }
 }
 
-// ac97 interrupt service routine
+// Ladies and gentlemen, the c97 interrupt service routine. *crowd goes wild*
 void _ac97_isr(int vector, int code) {
+    // read status to figure out what to do
     uint16 status = __inw(dev.nabmbar + AC97_PCM_OUT_SR);
     if (stopnext) {
+        // TODO DCB a hack that allows the windows start wav to stop after it's done...remove once there's a sound module
         __cio_printf("AC97: DONEZO\n");
         stopnext = false;
         __outb(dev.nabmbar + AC97_PCM_OUT_CR, 
@@ -130,16 +132,17 @@ void _ac97_isr(int vector, int code) {
     }
 
     if (status == 0) {
+        // nothing to do...all is good, probably
         return;
     }
 
     if (status & AC97_PCM_OUT_SR_BCIS) {
-        __cio_printf("AC97: BCIS [%02x]\n", status);
-
-        uint8 cur_index = __inb(dev.nabmbar + AC97_PCM_OUT_CIV);
+        // a buffer was completed, replace its contents or free it.
         // mark buffers before cur_index as free
+        uint8 cur_index = __inb(dev.nabmbar + AC97_PCM_OUT_CIV);
         while (dev.head != cur_index) {
-            // TODO DCB free head???
+            // TODO DCB deallocate the buffer's page??
+            // mark the buffer as free by moving the head, so it can be refilled
             dev.free_buffers++;
             if (dev.head != dev.tail) {
                 dev.head = ((dev.head + 1) % AC97_BDL_LEN);
@@ -148,28 +151,26 @@ void _ac97_isr(int vector, int code) {
 
         // fill new buffers at the tail of the list
         while (dev.free_buffers > 0) {
-            //__cio_printf("GRABBING A NEW BUFFER [%d]\n", dev.free_buffers);
             dev.free_buffers--;
-            if (!(dev.head == dev.tail && dev.free_buffers == AC97_BDL_LEN - 1)) {
-                // don't advance the tail
+            if (dev.head != dev.tail || dev.free_buffers != AC97_BDL_LEN - 1) {
+                // advance the tail only if this isn't the first buffer.
+                // initially, head and tail point to the same index, even if
+                // there are no elements in the buffer.
                 dev.tail = ((dev.tail + 1) % AC97_BDL_LEN);
             }
 
-            //__cio_printf("MOVING TAIL to %d\n", dev.tail);
-
-            // init the new buffer
-            // everything should still be all set from last time it was used
-            // copy data into buffer
+            // pump the buffer full of music, two samples at a time.
             AC97BufferDescriptor desc = bdl_array[dev.tail];
             uint32 *dest = (uint32 *) desc.pointer;
-
-            int offset = 0;
             for (int i = AC97_BUFFER_SAMPLES; i > 0; i-= 2) {
-                dest[offset] = *pos;
-                offset++;
+                // note: __memcpy was a little too barbarric for this task,
+                // due to alignment issues.
+                *dest = *pos;
+                dest++;
                 pos++;
 
                 if (pos > (uint32 *) &_binary_winstart_wav_end) {
+                    // TODO DCB remove this krutch
                     stopnext = true;
                     // TODO DCB change the buffer length??
                     break;
@@ -177,6 +178,7 @@ void _ac97_isr(int vector, int code) {
             }
             desc.control |= AC97_BDL_IOC; // set interrupt on completion
 
+            // tell the device the index of last buffer full of samples
             dev.lvi = dev.tail;
             __outb(dev.nabmbar + AC97_PCM_OUT_LVI, dev.lvi);
         }
@@ -190,11 +192,11 @@ void _ac97_isr(int vector, int code) {
         __cio_printf("AC97: ignoring interrupt [%02x]\n", status);
     }
 
+    // clear status registers so the device will continue blasting tunes
     // status registers are clear-on-write
-    // Don't write to the DMA halt bit--it's read only
     __outw(dev.nabmbar + AC97_PCM_OUT_SR, status & 0x1C);
 
-    // acknowledge interrupt
+    // acknowledge interrupt, so it can happen again
     if (vector >= 0x20 && vector < 0x30) {
         __outb(PIC_MASTER_CMD_PORT, PIC_EOI);
         if (vector > 0x27) {
@@ -203,6 +205,7 @@ void _ac97_isr(int vector, int code) {
     }
 }
 
+// Set the output volume on a 6 bit scale.
 void _ac97_set_volume(uint8 vol) {
     if (vol >= (1 << dev.vol_bits)) {
         __cio_puts("AC97: Volume out of range!\n");
@@ -218,6 +221,9 @@ void _ac97_set_volume(uint8 vol) {
     } else {
         uint16 vol16 = (uint16) _ac97_scale(vol, 6, dev.vol_bits);
 
+        // do some massaging to match the device specification:
+        // volume is set by dB attenuation, so 0 dB is the loudest. Higher
+        // values increase the quetness. 
         vol16 = ~vol16;                     // 0 is max volume
         vol16 &= ((1 << dev.vol_bits) - 1); // ignore upper bits
         vol16 |= (vol16 << 8);              // set left and right channels
@@ -226,18 +232,19 @@ void _ac97_set_volume(uint8 vol) {
     }
 }
 
-// see what the master volume is set to
+// See what the master volume is set to.
 uint8 _ac97_get_volume(void) {
     // only read the lower 6 bits
     uint16 vol = __inw(dev.nambar + AC97_MASTER_VOLUME) & 0x3F;
     return _ac97_scale((uint8) vol, dev.vol_bits, 6);
 }
 
-// Scale a value to a different number of bits
+// Scale a value to a different number of bits.
 uint8 _ac97_scale(uint8 value, uint8 max_bits, uint8 target_max_bits) {
     return (value) * ((1 << target_max_bits)) / ((1 << max_bits));
 }
 
+// Dump relevant status on console output.
 void _ac97_status(void) {
     __cio_printf("\n== AC97 Status ==\n");
     __cio_printf(" |  PCM OUT SR[16]:     %08x\n", __inw(dev.nabmbar + 0x16));
