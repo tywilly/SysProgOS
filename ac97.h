@@ -109,9 +109,11 @@ void _ac97_init(void);
 void _ac97_isr(int vector, int code);
 
 /**
-  * Set the Output Volume using a scale from 0 to 63 (6 bits). If the audio
-  * device only supports 5 bits of volume resolution, the value will be scaled
-  * before being passed on to the device.
+  * Set the Master Volume on a scale from 0 (silent) to 63 (hearing damage).
+  * PCM output defaults to full volume, so the system controls loudness using 
+  * the master volume. If the audio device only supports 5 bits of volume
+  * resolution, the value will be scaled appropriately before being passed on
+  * to the device.
   */
 void _ac97_set_volume(uint8 vol);
 
