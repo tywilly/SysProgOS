@@ -134,4 +134,24 @@ uint8 _ac97_get_volume(void);
   * to figure out how the AC97 device may be misbehaving.
   */
 void _ac97_status(void);
+
+/**
+  * Write samples to the sound buffer.
+  *
+  * The audio will play at the device's current set sample rate. Be careful if
+  * you change the sample rate while there is still data in the buffer...
+  * All audio data must be stereo PCM with 16-bit signed samples with left and 
+  * right audio channels interleaved. Data formatted differrently will sound
+  * strange.
+  * 
+  * buffer: A pointer to the first byte of audio data. Note: make sure it's not
+  *     a WAV file header--it probably won't sound very good.
+  * length: The number of bytes to write.
+  * Returns the number of bytes that were read into the buffer. If the AC97
+  *     buffer fills before the whole length of the data buffer is written,
+  *     this value could be less than the length parameter.
+  *
+  * TODO DCB a blocking version?????
+  */
+int _ac97_write(const void *buffer, int length);
 #endif

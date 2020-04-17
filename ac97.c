@@ -22,14 +22,9 @@
 // the one and only ac97 device we will be keeping track of...at the moment
 static AC97Dev dev;
 static AC97BufferDescriptor bdl_array[AC97_BDL_LEN];
-static bool stopnext;   // TODO DCB remove this once I don't need it anymore
-uint32 *pos;            // TODO DCB remove this once I don't need it anymore
 
 // Detect and configure the ac97 device.
 void _ac97_init(void) {
-    stopnext = false;
-    pos = ((uint32 *) ((&_binary_winstart_wav_start) + 44));
-
     // print out that init is starting
     __cio_puts(" AC97");
     dev.status = AC97_STATUS_OK;
@@ -75,9 +70,6 @@ void _ac97_init(void) {
             // clean it up
             __memclr((void *) bdl_array[i].pointer, AC97_BUFFER_LEN);
 
-            // set length in number of 16 bit samples
-            bdl_array[i].control &= ~((uint32) AC97_BDL_LEN_MASK);
-            bdl_array[i].control |= (AC97_BUFFER_SAMPLES & AC97_BDL_LEN_MASK);
             bdl_array[i].control |= AC97_BDL_IOC; // set interrupt on completion
         }
 
@@ -107,11 +99,6 @@ void _ac97_init(void) {
         dev.head = 0;
         dev.tail = 0;
         dev.free_buffers = AC97_NUM_BUFFERS;
-
-        // TODO DCB consider changing this so that it doesn't play unless there's something to do
-        // set things to play
-        __outb(dev.nabmbar + AC97_PCM_OUT_CR, 
-               __inb(dev.nabmbar + AC97_PCM_OUT_CR) | AC97_PCM_OUT_CR_RPBM);
     } else {
         // There's no AC97 device installed in the system
         dev.status = AC97_STATUS_NOT_PRESENT;
@@ -123,13 +110,6 @@ void _ac97_init(void) {
 void _ac97_isr(int vector, int code) {
     // read status to figure out what to do
     uint16 status = __inw(dev.nabmbar + AC97_PCM_OUT_SR);
-    if (stopnext) {
-        // TODO DCB a hack that allows the windows start wav to stop after it's done...remove once there's a sound module
-        __cio_printf("AC97: DONEZO\n");
-        stopnext = false;
-        __outb(dev.nabmbar + AC97_PCM_OUT_CR, 
-               __inb(dev.nabmbar + AC97_PCM_OUT_CR) & ~((uint8) AC97_PCM_OUT_CR_RPBM));
-    }
 
     if (status == 0) {
         // nothing to do...all is good, probably
@@ -148,43 +128,14 @@ void _ac97_isr(int vector, int code) {
                 dev.head = ((dev.head + 1) % AC97_BDL_LEN);
             }
         }
-
-        // fill new buffers at the tail of the list
-        while (dev.free_buffers > 0) {
-            dev.free_buffers--;
-            if (dev.head != dev.tail || dev.free_buffers != AC97_BDL_LEN - 1) {
-                // advance the tail only if this isn't the first buffer.
-                // initially, head and tail point to the same index, even if
-                // there are no elements in the buffer.
-                dev.tail = ((dev.tail + 1) % AC97_BDL_LEN);
-            }
-
-            // pump the buffer full of music, two samples at a time.
-            AC97BufferDescriptor desc = bdl_array[dev.tail];
-            uint32 *dest = (uint32 *) desc.pointer;
-            for (int i = AC97_BUFFER_SAMPLES; i > 0; i-= 2) {
-                // note: __memcpy was a little too barbarric for this task,
-                // due to alignment issues.
-                *dest = *pos;
-                dest++;
-                pos++;
-
-                if (pos > (uint32 *) &_binary_winstart_wav_end) {
-                    // TODO DCB remove this krutch
-                    stopnext = true;
-                    // TODO DCB change the buffer length??
-                    break;
-                }
-            }
-            desc.control |= AC97_BDL_IOC; // set interrupt on completion
-
-            // tell the device the index of last buffer full of samples
-            dev.lvi = dev.tail;
-            __outb(dev.nabmbar + AC97_PCM_OUT_LVI, dev.lvi);
-        }
     } else if (status & AC97_PCM_OUT_SR_LVBCI) {
         // last valid buffer complete interrupt
         __cio_printf("AC97: LVBCI [%02x]\n", status);
+
+        // stop playing.
+        __outb(dev.nabmbar + AC97_PCM_OUT_CR, 
+               __inb(dev.nabmbar + AC97_PCM_OUT_CR) &
+                     ~((uint8) AC97_PCM_OUT_CR_RPBM));
     } else if (status & AC97_PCM_OUT_SR_FIFOE) {
         // fifo error interrupt
         __cio_printf("AC97: FIFOE [%02x]\n", status);
@@ -261,4 +212,54 @@ void _ac97_status(void) {
     __cio_printf(" |  Tail Index:               %02d\n", dev.tail);
     __cio_printf(" |  Sample Rate:        %05d Hz\n", dev.splrate);
     __cio_printf("== AC97 Status ==\n");
+}
+
+// Fill the AC97 Buffer.
+int _ac97_write(const void *buffer, int length) {
+    if (dev.status != AC97_STATUS_OK) {
+        // should have been caught in _sys_write...do nothing
+        return 0;
+    }
+
+    uint32 *source = (uint32 *) buffer;
+    int bytes_left = length;
+    // fill unused buffers at the tail of the list
+    while (dev.free_buffers > 0 && bytes_left > 0) {
+        dev.free_buffers--;
+        if (dev.head != dev.tail || dev.free_buffers != AC97_BDL_LEN - 1) {
+            // advance the tail only if this isn't the first buffer.
+            // initially, head and tail point to the same index, even if
+            // there are no elements in the buffer.
+            dev.tail = ((dev.tail + 1) % AC97_BDL_LEN);
+        }
+
+        // pump the buffer full of music, two samples at a time.
+        AC97BufferDescriptor desc = bdl_array[dev.tail];
+        uint32 *dest = (uint32 *) desc.pointer;
+        uint16 samples_left_in_buf = AC97_BUFFER_SAMPLES;
+        while (samples_left_in_buf > 0 && bytes_left >= 4) {
+            // note: __memcpy was a little too barbarric for this task,
+            // due to potential alignment issues.
+            *dest = *source;
+            dest++;
+            source++;
+            bytes_left -= 4;
+            samples_left_in_buf -= 2;
+        }
+        desc.control |= AC97_BDL_IOC; // set interrupt on completion
+
+        // set length in number of 16 bit samples
+        desc.control &= ~((uint32) AC97_BDL_LEN_MASK);
+        desc.control |= ((AC97_BUFFER_SAMPLES - samples_left_in_buf) & 
+                                 AC97_BDL_LEN_MASK);
+
+        // tell the device the index of last buffer full of samples
+        dev.lvi = dev.tail;
+        __outb(dev.nabmbar + AC97_PCM_OUT_LVI, dev.lvi);
+    }
+
+    // set things to play
+    __outb(dev.nabmbar + AC97_PCM_OUT_CR, 
+           __inb(dev.nabmbar + AC97_PCM_OUT_CR) | AC97_PCM_OUT_CR_RPBM);
+    return length - bytes_left;
 }

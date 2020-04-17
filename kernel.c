@@ -341,6 +341,7 @@ void _shell( int ch ) {
             __cio_puts( "   s  -- dump stacks for active processes\n" );
             __cio_puts( "   l  -- list all PCI devices\n");
             __cio_puts( "   u  -- get the status of the USB controller\n" );
+            __cio_puts( "   m  -- dump status of the AC97 device\n" );
             __cio_puts( "   x  -- exit\n" );
             break;
         }
