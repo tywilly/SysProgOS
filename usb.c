@@ -28,40 +28,108 @@
 static uint8 _usb_bus;
 static uint8 _usb_device;
 static uint8 _usb_function;
-static uint8 _usb_eecp;
-static uint32 _usb_base_addr;
-static uint32 _usb_op_base_addr;
+static uint8 _usb_eecp_offset;
+static uint32 _usb_eecp;
+static uint16 _usb_pci_command; 
+static uint32 _usb_base;
+static uint32 _usb_op_base;
 
-// uint16 _usb_read_word( uint8 offset ) {
-//   return (uint16)(__inw(base_addr + (uint32)offset));
-// }
+/**
+ * Private functions
+ */
 
-// void _usb_write_word( uint8 offset, uint16 data ) {
-//   __outw(base_addr + (uint32)offset, data);
-// }
+static void _usb_set_pci_command( uint16 command ) {
+    _usb_pci_command = command;
+    _pci_set_command( _usb_bus, _usb_device, _usb_function, _usb_pci_command );
+}
 
-// void _usb_write_byte( uint8 offset, uint8 data ) {
-//   __outb(base_addr + (uint32)offset, data);
-// }
-// void _usb_uhci_init( PCIDev* pciDev ) {
+/**
+ * Sets the pci command register bits specified by the command argument to 1
+ * Before:  Register=0x0FFE     Argument=0x0001
+ * After:   Register=0x0FFF
+ */
+static void _usb_pci_command_enable( uint16 toEnable ) {
+    _usb_set_pci_command( _usb_pci_command | toEnable );
+}
 
-//   usbController = pciDev;
+/**
+ * Sets the pci command register bits specified by the command argument to 0
+ * Before:  Register=0x0FFF     Argument=0x0001
+ * After:   Register=0x0FFE
+ */
+static void _usb_pci_command_disable( uint16 toDisable ) {
+    _usb_set_pci_command( _usb_pci_command & (~toDisable) );
+}
 
-//   base_addr = usbController->bar4 & 0xFFFFFFFC;
-//   frame_list_addr = _usb_read_word( 0x08 );
-//   frame_list = (uint32 *)frame_list_addr;
+/**
+ * Reads a long word from the base address addr at offset offset
+ */
+static uint32 _usb_read_l( uint32 addr, uint32 offset ) {
+    return( *(uint32 *)( addr + (offset & 0xFFFFFFFC) ) );
+}
 
-//   __install_isr( usbController->interrupt, _usb_isr );
+/**
+ * Reads a word from the base address addr at offset offset
+ */
+static uint16 _usb_read_w( uint32 addr, uint32 offset ) {
+    return( *(uint16 *)( addr + (offset & 0xFFFFFFFE) ) );
+}
 
-//   _usb_enable_interrupts(true, true, true, true);
+/**
+ * Reads a byte from the base address addr at offset offset
+ */
+static uint8 _usb_read_b( uint32 addr, uint32 offset ) {
+    return( *(uint8 *)( addr + offset) );
+}
 
-//   __cio_puts( " USB_UHCI" );
+/**
+ * Writes a long word at the base address addr plus offset offset
+ */
+static void _usb_write_l( uint32 addr, uint32 offset, uint32 value ) {
+    *(uint32 *)( addr + (offset & 0xFFFFFFFC) ) = value;
+}
 
-// }
+/**
+ * Writes a word at the base address addr plus offset offset
+ */
+static void _usb_write_w( uint32 addr, uint32 offset, uint16 value ) {
+    *(uint16 *)( addr + (offset & 0xFFFFFFFE) ) = value;
+}
+
+/**
+ * Writes a byte at the base address addr plus offset offset
+ */
+static void _usb_write_b( uint32 addr, uint32 offset, uint8 value ) {
+    *(uint8 *)( addr + offset) = value;
+}
+
+/**
+ * Sets the usb command register bits specified by the command argument to 1
+ * Before:  Register=0xFFFF0FFE     Argument=0x0001
+ * After:   Register=0xFFFF0FFF
+ */
+static void _usb_command_enable( uint32 toEnable ) {
+    uint32 command = _usb_read_l( _usb_op_base, USB_CMD );
+    command = command | toEnable;
+    _usb_write_l( _usb_op_base, USB_CMD, command );
+}
+
+/**
+ * Sets the usb command register bits specified by the command argument to 0
+ * Before:  Register=0xFFFF0FFF     Argument=0x0001
+ * After:   Register=0xFFFF0FFE
+ */
+static void _usb_command_disable( uint32 toDisable ) {
+    uint32 command = _usb_read_l( _usb_op_base, USB_CMD );
+    command = command & (~toDisable);
+    _usb_write_l( _usb_op_base, USB_CMD, command );
+}
+
+/**
+ * Public funtions
+ */
 
 void _usb_init( void ) {
-    // uint32 command;
-
     __cio_puts( "\n--------------------USB SHIT--------------------\n" );
 
     // Enable Bus Master and Memory Space
@@ -69,39 +137,39 @@ void _usb_init( void ) {
 
     PCIDevice *dev = _pci_dev_class( USB_CLASS, USB_SUBCLASS, USB_EHCI_PROGIF );
 
-    assert( dev );
+    assert( dev != NULL );
+    assert( dev->bar0 != 0xFFFFFFFF );
 
-    __cio_printf( "BAR0: %x\n", dev->bar0 );
-
+    // store device location
     _usb_bus = dev->bus;
     _usb_device = dev->device;
     _usb_function = dev->function;
     // store capability registers and operation registers base address
-    _usb_base_addr = dev->bar0;
-    _usb_op_base_addr = _usb_base_addr + __inb( _usb_base_addr + USB_CAP_LEN );
+    _usb_base = dev->bar0;
+    _usb_op_base = _usb_base + _usb_read_b( _usb_base, USB_CAP_LEN );
 
     // fetch EHCI Extended Capabilities Pointer (EECP)
-    _usb_eecp = (uint8)(__inl( _usb_base_addr + USB_HCC_PARAMS ) >> 8) & 0xFF;
+    _usb_eecp_offset = (uint8)((_usb_read_l( _usb_base, USB_HCC_PARAMS ) >> 8) & 0xFF);
 
-    if( _usb_eecp >= 40 ) {
-        __cio_printf( "TODO: Check if BIOS owns the controller; if true, get ownership\n" );
+    // check if BIOS owns the controller; if true, get ownership
+    if( _usb_eecp_offset >= 0x40 ) {
+        _usb_eecp = _pci_cfg_read_l( _usb_bus, _usb_device, _usb_function, _usb_eecp_offset );
+        if( (_usb_eecp >> 24) & 1 ) {
+            __cio_puts( " USB EHCI: BIOS owns the controller\n" );
+        } else {
+            // get ownership of the controller
+            _usb_eecp = _usb_eecp | 0x00010000;
+            _pci_cfg_write_l( _usb_bus, _usb_device, _usb_function, _usb_eecp_offset, _usb_eecp );
+        }
     }
 
-    // __cio_printf( "CAP REG: %x\n", _usb_base_addr );
-    // __cio_printf( "OP REG: %x\n", _usb_op_base_addr );
-    // __cio_printf( "HCIVERSION: %x\n", __inw(_usb_base_addr + USB_HCI_VERSION ));
+    // stop and reset the controller
+    _usb_command_disable(1);
+    _usb_command_enable(2);
 
-    _pci_command_disable( _usb_bus, _usb_device, _usb_function, 0x6 );
-    __cio_printf( "THIS DOES NOT WORK COMMAND: %x\n", _pci_get_command( _usb_bus, _usb_device, _usb_function ));
-    
-    // stop and reset controller
-    // command = __inl( _usb_op_base_addr + USB_CMD );
-    // __cio_printf( "before change: %x\n", command );
-    // command &= 0xFFFFFFFE;
-    // __cio_printf( "value sent: %x\n", command );
-    // __outl( _usb_op_base_addr + USB_CMD, command );
-    // command = __inl( _usb_op_base_addr + USB_CMD );
-    // __cio_printf( "after change: %x\n", command );
+    // setup queue head
+
+    // start the controller
 
     __cio_puts( "--------------------USB SHIT--------------------\n" );
     return( 94 );
