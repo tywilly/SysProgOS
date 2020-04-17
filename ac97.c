@@ -215,9 +215,8 @@ void _ac97_status(void) {
 }
 
 // Fill the AC97 Buffer.
-int _ac97_write(const void *buffer, int length) {
+int _ac97_write(const char *buffer, int length) {
     if (dev.status != AC97_STATUS_OK) {
-        // should have been caught in _sys_write...do nothing
         return 0;
     }
 
@@ -234,8 +233,8 @@ int _ac97_write(const void *buffer, int length) {
         }
 
         // pump the buffer full of music, two samples at a time.
-        AC97BufferDescriptor desc = bdl_array[dev.tail];
-        uint32 *dest = (uint32 *) desc.pointer;
+        AC97BufferDescriptor *desc = &bdl_array[dev.tail];
+        uint32 *dest = (uint32 *) desc->pointer;
         uint16 samples_left_in_buf = AC97_BUFFER_SAMPLES;
         while (samples_left_in_buf > 0 && bytes_left >= 4) {
             // note: __memcpy was a little too barbarric for this task,
@@ -246,12 +245,12 @@ int _ac97_write(const void *buffer, int length) {
             bytes_left -= 4;
             samples_left_in_buf -= 2;
         }
-        desc.control |= AC97_BDL_IOC; // set interrupt on completion
+        desc->control |= AC97_BDL_IOC; // set interrupt on completion
 
         // set length in number of 16 bit samples
-        desc.control &= ~((uint32) AC97_BDL_LEN_MASK);
-        desc.control |= ((AC97_BUFFER_SAMPLES - samples_left_in_buf) & 
-                                 AC97_BDL_LEN_MASK);
+        desc->control &= ~((uint32) AC97_BDL_LEN_MASK);
+        desc->control |= ((AC97_BUFFER_SAMPLES - samples_left_in_buf) & 
+                          AC97_BDL_LEN_MASK);
 
         // tell the device the index of last buffer full of samples
         dev.lvi = dev.tail;

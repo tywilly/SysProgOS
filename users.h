@@ -71,7 +71,6 @@
 //#define SPAWN_L
 //#define SPAWN_M // M and N run main5(); they spawn userW and userZ
 //#define SPAWN_N
-// no user O
 //#define SPAWN_P // P iterates, reporting system time and sleeping
 //#define SPAWN_Q // Q makes a bogus system call
 //#define SPAWN_R // R loops forever, reading one byte at a time from SIO
@@ -79,6 +78,8 @@
 //#define SPAWN_T // T runs main6(), spawns children, waits for them
 //#define SPAWN_U // U runs main6(), spawns children, waits for them by PID
 //#define SPAWN_V // V runs main6(), spawns children, kills them
+
+#define STARTUP_SOUND // play the windows xp startup sound
 
 //
 // Users W-Z are spawned from other processes; they

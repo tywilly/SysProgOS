@@ -28,6 +28,7 @@
 #include "clock.h"
 #include "cio.h"
 #include "sio.h"
+#include "ac97.h"
 
 /*
 ** PRIVATE DEFINITIONS
@@ -412,6 +413,11 @@ static void _sys_write( uint32 arg1, uint32 arg2, uint32 arg3 ) {
 
     case CHAN_SIO:
         _sio_write( buf, length );
+        RET(_current) = length;
+        break;
+
+    case CHAN_AC97:
+        length = _ac97_write( buf, length );
         RET(_current) = length;
         break;
 

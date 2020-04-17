@@ -153,5 +153,5 @@ void _ac97_status(void);
   *
   * TODO DCB a blocking version?????
   */
-int _ac97_write(const void *buffer, int length);
+int _ac97_write(const char *buffer, int length);
 #endif
