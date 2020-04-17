@@ -25,7 +25,7 @@ typedef struct file_s {
 **
 ** @return The number of bytes read.
 */
-int _fs_read(int fd, const void* buf, uint32 len);
+int _fs_read(int fd, void* buf, uint32 len);
 
 /*
 ** Writes to a file
@@ -53,7 +53,7 @@ int _fs_seek(int fd, int offset, int whence);
 /*
 ** Opens a file for reading and/or writing.
 **
-** @param path  The path to the file to open (i.e. "A/foo.txt").
+** @param path  The path to the file to open (i.e. "A:/foo.txt").
 ** @param mode  Mode flags, Or'ed together.
 **
 ** @return The file descriptor if open was successful, or a negative value if

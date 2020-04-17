@@ -285,6 +285,6 @@ usb.o: common.h types.h ./udefs.h ulib.h usb.h usb_uhci.h pci.h
 usb_uhci.o: klib.h types.h usb_uhci.h common.h ./udefs.h ulib.h pci.h
 usb_uhci.o: queues.h
 ramdisk.o: types.h cio.h kmem.h common.h ./udefs.h ulib.h klib.h ramdisk.h
-fs.o: common.h types.h ./udefs.h ulib.h klib.h cio.h fs.h
+fs.o: common.h types.h ./udefs.h ulib.h klib.h cio.h fs.h fs/devfs.h
 fs/devfs.o: ./device.h types.h klib.h cio.h sio.h common.h ./udefs.h ulib.h
 fs/devfs.o: queues.h ramdisk.h fs/devfs.h fs.h

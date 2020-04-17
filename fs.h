@@ -18,9 +18,9 @@ typedef struct file_s {
 
 typedef struct vfs_driver_s {
 	char* name;
-	int(*write)(int,int,const void*,uint32);
-	int(*read)(int,int,void*,uint32);
-	int(*lseek)(int,int,int,int);
+	int(*write)(int,const void*,uint32);
+	int(*read)(int,void*,uint32);
+	int(*lseek)(int,int,int);
 	int(*open)(int,int,const char*,int);
 	int(*close)(int);
 	//int(*unlink)(const char*);
@@ -55,7 +55,7 @@ void _fs_print(void);
 **
 ** @return The number of bytes read.
 */
-int _fs_read(int fd, const void* buf, uint32 len);
+int _fs_read(int fd, void* buf, uint32 len);
 
 /*
 ** Writes to a file

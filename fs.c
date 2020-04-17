@@ -98,7 +98,13 @@ void _fs_print(void) {
 **
 ** @return The number of bytes read.
 */
-int _fs_read(int fd, const void* buf, uint32 len) { return -1; }
+int _fs_read(int fd, void* buf, uint32 len) {
+	if ( fd < 0 || fd >= MAX_FILES )
+		return E_BAD_CHANNEL;
+	if ( ofs[fd].open == false )
+		return E_NO_DATA;
+	return ofs[fd].fs->driver.read(fd, buf, len);
+}
 
 /*
 ** Writes to a file
@@ -109,7 +115,13 @@ int _fs_read(int fd, const void* buf, uint32 len) { return -1; }
 **
 ** @return The number of bytes written.
 */
-int _fs_write(int fd, const void* buf, uint32 len) { return -1; }
+int _fs_write(int fd, const void* buf, uint32 len) {
+	if ( fd < 0 || fd >= MAX_FILES )
+		return E_BAD_CHANNEL;
+	if ( ofs[fd].open == false )
+		return E_NO_DATA;
+	return ofs[fd].fs->driver.write(fd, buf, len);
+}
 
 /*
 ** Moves the seek offset for a file.
@@ -121,12 +133,18 @@ int _fs_write(int fd, const void* buf, uint32 len) { return -1; }
 ** @return The resulting offset location as measured  in bytes from the
 ** beginning of the file. On error, the value (off_t) -1 is returned.
 */
-int _fs_seek(int fd, int offset, int whence) { return -1; }
+int _fs_seek(int fd, int offset, int whence) {
+	if ( fd < 0 || fd >= MAX_FILES )
+		return E_BAD_CHANNEL;
+	if ( ofs[fd].open == false )
+		return E_NO_DATA;
+	return ofs[fd].fs->driver.lseek(fd, offset, whence);
+}
 
 /*
 ** Opens a file for reading and/or writing.
 **
-** @param path	The path to the file to open (i.e. "A/foo.txt").
+** @param path	The path to the file to open (i.e. "A:/foo.txt").
 ** @param mode	Mode flags, Or'ed together.
 **
 ** @return The file descriptor if open was successful, or a negative value if
@@ -146,10 +164,15 @@ int _fs_open(const char* path, int mode) {
         // Parse and convert the options
         __strcpy( fs_name, path );
         fs_path = __strsplit( fs_name, "/" );
+	fs_name[0] &= (~0x20);
         if ( fs_name[0] < 64 || fs_name[0] >= MAX_DRIVES + 64 
-			|| fs_name[1] != '\0') 
+			|| fs_name[1] != ':' || fs_name[2] != '\0') 
 		return E_PARAM;
 	fs_num = fs_name[0] - 64;
+
+	// Check that the drive is mapped
+	if ( fs[fs_num].open == false )
+		return E_BAD_CHANNEL;
 
 	// Open the file
 	if ( fs[fs_num].driver.open(fs[fs_num].chan, fd, fs_path, mode) < 0 )
@@ -158,10 +181,10 @@ int _fs_open(const char* path, int mode) {
 	// Seek to the requested offset
 	if ( mode & FILE_MODE_APPEND ) {
 		mode |= FILE_MODE_WRITE;
-		fs[fs_num].driver.lseek(fs[fs_num].chan, fd, 0, SEEK_END);
+		fs[fs_num].driver.lseek(fd, 0, SEEK_END);
 	}
 	else if ( ( mode & FILE_MODE_WRITE ) || ( mode & FILE_MODE_READ ) ) {
-		fs[fs_num].driver.lseek(fs[fs_num].chan, fd, 0, SEEK_SET);
+		fs[fs_num].driver.lseek(fd, 0, SEEK_SET);
 	}
 
         // Set the fd and return
@@ -178,5 +201,13 @@ int _fs_open(const char* path, int mode) {
 **
 ** @return 0 on success, a negative value if there was an error.
 */
-int _fs_close(int fd) { return -1; }
+int _fs_close(int fd) {
+	if ( fd < 0 || fd >= MAX_FILES )
+		return E_BAD_CHANNEL;
+	if ( ofs[fd].open == false )
+		return E_NO_DATA;
+	if ( ofs[fd].fs->driver.close(fd) < 0 )
+		return E_INVALID;
+	return SUCCESS;
+}
 

@@ -39,15 +39,15 @@ int write_main( int argc, char* args ) {
 	}
 
 	// Write
-	i = _devfs_write(0, fd, argv[2], strlen(argv[2]));
+	i = _fs_write(fd, argv[2], strlen(argv[2]));
 	if ( i < 0 ) {
 		fputs("Failed to write to file\r\n", stdout);
-		i = _devfs_close(fd);
+		i = _fs_close(fd);
 		exit(2);
 	}
 
 	// Close
-	i = _devfs_close(fd);
+	i = _fs_close(fd);
 	if ( i < 0 ) {
 		fputs("Failed to close file\r\n", stdout);
 		exit(2);
@@ -85,19 +85,19 @@ int cat_main( int argc, char* args ) {
 
 	// Read data
 	for (;;) {
-		i = _devfs_read(0, fd, data, DATA_BLOCK_SIZE);
+		i = _fs_read(fd, data, DATA_BLOCK_SIZE);
 		if ( i == 0 )
 			break;
 		else if ( i < 0 ) {
 			fputs("Failed to read from file\r\n", stdout);
-			i = _devfs_close(fd);
+			i = _fs_close(fd);
 			exit(2);
 		}
 		write(stdout, data, i);
 	}
 
 	// Close
-	i = _devfs_close(fd);
+	i = _fs_close(fd);
 	if ( i < 0 ) {
 		fputs("Failed to close file\r\n", stdout);
 		exit(2);

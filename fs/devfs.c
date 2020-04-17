@@ -68,14 +68,14 @@ void _devfs_init(void) {
 	__cio_puts( " DEVFS" );
 }
 
-int _devfs_write(int chan, int fd, const void* buf, uint32 len) {
+int _devfs_write(int fd, const void* buf, uint32 len) {
 	if ( fd < 0 || fd >= MAX_FILES || ofs[fd].used == false )
 		return -1;
 
 	return ofs[fd].driver->write( ofs[fd].chan, buf, len );
 }
 
-int _devfs_read(int chan, int fd, void* buf, uint32 len) {
+int _devfs_read(int fd, void* buf, uint32 len) {
 	if ( fd < 0 || fd >= MAX_FILES || ofs[fd].used == false )
 		return -1;
 
@@ -83,7 +83,7 @@ int _devfs_read(int chan, int fd, void* buf, uint32 len) {
 
 }
 
-int _devfs_lseek(int chan, int fd, int offset, int whence) {
+int _devfs_lseek(int fd, int offset, int whence) {
 	if ( fd < 0 || fd >= MAX_FILES || ofs[fd].used == false )
 		return -1;
 
