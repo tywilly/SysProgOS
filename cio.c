@@ -557,7 +557,6 @@ static void __c_keyboard_isr( int vector, int code ){
         // after interrupts are re-enabled, which puts two 'x' characters in
         // the input buffer. The scheduler sees the second 'x' and invokes the
         // shell again ad infinitum.
-
         __cio_printf("IGNORING KEYBOARD INTERRUPT\n");
         ignore_kbint= false;
     } else {
@@ -623,8 +622,8 @@ int __cio_gets( char *buffer, unsigned int size ){
 /**
   * Print the contents of the cio input buffer.
   * This function creates two lines of output: the first is the contents
-  * of the buffer. The line below shows where the _c_next_char and 
-  * __c_next_space pointers are. 
+  * of the buffer. The line below shows where the _c_next_char and
+  * __c_next_space pointers are.
   *
   * ^ = __c_next_char
   * _ = __c_next_space
@@ -668,7 +667,7 @@ void __cio_init( void (*fcn)(int) ){
 	/*
 	** Screen dimensions
 	*/
-	min_x  = SCREEN_MIN_X;	
+	min_x  = SCREEN_MIN_X;
 	min_y  = SCREEN_MIN_Y;
 	max_x  = SCREEN_MAX_X;
 	max_y  = SCREEN_MAX_Y;

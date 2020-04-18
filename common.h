@@ -31,6 +31,7 @@
 
 #define	CHAN_CONS	0
 #define	CHAN_SIO	1
+#define CHAN_AC97       2
 
 // maximum number of processes in the system
 

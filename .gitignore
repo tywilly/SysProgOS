@@ -63,4 +63,6 @@ dkms.conf
 
 # vim stuff
 *.swp
+
+# make depend stuff
 *.bak

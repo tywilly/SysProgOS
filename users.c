@@ -13,6 +13,7 @@
 #include "common.h"
 #include "users.h"
 #include "userSB.h"
+#include "ac97.h"
 
 /*
 ** USER PROCESSES
@@ -52,6 +53,7 @@ int userS( int, char * ); int userT( int, char * ); int userU( int, char * );
 int userV( int, char * ); int userW( int, char * ); int userX( int, char * );
 int userY( int, char * ); int userZ( int, char * );
 
+int startsound( int, char * );
 
 /*
 ** User function #1:  write, exit
@@ -1212,6 +1214,32 @@ int userZ( int argc, char *args ) {
 }
 
 /*
+** Play the Windows XP Startup Sound
+*/
+int startsound( int argc, char *args ) {
+    int ch = '@';
+
+    // TODO DCB wav support library
+    char *pos = (char *) &_binary_winstart_wav_start + 44;
+    char *end = (char *) &_binary_winstart_wav_end;
+    while( pos < end ) {
+        // play the song until you can't anymore
+        int32 numwritten = write( CHAN_AC97, (void *) pos, end - pos );
+        pos += numwritten;
+
+        if ((uint32) gettime() % 250 == 0) {
+            swritech(ch);
+        }
+
+        if (numwritten <= 1024) {
+            sleep(0); // yield to let other stuff happen while it catches up
+        }
+    }
+
+    return 0;
+}
+
+/*
 ** Initial process; it starts the other top-level user processes.
 **
 ** Prints a message at startup, '+' after each user process is spawned,
@@ -1272,6 +1300,18 @@ int init( int argc, char *args ) {
     for( int i = 0; i < MAX_COMMAND_ARGS; ++i ) {
         argv[i] = NULL;
     }
+
+#ifdef STARTUP_SOUND
+    // play the Windows XP startup sound
+    argv[0] = NULL; // no arguments
+    ac97_setvol(32);
+    whom = spawn( startsound, argv );
+
+    if( whom < 0 ) {
+        cwrites( "init, spawn() user O failed\n" );
+    }
+    swritech( ch );
+#endif
 
     // set up for users A, B, and C initially
     argv[0] = "main1";
@@ -1458,8 +1498,6 @@ int init( int argc, char *args ) {
     }
     swritech( ch );
 #endif
-
-    // There is no user O
 
     // User P iterates, reporting system time and sleeping
 

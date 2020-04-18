@@ -185,6 +185,27 @@ void sb_write( uint16 sample );
 void bogus( void );
 
 /*
+** get the volume of the AC97 device.
+**
+** usage: n = ac97_getvol();
+*/
+uint8 ac97_getvol( void );
+
+/*
+** set the volume of the AC97 device.
+**
+** This is a scale from 0 (silent) to 63 (deafening).
+*/
+void ac97_setvol(uint8 vol);
+
+/*
+** set the PCM output sample rate.
+**
+** This will set the output to the nearest supported sample rate (in Hz).
+*/
+void ac97_setsplrate(uint16 rate);
+
+/*
 **********************************************
 ** CONVENIENT "SHORTHAND" VERSIONS OF SYSCALLS
 **********************************************

@@ -26,6 +26,7 @@
 #include "pci.h"
 #include "usb.h"
 #include "soundblaster.h"
+#include "ac97.h"
 
 // need init() and idle() addresses
 #include "users.h"
@@ -156,6 +157,7 @@ void _init( void ) {
     _sys_init();          // system calls
     _pci_init();          // PCI
     _usb_init();          // USB
+    _ac97_init();    // AC97
     _soundblaster_init(); // sound blaster audio
 
     __cio_puts( "\nModule initialization complete.\n" );
@@ -321,6 +323,11 @@ void _shell( int ch ) {
 
             _usb_status();
             break;
+
+        case 'm':
+            _ac97_status();
+            break;
+
         default:
             __cio_printf( "shell: unknown request '0x%02x'\n", ch );
 
@@ -336,6 +343,7 @@ void _shell( int ch ) {
             __cio_puts( "   s  -- dump stacks for active processes\n" );
             __cio_puts( "   l  -- list all PCI devices\n");
             __cio_puts( "   u  -- get the status of the USB controller\n" );
+            __cio_puts( "   m  -- dump status of the AC97 device\n" );
             __cio_puts( "   x  -- exit\n" );
             break;
         }

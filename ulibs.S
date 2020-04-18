@@ -47,6 +47,9 @@ SYSCALL(getpid)
 SYSCALL(getppid)
 SYSCALL(getstate)
 SYSCALL(sb_write)
+SYSCALL(ac97_getvol)
+SYSCALL(ac97_setvol)
+SYSCALL(ac97_srate)
 
 /*
 ** This is a bogus system call; it's here so that we can test

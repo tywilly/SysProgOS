@@ -80,7 +80,9 @@
 //#define SPAWN_U // U runs main6(), spawns children, waits for them by PID
 //#define SPAWN_V // V runs main6(), spawns children, kills them
 
-#define SPAWN_SB
+#define STARTUP_SOUND // play the windows xp startup sound
+
+#define SPAWN_SB // spawn the sound blaster sampler
 
 //
 // Users W-Z are spawned from other processes; they

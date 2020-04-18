@@ -32,23 +32,33 @@ void _pci_init( void ) {
 
 }
 
+uint32 _pci_calculate_address(uint8 bus, uint8 slot, uint8 func, uint8 offset,
+                              uint8 size) {
+    uint32 lbus = (uint32) bus;
+    uint32 lslot = (uint32) slot;
+    uint32 lfunc = (uint32) func;
+    uint8 size_mask = 0xFF;
+    // TODO DCB this is gross
+    if (size == 4) {
+        size_mask = 0xFC;
+    } else if (size == 2) {
+        size_mask = 0xFE;
+    }
+
+    return (uint32)(lbus << 16) | (lslot << 11) |
+        (lfunc << 8) | (offset & size_mask) | ((uint32) 0x80000000);
+}
 
 //
 // _pci_config_read() - Read a word of data in the PCI config.
 //
 uint32 _pci_config_read (uint8 bus, uint8 slot, uint8 func, uint8 offset ) {
-  uint32 address;
-  uint32 lbus = (uint32) bus;
-  uint32 lslot = (uint32) slot;
-  uint32 lfunc = (uint32) func;
   uint32 tmp = 0;
+  uint32 address = _pci_calculate_address(bus, slot, func, offset, 4);
 
-  address = (uint32)(lbus << 16) | (lslot << 11) |
-    (lfunc << 8) | (offset & 0xfc) | ((uint32) 0x80000000); // Construct device address
+  __outl(PCI_ADDR_PORT, address);
 
-  __outl(0xCF8, address);
-
-  tmp = (uint32)((__inl(0xCFC))); // Get config data for the device
+  tmp = (uint32)((__inl(PCI_VALUE_PORT))); // Get config data for the device
   return tmp;
 
 }
@@ -145,7 +155,7 @@ PCIDev* _pci_get_device_class( uint8 class, uint8 subclass, uint8 progif) {
 }
 
 //
-// _pci_get_device_id() - Get a device by vendor id, device id, and sub/class
+// _pci_get_device_vendorid_deviceid() - Get a device by vendor id, and device id
 //
 PCIDev* _pci_get_device_vendorid_deviceid( uint16 vendor, uint16 device ) {
     for (int i = 0; i < MAX_PCI_DEVICES; ++i) {
@@ -157,4 +167,71 @@ PCIDev* _pci_get_device_vendorid_deviceid( uint16 vendor, uint16 device ) {
     }
 
     return 0;
+}
+
+//
+// _pci_get_device_id() - Get a device by vendor id, device id, and sub/class
+//
+PCIDev* _pci_get_device_id( uint16 vendor, uint16 device, uint8 class,
+                            uint8 subclass) {
+    for (int i = 0; i < MAX_PCI_DEVICES; ++i) {
+        PCIDev dev = _pci_dev_list[i];
+
+        if (dev.vendorid == vendor && dev.deviceid == device &&
+            dev.class == class && dev.subclass == subclass) {
+            return &_pci_dev_list[i];
+        }
+    }
+
+    return 0;
+}
+
+void _pci_write_field32( PCIDev *dev, uint8 offset, uint32 value) {
+    uint32 address = _pci_calculate_address(dev->bus, dev->slot, dev->func,
+                                            offset, 4);
+
+    __outl(PCI_ADDR_PORT, address);
+    __outl(PCI_VALUE_PORT, value);
+}
+
+uint32 _pci_config_read32( PCIDev *dev, uint8 offset ) {
+    return _pci_config_read( dev->bus, dev->slot, dev->func, offset );
+}
+
+uint16 _pci_config_read16( PCIDev *dev, uint8 offset ) {
+  uint16 tmp = 0;
+  uint32 address = _pci_calculate_address(dev->bus, dev->slot, dev->func,
+                                          offset, 2);
+
+  __outl(PCI_ADDR_PORT, address);
+
+  tmp = (uint16)((__inw(PCI_VALUE_PORT)));
+  return tmp;
+}
+
+uint8 _pci_config_read8( PCIDev *dev, uint8 offset ) {
+  uint8 tmp = 0;
+  uint32 address = _pci_calculate_address(dev->bus, dev->slot, dev->func,
+                                          offset, 1);
+
+  __outl(PCI_ADDR_PORT, address);
+
+  tmp = (uint8)((__inb(PCI_VALUE_PORT)));
+  return tmp;
+}
+
+void _pci_write_field16( PCIDev *dev, uint8 offset, uint16 value ) {
+    uint32 address = _pci_calculate_address(dev->bus, dev->slot, dev->func,
+                                            offset, 2);
+
+    __outl(PCI_ADDR_PORT, address);
+    __outw(PCI_VALUE_PORT, value);
+}
+
+void _pci_write_field8( PCIDev *dev, uint8 offset, uint8 value) {
+    uint32 address = _pci_calculate_address(dev->bus, dev->slot, dev->func,
+                                            offset, 1);
+
+    __outl(PCI_ADDR_PORT, address);
+    __outb(PCI_VALUE_PORT, value);
 }
