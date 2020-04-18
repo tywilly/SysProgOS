@@ -162,7 +162,7 @@ void _init( void ) {
 
     __cio_puts( "\nModule initialization complete.\n" );
     __cio_puts( "-------------------------------\n" );
-    __delay( 200 );  // about 5 seconds
+    __delay( 2 );  // about 50 milliseconds
 
     /*
     ** Create the initial process
