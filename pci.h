@@ -35,10 +35,6 @@ typedef struct pci_dev_s {
   uint32 bar4;
   uint32 bar5;
 
-  uint8 bus;
-  uint8 slot;
-  uint8 func;
-
 } PCIDev;
 
 void _pci_init( void );
