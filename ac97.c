@@ -189,8 +189,10 @@ void _ac97_set_volume(uint8 vol) {
 // See what the master volume is set to.
 uint8 _ac97_get_volume(void) {
     // only read the lower 6 bits
-    uint16 vol = __inw(dev.nambar + AC97_MASTER_VOLUME) & 0x3F;
+    uint16 vol = ~(__inw(dev.nambar + AC97_MASTER_VOLUME) & 0x3F);
     return _ac97_scale((uint8) vol, dev.vol_bits, 6);
+
+    return scaled;
 }
 
 // Scale a value to a different number of bits.
@@ -219,7 +221,7 @@ void _ac97_status(void) {
 // Fill the AC97 Buffer.
 int _ac97_write(const char *buffer, int length) {
     if (dev.status != AC97_STATUS_OK) {
-        return 0;
+        return E_BAD_CHANNEL;
     }
 
     uint32 *source = (uint32 *) buffer;

@@ -1223,7 +1223,13 @@ int startsound( int argc, char *args ) {
     char *end = (char *) &_binary_winstart_wav_end;
     while( pos < end ) {
         // play the song until you can't anymore
+        // TODO DCB a blocking write would be really nice right here....
         int32 numwritten = write( CHAN_AC97, (void *) pos, end - pos );
+        if (numwritten < 0) {
+            cwrites("Writing to AC97 device failed.\n");
+            exit(numwritten);
+        }
+
         pos += numwritten;
 
         if ((uint32) gettime() % 250 == 0) {
@@ -1303,9 +1309,10 @@ int init( int argc, char *args ) {
 #ifdef STARTUP_SOUND
     // play the Windows XP startup sound
     argv[0] = NULL; // no arguments
-    ac97_setvol(32);
+    
+    sprint(buf, "VOL: %x\n", ac97_getvol());
+    cwrites(buf);
     whom = spawn( startsound, argv );
-
     if( whom < 0 ) {
         cwrites( "init, spawn() user O failed\n" );
     }
