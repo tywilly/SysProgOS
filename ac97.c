@@ -213,7 +213,6 @@ void _ac97_status(void) {
     __cio_printf(" |  Free Buffers:          %02d/32\n", dev.free_buffers);
     __cio_printf(" |  Head Index:               %02d\n", dev.head);
     __cio_printf(" |  Tail Index:               %02d\n", dev.tail);
-    __cio_printf(" |  Sample Rate:        %05d Hz\n", dev.splrate);
     __cio_printf("== AC97 Status ==\n");
 }
 
@@ -270,7 +269,6 @@ int _ac97_write(const char *buffer, int length) {
 // Set the PCM output sample rate
 void _ac97_set_sample_rate(uint16 rate) {
     __outw(dev.nambar + AC97_PCM_FR_DAC_RATE, AC97_SAMPLE_RATE);
-    dev.splrate = AC97_SAMPLE_RATE;
 }
 
 // Start things playing

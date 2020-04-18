@@ -80,7 +80,6 @@ typedef struct ac97_dev {
     AC97BufferDescriptor *bdl;  // ptr to the first buffer descriptor in the BDL
     uint16 nabmbar;             // Native Audio Bus Master Base Address Register
     uint16 nambar;              // Native Audio Mixer Base Address Register
-    uint16 splrate;             // current sample rate (in Hz) Default is 8000
     uint8 status;               // holds whether or not the device is active
     uint8 lvi;                  // last valid index in the BDL
     uint8 vol_bits;             // bits of volume this device supports (5 or 6)

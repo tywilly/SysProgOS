@@ -610,6 +610,18 @@ void _really_exit( Pcb *victim, Pcb *parent, int32 status ) {
     _proc_cleanup( victim );
 }
 
+static void _sys_ac97_get_volume( uint32 arg1, uint32 arg2, uint32 arg3 ) {
+    RET(_current) = _ac97_get_volume();
+}
+
+static void _sys_ac97_set_volume( uint32 arg1, uint32 arg2, uint32 arg3 ) {
+    _ac97_set_volume((uint8) arg1);
+}
+
+static void _sys_ac97_srate( uint32 arg1, uint32 arg2, uint32 arg3 ) {
+    _ac97_set_sample_rate((uint16) arg1);
+}
+
 /*
 ** _sys_init()
 **
@@ -627,17 +639,20 @@ void _sys_init( void ) {
     // codes change.
     ///
 
-    _syscalls[ SYS_exit ]      = _sys_exit;
-    _syscalls[ SYS_kill ]      = _sys_kill;
-    _syscalls[ SYS_wait ]      = _sys_wait;
-    _syscalls[ SYS_spawn ]     = _sys_spawn;
-    _syscalls[ SYS_read ]      = _sys_read;
-    _syscalls[ SYS_write ]     = _sys_write;
-    _syscalls[ SYS_sleep ]     = _sys_sleep;
-    _syscalls[ SYS_gettime ]   = _sys_gettime;
-    _syscalls[ SYS_getpid ]    = _sys_getpid;
-    _syscalls[ SYS_getppid ]   = _sys_getppid;
-    _syscalls[ SYS_getstate ]  = _sys_getstate;
+    _syscalls[ SYS_exit ]           = _sys_exit;
+    _syscalls[ SYS_kill ]           = _sys_kill;
+    _syscalls[ SYS_wait ]           = _sys_wait;
+    _syscalls[ SYS_spawn ]          = _sys_spawn;
+    _syscalls[ SYS_read ]           = _sys_read;
+    _syscalls[ SYS_write ]          = _sys_write;
+    _syscalls[ SYS_sleep ]          = _sys_sleep;
+    _syscalls[ SYS_gettime ]        = _sys_gettime;
+    _syscalls[ SYS_getpid ]         = _sys_getpid;
+    _syscalls[ SYS_getppid ]        = _sys_getppid;
+    _syscalls[ SYS_getstate ]       = _sys_getstate;
+    _syscalls[ SYS_ac97_getvol ]    = _sys_ac97_get_volume;
+    _syscalls[ SYS_ac97_setvol ]    = _sys_ac97_set_volume;
+    _syscalls[ SYS_ac97_srate ]     = _sys_ac97_srate;
 
     // install the second-stage ISR
     __install_isr( INT_VEC_SYSCALL, _sys_isr );

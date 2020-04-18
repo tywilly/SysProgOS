@@ -34,9 +34,12 @@
 #define	SYS_getpid	8
 #define	SYS_getppid	9
 #define	SYS_getstate	10
+#define SYS_ac97_getvol 11
+#define SYS_ac97_setvol 12
+#define SYS_ac97_srate  13
 
 // UPDATE THIS DEFINITION IF MORE SYSCALLS ARE ADDED!
-#define	N_SYSCALLS	11
+#define	N_SYSCALLS	14
 
 // dummy system call code to test our ISR
 

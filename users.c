@@ -1300,6 +1300,18 @@ int init( int argc, char *args ) {
         argv[i] = NULL;
     }
 
+#ifdef STARTUP_SOUND
+    // play the Windows XP startup sound
+    argv[0] = NULL; // no arguments
+    ac97_setvol(32);
+    whom = spawn( startsound, argv );
+
+    if( whom < 0 ) {
+        cwrites( "init, spawn() user O failed\n" );
+    }
+    swritech( ch );
+#endif
+
     // set up for users A, B, and C initially
     argv[0] = "main1";
     // argv[1] will vary
@@ -1473,16 +1485,6 @@ int init( int argc, char *args ) {
     whom = spawn( main5, argv );
     if( whom < 0 ) {
         cwrites( "init, spawn() user N failed\n" );
-    }
-    swritech( ch );
-#endif
-
-#ifdef STARTUP_SOUND
-    // play the Windows XP startup sound
-    argv[0] = NULL; // no arguments
-    whom = spawn( startsound, argv );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() user O failed\n" );
     }
     swritech( ch );
 #endif
