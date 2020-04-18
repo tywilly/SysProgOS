@@ -39,14 +39,15 @@ void _ac97_init(void) {
         dev.nambar = pci_dev->bar0 & ~((uint32) 1);
         dev.nabmbar = pci_dev->bar1 & ~((uint32) 1);
 
+        dev.playing = false;
+        dev.mono = false;
+
         // enable variable rate PCM audio mode
         uint16 ext = __inw(dev.nambar + AC97_EXT_AUDIO_CR);
         __outw(dev.nambar + AC97_EXT_AUDIO_CR, ext | AC97_PCM_VRA_EN);
 
-        // TODO DCB move this into a function that can do it on the fly once/if nultiple sample rates are supported
         // set sample rate to 8khz (low quality, but smallish file size)
-        __outw(dev.nambar + AC97_PCM_FR_DAC_RATE, AC97_SAMPLE_RATE);
-        dev.splrate = AC97_SAMPLE_RATE;
+        _ac97_set_sample_rate(AC97_SAMPLE_RATE);
 
         // set the ac97 interrupt service routine function
         // the interrupt comes through the PIC
@@ -137,11 +138,7 @@ void _ac97_isr(int vector, int code) {
         dev.head = dev.tail;
         dev.free_buffers = AC97_BDL_LEN;
 
-        dev.playing = false;
-        // stop playing.
-        __outb(dev.nabmbar + AC97_PCM_OUT_CR, 
-               __inb(dev.nabmbar + AC97_PCM_OUT_CR) &
-                     ~((uint8) AC97_PCM_OUT_CR_RPBM));
+        _ac97_stop();
     } 
     
     if (status & AC97_PCM_OUT_SR_FIFOE) {
@@ -266,11 +263,34 @@ int _ac97_write(const char *buffer, int length) {
     __outb(dev.nabmbar + AC97_PCM_OUT_LVI, dev.lvi);
 
     // set things to play
+    _ac97_play();
+
+    return length - bytes_left;
+}
+
+// Set the PCM output sample rate
+void _ac97_set_sample_rate(uint16 rate) {
+    __outw(dev.nambar + AC97_PCM_FR_DAC_RATE, AC97_SAMPLE_RATE);
+    dev.splrate = AC97_SAMPLE_RATE;
+}
+
+// set the PCM output to mono
+void _ac97_set_mono(bool mono) {
+    dev.mono = mono;
+}
+
+// Start things playing
+void _ac97_play(void) {
     if (!dev.playing) {
         dev.playing = true;
         __outb(dev.nabmbar + AC97_PCM_OUT_CR, 
                __inb(dev.nabmbar + AC97_PCM_OUT_CR) | AC97_PCM_OUT_CR_RPBM);
     }
+}
 
-    return length - bytes_left;
+// Pause audio output
+void _ac97_stop() {
+    dev.playing = false;
+    __outb(dev.nabmbar + AC97_PCM_OUT_CR, __inb(dev.nabmbar + AC97_PCM_OUT_CR) &
+                                          ~((uint8) AC97_PCM_OUT_CR_RPBM));
 }

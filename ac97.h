@@ -88,6 +88,7 @@ typedef struct ac97_dev {
     uint8 tail;                 // last buffer in the BDL
     uint8 free_buffers;         // number of unused buffers in the BDL
     bool playing;               // true if the device is playing audio buffers
+    bool mono;                  // replicate the mono sample in L and R channels
 } AC97Dev;
 
 // symbols from linked-in audio files
@@ -151,8 +152,36 @@ void _ac97_status(void);
   * Returns the number of bytes that were read into the buffer. If the AC97
   *     buffer fills before the whole length of the data buffer is written,
   *     this value could be less than the length parameter.
-  *
-  * TODO DCB a blocking version?????
   */
 int _ac97_write(const char *buffer, int length);
+
+/**
+  * Adjust the PCM output sample rate. Be careful: if there is data in the
+  * buffer when you do this, it will probably sound weird.
+  *
+  * rate The rate to operate at in Hz. If the exact bitrate entered is not 
+  *     supported by the device, the nearest supported frequency will be chosen.
+  */
+void _ac97_set_sample_rate(uint16 rate);
+
+/**
+  * Play single channel audio files as stereo by duplicating the sample in
+  * both channels. Warning: if there is data in the buffer when this is 
+  * changed, it could cause weird souding results. Futhermore, playing 
+  * stereo PCM audio as mono will produce some...interesting results.
+  *
+  * mono: Set to true to duplicate the samples. Set to false to play stereo PCM
+  *     audio as normal.
+  */
+void _ac97_set_mono(bool mono);
+
+/**
+  * Start playback.
+  */
+void _ac97_play(void);
+
+/**
+  * Stop playback. The data buffer maintains its current state.
+  */
+void _ac97_stop(void);
 #endif
