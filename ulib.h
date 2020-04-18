@@ -194,9 +194,13 @@ void ac97_setvol(uint8 vol);
 /*
 ** set the PCM output sample rate.
 **
-** This will set the output to the nearest supported sample rate (in Hz).
+** This will set the output to the nearest supported sample rate (in Hz). The
+** device's new operating frequency will be returned.
+**
+** Writing 0 as the rate parameter will return the device's operating frequency
+** without making any changes.
 */
-void ac97_setsplrate(uint16 rate);
+uint16 ac97_setrate(uint16 rate);
 
 /*
 **********************************************

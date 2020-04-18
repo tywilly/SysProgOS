@@ -157,10 +157,14 @@ int _ac97_write(const char *buffer, int length);
   * Adjust the PCM output sample rate. Be careful: if there is data in the
   * buffer when you do this, it will probably sound weird.
   *
+  * The device's new operating rate will be returned.
+  *
+  * To read the device's sample rate, pass in 0 for the rate parameter.
+  *
   * rate The rate to operate at in Hz. If the exact bitrate entered is not 
   *     supported by the device, the nearest supported frequency will be chosen.
   */
-void _ac97_set_sample_rate(uint16 rate);
+uint16 _ac97_set_sample_rate(uint16 rate);
 
 /**
   * Start playback.

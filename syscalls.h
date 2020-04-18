@@ -25,18 +25,18 @@
 
 #define	SYS_exit	0
 #define	SYS_kill	1
-#define	SYS_wait	2
-#define	SYS_spawn	3
-#define	SYS_read	4
-#define	SYS_write	5
-#define	SYS_sleep	6
-#define	SYS_gettime	7
-#define	SYS_getpid	8
-#define	SYS_getppid	9
-#define	SYS_getstate	10
-#define SYS_ac97_getvol 11
-#define SYS_ac97_setvol 12
-#define SYS_ac97_srate  13
+#define	SYS_wait	    2
+#define	SYS_spawn	    3
+#define	SYS_read	    4
+#define	SYS_write	    5
+#define	SYS_sleep	    6
+#define	SYS_gettime	    7
+#define	SYS_getpid	    8
+#define	SYS_getppid	    9
+#define	SYS_getstate	    10
+#define SYS_ac97_getvol     11
+#define SYS_ac97_setvol     12
+#define SYS_ac97_setrate    13
 
 // UPDATE THIS DEFINITION IF MORE SYSCALLS ARE ADDED!
 #define	N_SYSCALLS	14

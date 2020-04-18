@@ -618,8 +618,8 @@ static void _sys_ac97_set_volume( uint32 arg1, uint32 arg2, uint32 arg3 ) {
     _ac97_set_volume((uint8) arg1);
 }
 
-static void _sys_ac97_srate( uint32 arg1, uint32 arg2, uint32 arg3 ) {
-    _ac97_set_sample_rate((uint16) arg1);
+static void _sys_ac97_setrate( uint32 arg1, uint32 arg2, uint32 arg3 ) {
+    RET(_current) = _ac97_set_sample_rate((uint16) arg1);
 }
 
 /*
@@ -652,7 +652,7 @@ void _sys_init( void ) {
     _syscalls[ SYS_getstate ]       = _sys_getstate;
     _syscalls[ SYS_ac97_getvol ]    = _sys_ac97_get_volume;
     _syscalls[ SYS_ac97_setvol ]    = _sys_ac97_set_volume;
-    _syscalls[ SYS_ac97_srate ]     = _sys_ac97_srate;
+    _syscalls[ SYS_ac97_setrate ]     = _sys_ac97_setrate;
 
     // install the second-stage ISR
     __install_isr( INT_VEC_SYSCALL, _sys_isr );

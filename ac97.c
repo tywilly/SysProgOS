@@ -189,7 +189,7 @@ void _ac97_set_volume(uint8 vol) {
 // See what the master volume is set to.
 uint8 _ac97_get_volume(void) {
     // only read the lower 6 bits
-    uint16 vol = ~(__inw(dev.nambar + AC97_MASTER_VOLUME) & 0x3F);
+    uint16 vol = (~__inw(dev.nambar + AC97_MASTER_VOLUME)) & 0x3F;
     return _ac97_scale((uint8) vol, dev.vol_bits, 6);
 }
 
@@ -267,8 +267,16 @@ int _ac97_write(const char *buffer, int length) {
 }
 
 // Set the PCM output sample rate
-void _ac97_set_sample_rate(uint16 rate) {
-    __outw(dev.nambar + AC97_PCM_FR_DAC_RATE, AC97_SAMPLE_RATE);
+uint16 _ac97_set_sample_rate(uint16 rate) {
+    if (rate != 0) {
+        if (dev.playing) {
+            _ac97_stop();
+        }
+
+        __outw(dev.nambar + AC97_PCM_FR_DAC_RATE, rate);
+    }
+
+    return __inw(dev.nambar + AC97_PCM_FR_DAC_RATE);
 }
 
 // Start things playing
