@@ -39,8 +39,7 @@ void _ac97_init(void) {
         dev.nambar = pci_dev->bar0 & ~((uint32) 1);
         dev.nabmbar = pci_dev->bar1 & ~((uint32) 1);
 
-        dev.playing = false;
-        dev.mono = false;
+        _ac97_stop();
 
         // enable variable rate PCM audio mode
         uint16 ext = __inw(dev.nambar + AC97_EXT_AUDIO_CR);
@@ -272,11 +271,6 @@ int _ac97_write(const char *buffer, int length) {
 void _ac97_set_sample_rate(uint16 rate) {
     __outw(dev.nambar + AC97_PCM_FR_DAC_RATE, AC97_SAMPLE_RATE);
     dev.splrate = AC97_SAMPLE_RATE;
-}
-
-// set the PCM output to mono
-void _ac97_set_mono(bool mono) {
-    dev.mono = mono;
 }
 
 // Start things playing
