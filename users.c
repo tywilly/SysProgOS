@@ -1228,8 +1228,9 @@ int startsound( int argc, char *args ) {
 
         if (numwritten > 0) {
             // report that we're alive
+            sleep( 20 );
+        } else if (numwritten == 0) {
             swritech( ch );
-            sleep( 200 );
         }
     }
 

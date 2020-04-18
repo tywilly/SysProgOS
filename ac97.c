@@ -128,19 +128,24 @@ void _ac97_isr(int vector, int code) {
                 dev.head = ((dev.head + 1) % AC97_BDL_LEN);
             }
         }
-    } else if (status & AC97_PCM_OUT_SR_LVBCI) {
+    } 
+    
+    if (status & AC97_PCM_OUT_SR_LVBCI) {
         // last valid buffer complete interrupt
         __cio_printf("AC97: LVBCI [%02x]\n", status);
+
+        dev.head = dev.tail;
+        dev.free_buffers = AC97_BDL_LEN;
 
         // stop playing.
         __outb(dev.nabmbar + AC97_PCM_OUT_CR, 
                __inb(dev.nabmbar + AC97_PCM_OUT_CR) &
                      ~((uint8) AC97_PCM_OUT_CR_RPBM));
-    } else if (status & AC97_PCM_OUT_SR_FIFOE) {
+    } 
+    
+    if (status & AC97_PCM_OUT_SR_FIFOE) {
         // fifo error interrupt
         __cio_printf("AC97: FIFOE [%02x]\n", status);
-    } else {
-        __cio_printf("AC97: ignoring interrupt [%02x]\n", status);
     }
 
     // clear status registers so the device will continue blasting tunes
@@ -223,7 +228,7 @@ int _ac97_write(const char *buffer, int length) {
     uint32 *source = (uint32 *) buffer;
     int bytes_left = length;
     // fill unused buffers at the tail of the list
-    while (dev.free_buffers > 0 && bytes_left > 0) {
+    while (dev.free_buffers > 0 && bytes_left >= 4) {
         dev.free_buffers--;
         if (dev.head != dev.tail || dev.free_buffers != AC97_BDL_LEN - 1) {
             // advance the tail only if this isn't the first buffer.
@@ -252,13 +257,15 @@ int _ac97_write(const char *buffer, int length) {
         desc->control |= ((AC97_BUFFER_SAMPLES - samples_left_in_buf) & 
                           AC97_BDL_LEN_MASK);
 
-        // tell the device the index of last buffer full of samples
-        dev.lvi = dev.tail;
-        __outb(dev.nabmbar + AC97_PCM_OUT_LVI, dev.lvi);
     }
+
+    // tell the device the index of last buffer full of samples
+    dev.lvi = dev.tail;
+    __outb(dev.nabmbar + AC97_PCM_OUT_LVI, dev.lvi);
 
     // set things to play
     __outb(dev.nabmbar + AC97_PCM_OUT_CR, 
            __inb(dev.nabmbar + AC97_PCM_OUT_CR) | AC97_PCM_OUT_CR_RPBM);
+
     return length - bytes_left;
 }
