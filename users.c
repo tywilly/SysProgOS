@@ -1226,12 +1226,13 @@ int startsound( int argc, char *args ) {
         int32 numwritten = write( CHAN_AC97, (void *) pos, end - pos );
         pos += numwritten;
 
-        if (numwritten > 0) {
-            // report that we're alive
-            sleep( 20 );
-        } else if (numwritten == 0) {
-            swritech( ch );
+        if ((uint32) gettime() % 250 == 0) {
+            swritech(ch);
         }
+
+        if (numwritten <= 1024) {
+            sleep(0); // yield to let other stuff happen while it catches up
+        } 
     }
 
     return 0;

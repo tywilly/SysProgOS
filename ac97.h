@@ -87,6 +87,7 @@ typedef struct ac97_dev {
     uint8 head;                 // first buffer in the BDL
     uint8 tail;                 // last buffer in the BDL
     uint8 free_buffers;         // number of unused buffers in the BDL
+    bool playing;               // true if the device is playing audio buffers
 } AC97Dev;
 
 // symbols from linked-in audio files
