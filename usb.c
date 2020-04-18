@@ -4,6 +4,8 @@
 
 #include "usb.h"
 
+#define USB_FR_LIST_LEN     1024
+
 // USB class, subclass, EHCI progIF
 #define USB_CLASS           0xC
 #define USB_SUBCLASS        0x3
@@ -25,6 +27,33 @@
 #define USB_CFG_FLG         0x40    // Configured Flag Register
 #define USB_PORT_SC         0x44    // Port Status/Control Register
 
+/**
+ * Private types 
+ */
+
+typedef struct usb_qtd_s {
+    uint32 next_qtd;
+    uint32 alt_next_qtd;
+    uint32 token;
+    uint32 buffer0;
+    uint32 buffer1;
+    uint32 buffer2;
+    uint32 buffer3;
+    uint32 buffer4;
+} USBQTD;
+
+typedef struct usb_qh_s {
+    uint32 qhead_hlink;
+    uint32 endpoint_crc;
+    uint32 endpoint_cap;
+    uint32 current_qtd;
+    USBQTD overlay;
+} USBQHead;
+
+/**
+ * Private variables
+ */
+
 static uint8 _usb_bus;
 static uint8 _usb_device;
 static uint8 _usb_function;
@@ -33,6 +62,10 @@ static uint32 _usb_eecp;
 static uint16 _usb_pci_command; 
 static uint32 _usb_base;
 static uint32 _usb_op_base;
+
+static uint32 *_usb_frame_list;
+
+static USBQHead _usb_qhead;
 
 /**
  * Private functions
@@ -168,9 +201,40 @@ void _usb_init( void ) {
     _usb_command_disable(1);
     _usb_command_enable(2);
 
+    // enumeration process
+
     // setup queue head
+    _usb_qhead.qhead_hlink = ((uint32)&_usb_qhead) & 0xFFFFFFE0 | 2;
+    _usb_qhead.endpoint_crc = 0x0040D000;
+    _usb_qhead.endpoint_cap = 0x04000000;
+    _usb_qhead.current_qtd = 0;
+    _usb_qhead.overlay.next_qtd = 1;
+    _usb_qhead.overlay.alt_next_qtd = 0;
+    _usb_qhead.overlay.token = 0;
+    _usb_qhead.overlay.buffer0 = 0;
+    _usb_qhead.overlay.buffer1 = 0;
+    _usb_qhead.overlay.buffer2 = 0;
+    _usb_qhead.overlay.buffer3 = 0;
+    _usb_qhead.overlay.buffer4 = 0;
+
+    // setup frame list
+    _usb_frame_list = (uint32 *)_kalloc_page(1);
+    _usb_write_l( _usb_op_base, USB_FR_BAR, ((uint32)_usb_frame_list) );
+
+    assert( _usb_frame_list == ((uint32 *)_usb_read_l( _usb_op_base, USB_FR_BAR )));
+
+    for(int i = 0; i < USB_FR_LIST_LEN; i++) { // Set the pointers to be invalid
+        _usb_frame_list[i] = 1;
+    }
+
+    // enable periodic schedule
+    _usb_command_enable(0x10);
 
     // start the controller
+    _usb_command_enable(1);
+
+    __cio_printf( "sizeof qh %d\n", sizeof(USBQHead));
+    __cio_printf( "sizeof qtd %d\n", sizeof(USBQTD));
 
     __cio_puts( "--------------------USB SHIT--------------------\n" );
     return( 94 );
