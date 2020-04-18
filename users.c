@@ -1310,6 +1310,7 @@ int init( int argc, char *args ) {
     // play the Windows XP startup sound
     argv[0] = NULL; // no arguments
     
+    ac97_setvol(24);
     sprint(buf, "VOL: %x\n", ac97_getvol());
     cwrites(buf);
     whom = spawn( startsound, argv );

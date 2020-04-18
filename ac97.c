@@ -191,8 +191,6 @@ uint8 _ac97_get_volume(void) {
     // only read the lower 6 bits
     uint16 vol = ~(__inw(dev.nambar + AC97_MASTER_VOLUME) & 0x3F);
     return _ac97_scale((uint8) vol, dev.vol_bits, 6);
-
-    return scaled;
 }
 
 // Scale a value to a different number of bits.
