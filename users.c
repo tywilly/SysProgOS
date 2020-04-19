@@ -1236,6 +1236,14 @@ int startsound( int argc, char *args ) {
         }
     }
 
+#ifdef SPAWN_SB
+    // start the sound mixer now - after 100ms of quiet
+    sleep(100);
+    // main sound blaster doesn't use it either
+    mainSB( argc, args );
+
+#endif
+
     return 0;
 }
 
@@ -1317,15 +1325,6 @@ int init( int argc, char *args ) {
     argv[0] = "main1";
     // argv[1] will vary
     argv[2] = "30";
-
-#ifdef SPAWN_SB
-    argv[1] = "SB";
-    whom = spawn( mainSB, argv );
-    if (whom < 0 ) {
-        cwrites( "init, spawn() sound blaster failed.\n");
-    }
-    swritech( ch );
-#endif
 
 #ifdef SPAWN_A
     // "main1 A 30"
