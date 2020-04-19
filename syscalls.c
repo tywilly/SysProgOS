@@ -422,6 +422,11 @@ static void _sys_write( uint32 arg1, uint32 arg2, uint32 arg3 ) {
         RET(_current) = length;
         break;
 
+    case CHAN_SB:
+        length = _soundblaster_write( buf, length );
+        RET(_current) = length;
+        break;
+
     default:
         RET(_current) = E_BAD_CHANNEL;
         break;
@@ -540,16 +545,6 @@ static void _sys_getstate( uint32 arg1, uint32 arg2, uint32 arg3 ) {
 }
 
 /*
-** sb_write - writes a single sample of sound data to the
-**    sound blaster sound card.
-** usage:  sb_write(samples[i]);
-*/
-static void _sys_sb_write( uint32 arg1, uint32 arg2, uint32 arg3 ) {
-    uint16 sample = (uint16)arg1;
-    _soundblaster_write(sample);
-}
-
-/*
 ** PUBLIC FUNCTIONS
 */
 
@@ -664,7 +659,6 @@ void _sys_init( void ) {
     _syscalls[ SYS_ac97_getvol ]    = _sys_ac97_get_volume;
     _syscalls[ SYS_ac97_setvol ]    = _sys_ac97_set_volume;
     _syscalls[ SYS_ac97_srate ]     = _sys_ac97_srate;
-    _syscalls[ SYS_sb_write ] = _sys_sb_write;
 
     // install the second-stage ISR
     __install_isr( INT_VEC_SYSCALL, _sys_isr );

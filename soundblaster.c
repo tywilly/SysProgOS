@@ -134,7 +134,8 @@ void _soundblaster_init(void) {
 }
 
 
-void _soundblaster_write( uint16 sample ) {
+int _soundblaster_write( const char* buff, int count ) {
+
     if (insert_sample_pointer >= SB_BYTES_ALLOCATED/16 + audio_samples) {
         //__cio_puts( "+" );
 
@@ -154,7 +155,10 @@ void _soundblaster_write( uint16 sample ) {
 
         // TODO this is where we would put the process on the waiting queue.
     }
+
+    uint16 sample = *( (uint16*) buff );
     // write and increment
     *insert_sample_pointer = sample;
     insert_sample_pointer++;
+    return 1;
 }

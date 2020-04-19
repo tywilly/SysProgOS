@@ -23,7 +23,11 @@
 /** Detects and configures the soundblaster device. */
 void _soundblaster_init(void);
 
-/** Writes a single sample of data to the SoundBlaster device. */
-void _soundblaster_write( uint16 sample );
+/** Writes samples of data to the SoundBlaster device from the buffer
+**  Buff is a pointer to 16-bit mono samples.
+**  Count is the number of samples to write. (half the number of bytes.)
+**  Returns the number of samples written.
+*/
+int _soundblaster_write( const char* buff, int count );
 
 #endif

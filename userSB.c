@@ -49,7 +49,11 @@ int mainSB( int argc, char* args ) {
     for(;;) {
         // convert the sine wave to a uint16 spread over it's bounds
         double value = ( sine( get_next_value() ) + 1.0 ) * 65535.0 / 2.0;
-        sb_write( ( uint16 ) value);
+        uint16 sample = (uint16) value;
+        int count = write( CHAN_SB, &sample, 1 );
+        if (count < 1) {
+            sleep(0); // yeild CPU
+        }
     }
 
     // should never happen
