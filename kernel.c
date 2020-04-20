@@ -27,6 +27,7 @@
 #include "fs.h"
 #include "pci.h"
 #include "usb.h"
+#include "usbd.h"
 
 // need init() and idle() addresses
 #include "users.h"
@@ -320,9 +321,11 @@ void _shell( int ch ) {
 
             break;
         case 'u':
-            __cio_puts( "\nUSB Devices:\n" );
-
+            __cio_puts( "\nUSB Status:\n" );
             _usb_status();
+            break;
+        case 'e':
+            _usbd_enumerate_devices();
             break;
         default:
             __cio_printf( "shell: unknown request '0x%02x'\n", ch );

@@ -19,6 +19,7 @@ typedef struct pci_dev_s {
   uint8 headertype;
   uint8 progif;
   uint8 interrupt;
+  uint8 interruptPin;
 
   uint16 vendorid;
   uint16 deviceid;
@@ -46,7 +47,7 @@ PCIDev* _pci_get_device( int devid );
 
 PCIDev* _pci_get_device_class( uint8 class, uint8 subclass, uint8 progif );
 
-void _pci_set_interrupt( PCIDev* dev, uint8 interrupt );
+void _pci_set_interrupt( PCIDev* dev, uint8 interruptPin, uint8 interrupt );
 
 #endif
 

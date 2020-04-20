@@ -10,16 +10,13 @@
 
 #define MAX_USB_DEVICES 15
 
-#define MAX_TDS 512
+#define MAX_TDS 20
+#define ASYNC_LIST_SIZE 20
 
 #include "common.h"
 #include "pci.h"
 
 #ifndef __SP_ASM__
-
-typedef struct _usb_dev_s {
-  uint8 id;
-} USBDev;
 
 struct _usb_td_s {
   uint32 link_pointer;
@@ -28,10 +25,32 @@ struct _usb_td_s {
   uint32 buffer_pointer;
 };
 
-struct _usb_qh_s {
-  uint32 head_pointer;
-  uint32 element_pointer;
+struct _usb_qtd_s {
+  uint32 next_ptr;
+  uint32 alt_ptr;
+  uint32 token;
+  uint32 ptr0;
+  uint32 ptr1;
+  uint32 ptr2;
+  uint32 ptr3;
+  uint32 ptr4;
 };
+
+struct _usb_qh_s {
+  uint32 dword0;
+  uint32 dword1;
+  uint32 dword2;
+  uint32 dword3;
+  uint32 dword4;
+  uint32 dword5;
+  uint32 dword6;
+  uint32 dword7;
+  uint32 dword8;
+  uint32 dword9;
+  uint32 dword10;
+  uint32 dword11;
+};
+
 
 void _usb_ehci_init( PCIDev* pciDev );
 
@@ -39,9 +58,19 @@ void _usb_enable_interrupts( void );
 
 void _usb_ehci_status( void );
 
-void _usb_ehci_schedule_td( struct _usb_td_s* td);
+struct _usb_qtd_s* _usb_ehci_free_qtd( void );
 
-void _usb_ehci_schedule_qh( struct _usb_qh_s* qh );
+struct _usb_qh_s* _usb_ehci_free_qh( void );
+
+void _usb_ehci_schedule_isosync( struct _usb_td_s* td);
+
+void _usb_ehci_schedule_async( struct _usb_qh_s* qh );
+
+bool _usb_ehci_has_port_change( void );
+
+uint8 _usb_ehci_find_port_change( void );
+
+void _usb_ehci_reset_port( uint8 port );
 
 #endif
 

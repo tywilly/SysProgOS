@@ -96,6 +96,7 @@ void _pci_add_device( uint8 bus, uint8 slot, uint8 func ) {
     dev->bar5 = _pci_config_read (bus, slot, func, 0x24);
 
     dev->interrupt = (uint8)(_pci_config_read (bus, slot, func, 0x3C) & 0xFF);
+    dev->interruptPin = (uint8)(_pci_config_read (bus, slot, func, 0x3C) >> 8 & 0xFF);
 
     _pci_num_dev++;
 
@@ -110,16 +111,16 @@ void _pci_add_device( uint8 bus, uint8 slot, uint8 func ) {
 
 }
 
-void _pci_set_interrupt( PCIDev* dev, uint8 interrupt ) {
+void _pci_set_interrupt( PCIDev* dev, uint8 interruptPin, uint8 interrupt ) {
   dev->interrupt = interrupt;
 
   uint32 tmp = _pci_config_read(dev->bus, dev->slot, dev->func, 0x3C);
-  tmp = tmp & 0xFFFFFF00;
-  tmp = tmp | interrupt;
+  tmp = tmp & 0xFFFF0000;
+  tmp = tmp | (uint32)interruptPin << 8;
+  tmp = tmp | (uint32)interrupt;
 
   _pci_config_write(dev->bus, dev->slot, dev->func, 0x3C, tmp);
 
-  tmp = _pci_config_read(dev->bus, dev->slot, dev->func, 0x3C);
 }
 
 //
