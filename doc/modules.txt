@@ -1,13 +1,35 @@
 ================================================================================
 
-                                   Windows XP
+                                 Windows Vista
                               Modules Description
                                     Group 4 
 
 ================================================================================
 
-Abstract:
-This document describes each component of Windows XP module by module. Sections
-go into detail about major data structures, and how they evolved over time from
-the design stage to the final implementation. In addition, each module's API,
-and interaction with the rest of the OS will be discussed.
+
+Abstract
+----------------------------------------
+This document describes each component of Windows Vista module by module.
+Sections go into detail about major data structures, and how they evolved over
+time from the design stage to the final implementation. In addition, each
+module's API, and interaction with the rest of the OS will be discussed.
+
+
+AC97 Driver
+----------------------------------------
+TODO DCB
+
+
+Ensoniq SoundBlaster Driver
+----------------------------------------
+...
+
+
+ATAPI CD-ROM Driver
+----------------------------------------
+...
+
+
+USB Storage Driver
+----------------------------------------
+...

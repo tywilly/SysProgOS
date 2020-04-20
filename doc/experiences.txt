@@ -1,10 +1,42 @@
 ================================================================================
 
-                                   Windows XP
+                                 Windows Vista 
                                   Experiences
                                     Group 4 
 
 ================================================================================
 
-Abstract:
+
+Abstract
+----------------------------------------
 This document chronicles the journey taken by the team throughout the semester. 
+
+
+In The Beginning...
+----------------------------------------
+Once baseline development was coming to a close, we started considering our
+options for potential augmentations for it. A giant group amassed in the
+southeast corner of the DSL, each person excited about bolting certain 
+functionality into the baseline. We ultimately decided to split into two
+teams based on which group of features would best complement each other.
+Our group decided to tackle making an audio player of some kind, with drivers
+for various sound hardware, CD-ROM, and USB storage for storing music files.
+Our original target devices were Intel AC97, Intel HD Audio.
+
+The other group decided to tackle networking, filesystems, and another USB 
+implementation. Realizing the potential of a really cool final product, we
+decided that we would work closely with each other, and try to merge all eight
+(8!) projects into one if there was time. The end result could have been
+something like a low-budget Spotify with samples streaming and playing on 
+different machines.
+
+
+The Plot Thickens...
+----------------------------------------
+Right around spring break, we drew the "stay home; global pandemic" card (Do
+not pass Go, Do not collect $200). As a result, we lost a week of time to work
+on finishing the baseline system, and our group members started considering
+simpler enhancements due to the added challenge of working from home, using
+emulators instead of actual hardware, etc.
+
+To Be Continued...
