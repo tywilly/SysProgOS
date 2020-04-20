@@ -1,0 +1,12 @@
+================================================================================
+
+                                   Windows XP
+                                API Information
+                                    Group 4
+
+================================================================================
+
+Abstract:
+This document outlines all of the services available to users in Windows XP,
+including system calls and data structures. This includes system calls in
+the baseline OS as well as the enhancements to it.
