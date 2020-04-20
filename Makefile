@@ -275,9 +275,9 @@ pci.o: common.h types.h udefs.h ulib.h klib.h pci.h
 usb.o: common.h types.h udefs.h ulib.h usb.h usb_uhci.h pci.h
 usb_uhci.o: klib.h types.h usb_uhci.h common.h udefs.h ulib.h pci.h queues.h
 ac97.o: common.h types.h udefs.h ulib.h klib.h x86pic.h ac97.h pci.h
-soundblaster.o: common.h types.h udefs.h ulib.h klib.h cio.h soundblaster.h
-soundblaster.o: pci.h kmem.h kdefs.h support.h kernel.h x86arch.h process.h
-soundblaster.o: stacks.h queues.h bootstrap.h
+soundblaster.o: common.h types.h udefs.h ulib.h klib.h cio.h sio.h queues.h
+soundblaster.o: x86pic.h soundblaster.h pci.h kmem.h kdefs.h support.h
+soundblaster.o: kernel.h x86arch.h process.h stacks.h bootstrap.h
 userSB.o: userSB.h common.h types.h udefs.h ulib.h
 users.o: common.h types.h udefs.h ulib.h users.h userSB.h ac97.h pci.h
 ulibc.o: common.h types.h udefs.h ulib.h

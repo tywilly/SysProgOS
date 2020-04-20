@@ -14,11 +14,16 @@
 #include "common.h"
 #include "klib.h"
 #include "cio.h"
+#include "sio.h"
+#include "x86pic.h"
 
 #include "soundblaster.h"
 #include "pci.h"
 #include "kmem.h"
 #include "kdefs.h"
+
+// private functions
+static void update_pointers( void );
 
 // keep track of the device
 static PCIDev* soundblaster_dev;
@@ -33,7 +38,7 @@ static uint32  base_io;
 
 // make sure you configure this so there's at max 2^^16 number of samples.
 #define SB_SAMPLE_SIZE       16
-#define SB_NUM_PAGES_BUFFER  16
+#define SB_NUM_PAGES_BUFFER  64
 #define SB_BYTES_ALLOCATED   SB_NUM_PAGES_BUFFER * PAGE_SIZE
 
 // temporary to debug
@@ -59,9 +64,12 @@ void _soundblaster_init(void) {
     }
 
     // setup
-    // allocate 16 pages of RAM to be used as the buffer
+    // allocate somes pages of RAM to be used as the buffer
     audio_samples = ( uint16* ) _kalloc_page(SB_NUM_PAGES_BUFFER);
     assert( audio_samples ); // if this is null, big system problem
+
+    // install ISR
+    __install_isr( soundblaster_dev->interrupt + PIC_EOI, _soundblaster_isr );
 
     // start out adding samples to the start.
     insert_sample_pointer = audio_samples;
@@ -100,28 +108,11 @@ void _soundblaster_init(void) {
     // select memory page for playback
     __outl( base_io + 0xC, 0b1100 );
 
-    // set the pointer to the frame for the sound
-    __outl( base_io + 0x38, (uint32) audio_samples );
-
-    // set the number of samples that can be played
-    uint32 number_samples = (SB_BYTES_ALLOCATED / SB_SAMPLE_SIZE) & 0xFFFF;
-    __outl( base_io + 0x3C, number_samples );
-
-    // set the number of frames to play before issuing interrupt
-    __outl( base_io + 0x28, number_samples );
-
-    // set 16 bit mono sound
-    uint32 mono_sound = __inl(base_io + 0x20);
-    mono_sound |= 0b10;
-    __outl( base_io + 0x20, mono_sound);
+    // update the pointer in the sound card to memory
+    update_pointers();
 
     // enable 16-bit mono, interruts, and looped mode
     __outl( base_io + 0x20, 0x00200208 );
-
-    // set 44.1 kHz sound
-   uint32 frequency_set = __inl(base_io + 0x0);
-   frequency_set |= 0b11 << 12;
-   __outl( base_io + 0x0, frequency_set );
 
     // mark as good to screen
     __cio_puts("+");
@@ -131,6 +122,49 @@ void _soundblaster_init(void) {
     //   - need _soundblaster_write to be working to be able to test this
 
     on = 0;
+}
+
+static void update_pointers( void ) {
+    // set the pointer to the frame for the sound
+    __outl( base_io + 0x38, (uint32) audio_samples );
+
+    // set the number of samples that can be played
+    uint32 number_samples = (SB_BYTES_ALLOCATED / SB_SAMPLE_SIZE) & 0xFFFF;
+    __outl( base_io + 0x3C, number_samples / 2 );
+
+    // set the number of frames to play before issuing interrupt
+    __outl( base_io + 0x28, number_samples );
+}
+
+// handle interrupts from this device.
+void _soundblaster_isr( int vector, int code ) {
+
+    _sio_puts("&");
+
+    // TODO do a queueing thing
+
+    // for now, resetting to the start of the samples.
+    update_pointers();
+
+    // clear the interrupt status for DAC-2 and then re-enable
+    //  otherwise the device will not think it is handled
+    uint32 serial_interface = __inl( base_io + 0x20 );
+    // clear the interrupt
+    serial_interface &= 0xFFFFFDFF;
+    __outl( base_io + 0x20, serial_interface );
+
+    // re-enable the interrupt so that it happens later again
+    serial_interface |= 0x200;
+    __outl( base_io + 0x20, serial_interface );
+
+
+    // acknowledge interrupt, so it can happen again
+    if (vector >= 0x20 && vector < 0x30) {
+        __outb(PIC_MASTER_CMD_PORT, PIC_EOI);
+        if (vector > 0x27) {
+            __outb(PIC_SLAVE_CMD_PORT, PIC_EOI);
+        }
+    }
 }
 
 
@@ -151,7 +185,7 @@ int _soundblaster_write( const char* buff, int count ) {
             __cio_printf("Test: %x ", _pci_config_read16( soundblaster_dev, 0x6 ));
         }
 
-        return;
+        return 0;
 
         // TODO this is where we would put the process on the waiting queue.
     }

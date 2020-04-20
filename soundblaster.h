@@ -30,4 +30,8 @@ void _soundblaster_init(void);
 */
 int _soundblaster_write( const char* buff, int count );
 
+/** Handles the interrupts for the soundblaster device.
+*/
+void _soundblaster_isr( int vector, int code );
+
 #endif
