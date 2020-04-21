@@ -317,14 +317,14 @@ void _usb_init( void ) {
     __cio_printf( "command %08x\n", _usb_read_l( _usb_op_base, USB_CMD ));
     __cio_printf( "status %08x\n", _usb_read_l( _usb_op_base, USB_STS ));
     _usb_dump_qtd( setup, false );
-    // for( uint32 j = 0; j < 10; j++ ) {
-    //     for( uint32 i = 0; i < 0xAFFFFFF; i++ );
-    //         __cio_puts( "buf_rec ");
-    //         for( uint32 x = 0; x < 8; x++ )
-    //             __cio_printf( "%02x ", buf_rec[x]);
-    //     __cio_printf( "\ncommand %08x\n", _usb_read_l( _usb_op_base, USB_CMD ));
-    //     __cio_printf( "status %08x\n", _usb_read_l( _usb_op_base, USB_STS ));
-    // }
+    for( uint32 j = 0; j < 10; j++ ) {
+        for( uint32 i = 0; i < 0xAFFFFFF; i++ );
+            __cio_puts( "buf_rec ");
+            for( uint32 x = 0; x < 8; x++ )
+                __cio_printf( "%02x ", buf_rec[x]);
+        __cio_printf( "\ncommand %08x\n", _usb_read_l( _usb_op_base, USB_CMD ));
+        __cio_printf( "status %08x\n", _usb_read_l( _usb_op_base, USB_STS ));
+    }
 
     __cio_puts( "--------------------USB SHIT--------------------\n" );
     return( 94 );
