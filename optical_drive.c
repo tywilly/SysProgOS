@@ -19,24 +19,20 @@ bool _is_atapi(uint32 bus, uint32 drive) {
     __outb(ATA_COMMAND(bus), ATA_COMMAND_IDENTIFY);
     uint8 status = __inb(ATA_COMMAND(bus));
     if (status == 0) {
+	   __cio_puts("getting 0 status");
     	return false;
     }
-    uint8 status_mid = __inb(ATA_ADDR_MID(bus));
-    uint8 status_high = __inb(ATA_ADDR_HIGH(bus));
-    if (status_mid == 0x14 && status_high == 0xeb) {
-        __cio_puts("ATAPI DRIVE");
-	return true;
-    }
-   	return false; 
+   	return true; 
 }
 
 bool _ata_bus_check(uint32 bus) {
-    _reset_ata(ATA_BUS_PRIMARY);
+    _reset_ata(bus);
     uint8 ata_status = __inb(ATA_COMMAND(bus));
     return (ata_status == FLOATING_BUS);
 }
 
 enum drive_type _find_atapi_drive( void ) {
+	__cio_puts("fuxking work");
     if (_ata_bus_check(ATA_BUS_PRIMARY)) {
         if (_is_atapi(ATA_BUS_PRIMARY, ATA_MASTER))
             return PRIMARY_MASTER;
@@ -77,15 +73,81 @@ uint32 _atapi_capacity(uint32 bus, uint32 drive) {
     return last_lba;
 }
 
-void _atapi_init(void) {
-    enum drive_type loc = _find_atapi_drive();
-    if (loc == NO_DRIVE) {
-	__cio_puts("No ATAPI FOUND"); 
-        return;
+//unused msf read audio cd command for later
+/*int audio_cd_command(uint32 base, uint32 sector){
+    __outw(base+0, 0xbf);
+    __outw(base+0, (uint16)(sector >> 16));
+    __outw(base+0, (uint16)sector);
+    __outw(base+0, 0);
+    __outw(base+0, 1);
+    __outw(base+0, 0);
+}
+*/
+
+int atapi_read(uint32 base, uint32 sector) {
+    uint32 ide_secondary_interrupt=0;
+    uint16 size=0;
+    uint32 cycle=0;
+    __outb(base+1, 0);
+    __outb(base+4, (2048 & 0xff));
+    __outb(base+5, (2048 >> 8));
+    __outb(base+7, ATA_PACKET_COMMAND);
+    cycle=0;
+    for(int i=0; i<100; i++) {
+        if( (__inb(base+7) & 0x88)==0x08 ) {
+            cycle=1;
+            break;
+        }
     }
-    uint32 drive = loc & 0xff;
+    if(cycle==0) { 
+        return 0;
+    }
+    ide_secondary_interrupt=0;
+    __outw(base+0, 0x25);
+    __outw(base+0, (uint16)(sector >> 16));
+    __outw(base+0, (uint16)sector);
+    __outw(base+0, 0);
+    __outw(base+0, 1);
+    __outw(base+0, 0);
+    cycle=0;
+    for(int i=0; i<1000; i++) {
+        __inb(base+7);  //wait
+        if( ide_secondary_interrupt==1 ) {
+            cycle=1;
+            break;
+        }
+    }
+    if(cycle==0) {  
+        return 0;
+    }
+    size = ( ( ((unsigned short)(__inb(base+5) << 8)) | ((unsigned short)__inb(base+4)) ) / 2);
+    for(int i=0; i<size; i++) {
+        __inw(base+0);
+    }
+
+    //success
+    return 1;
+
+}
+
+void _atapi_init(void) {
+   // enum drive_type loc = _find_atapi_drive();
+  //  if (loc == NO_DRIVE) {
+//	__cio_puts("No ATAPI FOUND"); 
+  //      return;
+//    }
+    //select drive
+    __outb(0x176, 0xE0);
+    if(__inb(0x376) & 0x01) {
+	__outb(0x176, 0xE0);
+    }
+    uint32 loc = 0x01f000a0 & 0xff;//drive
     uint32 bus = loc >> 0x10;
-    uint32 lba = _atapi_capacity(bus, drive);
-    __cio_printf("%u",lba);
-    //read_to_sector using lba
+    //attempt to brute force capacity
+    uint32 lba = _atapi_capacity(bus, PRIMARY_MASTER);
+    __cio_printf("value %u" ,lba);
+    //attempt to brute force a read
+    if(atapi_read(PRIMARY_MASTER,1)) {
+	__cio_puts( "read of 1 sector" );
+    }
 }
