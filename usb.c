@@ -4,28 +4,28 @@
 
 #include "usb.h"
 
-#define USB_MAX_FRLIST      1024
-#define USB_MAX_QTD         512
+#define USB_MAX_FRLIST       1024
+#define USB_MAX_QTD          512
 // USB class, subclass, EHCI progIF
-#define USB_CLASS           0xC
-#define USB_SUBCLASS        0x3
-#define USB_EHCI_PROGIF     0x20
+#define USB_CLASS            0xC
+#define USB_SUBCLASS         0x3
+#define USB_EHCI_PROGIF      0x20
 // Capability registers offsets
-#define USB_CAP_LEN         0       // Capability Register Length
-#define USB_HCI_VERSION     0x2 	// Interface Version Number (BCD)
-#define USB_HCS_PARAMS      0x4	 	// Structural Parameters
-#define USB_HCC_PARAMS      0x8	 	// Capability Parameters
-#define USB_HCSP_PORTROUTE  0xC     // Companion Port Route Description
+#define USB_CAPLENGTH        0      // Capability Register Length
+#define USB_HCIVERSION       0x2    // Interface Version Number (BCD)
+#define USB_HCSPARAMS        0x4	// Structural Parameters
+#define USB_HCCPARAMS        0x8	// Capability Parameters
+#define USB_HCSP_PORTROUTE   0xC    // Companion Port Route Description
 // Operation registers offsets
-#define USB_CMD             0       // USB Command
-#define USB_STATUS          0x4     // USB Status
-#define USB_INTR_EN         0x8     // USB Interrupt Enable
-#define USB_FR_INDEX        0xC     // USB Frame Index
-#define USB_SEG_SEL         0x10    // 4G Segment Selector
-#define USB_FR_BAR          0x14    // Frame List Base Address
-#define USB_NXT_LST_ADDR    0x18    // Next Asynchronous List Address
-#define USB_CFG_FLG         0x40    // Configured Flag Register
-#define USB_PORT_SC         0x44    // Port Status/Control Register
+#define USB_CMD              0      // USB Command
+#define USB_STS              0x4    // USB Status
+#define USB_INTR             0x8    // USB Interrupt Enable
+#define USB_FRINDEX          0xC    // USB Frame Index
+#define USB_CTRLDSSEGMENT    0x10   // 4G Segment Selector
+#define USB_PERIODICLISTBASE 0x14   // Frame List Base Address
+#define USB_ASYNCLISTADDR    0x18   // Next Asynchronous List Address
+#define USB_CONFIGFLAG       0x40   // Configured Flag Register
+#define USB_PORTSC           0x44   // Port Status/Control Register
 
 /**
  * Private types 
@@ -58,6 +58,7 @@ static uint8 _usb_bus;
 static uint8 _usb_device;
 static uint8 _usb_function;
 static uint8 _usb_eecp_offset;
+static uint8 _usb_n_port;
 static uint32 _usb_eecp;
 static uint16 _usb_pci_command; 
 static uint32 _usb_base;
@@ -160,6 +161,34 @@ static void _usb_command_disable( uint32 toDisable ) {
     _usb_write_l( _usb_op_base, USB_CMD, command );
 }
 
+static void _usb_dump_qtd( USBQTD *qtd, bool vb ) {
+    __cio_printf( "QTD\n" );
+    __cio_printf( " next_qtd     %08x\n", qtd->next_qtd );
+    __cio_printf( " alt_next_qtd %08x\n", qtd->alt_next_qtd );
+    __cio_printf( " token        %08x\n", qtd->token );
+    __cio_printf( " buffer0      %08x\n", qtd->buffer0 );
+    if( vb ) {
+        __cio_printf( " buffer1      %08x\n", qtd->buffer1 );
+        __cio_printf( " buffer2      %08x\n", qtd->buffer2 );
+        __cio_printf( " buffer3      %08x\n", qtd->buffer3 );
+        __cio_printf( " buffer4      %08x\n", qtd->buffer4 );
+    }
+}
+
+static void _usb_dump_qhead( USBQHead *qhead, bool vb ) {
+    __cio_printf( "QHead\n" );
+    __cio_printf( " qhead_hlink  %08x\n", qhead->qhead_hlink );
+    __cio_printf( " endpoint_crc %08x\n", qhead->endpoint_crc );
+    __cio_printf( " endpoint_cap %08x\n", qhead->endpoint_cap );
+    __cio_printf( " current_qtd  %08x\n", qhead->current_qtd );
+    __cio_printf( " next_qtd     %08x\n", qhead->overlay.next_qtd );
+    if( vb ) {
+        __cio_printf( " alt_next_qtd %08x\n", qhead->overlay.alt_next_qtd );
+        __cio_printf( " token        %08x\n", qhead->overlay.token );
+        __cio_printf( " buffer0      %08x\n", qhead->overlay.buffer0 );
+    }
+}
+
 /**
  * Public funtions
  */
@@ -182,10 +211,10 @@ void _usb_init( void ) {
 
     // store capability registers and operation registers base address
     _usb_base = dev->bar0;
-    _usb_op_base = _usb_base + _usb_read_b( _usb_base, USB_CAP_LEN );
+    _usb_op_base = _usb_base + _usb_read_b( _usb_base, USB_CAPLENGTH );
 
     // fetch EHCI Extended Capabilities Pointer (EECP)
-    _usb_eecp_offset = (uint8)((_usb_read_l( _usb_base, USB_HCC_PARAMS ) >> 8) & 0xFF);
+    _usb_eecp_offset = (uint8)((_usb_read_l( _usb_base, USB_HCCPARAMS ) >> 8) & 0xFF);
 
     // check if BIOS owns the controller; if true, get ownership
     if( _usb_eecp_offset >= 0x40 ) {
@@ -199,8 +228,8 @@ void _usb_init( void ) {
         }
     }
 
-    // n_port?
-    __cio_printf( "N_PORT: %02x\n", _usb_read_l(_usb_base, USB_HCS_PARAMS) & 0xF);
+    // n_port
+    _usb_n_port = _usb_read_l(_usb_base, USB_HCSPARAMS) & 0xF;
 
     // stop and reset the controller
     _usb_command_disable(1);
@@ -223,7 +252,7 @@ void _usb_init( void ) {
     // setup control queue head
     assert((uint32)&_usb_qhead == ((uint32)&_usb_qhead & 0xFFFFFFE0));
         // QHeads must be 32 bit aligned
-        // this must be addressed when several will be used
+        // TODO: this must be addressed when several will be used
     _usb_qhead.qhead_hlink = ((uint32)&_usb_qhead) & 0xFFFFFFE0 | 2;
     _usb_qhead.endpoint_crc = 0x0040D000;
     _usb_qhead.endpoint_cap = 0x04000000;
@@ -238,36 +267,42 @@ void _usb_init( void ) {
     _usb_qhead.overlay.buffer4 = 0;
 
     // get descriptor setup packet
-    char buf[256];
-    __cio_puts( "buf ");
-    for( uint32 x = 0; x < 8; x++ ) {
-        buf[x] = 0;
-        __cio_printf( "%02x ", buf[x]);
-    }
-    __cio_puts( "\n" );
+        // TODO: beware the buffer data don't go over 4kB page boundary
+    char buf_snd[256];
+    char buf_rec[256];
+    *(uint32 *)buf_snd = 0x80060001;
+    *((uint32 *)buf_snd+1) = 0x00004000;
     USBQTD *out = (USBQTD *)_queue_deque( _usb_qtd_q );
     out->token = 0x80008C80;
     USBQTD *in = (USBQTD *)_queue_deque( _usb_qtd_q );
     in->next_qtd = ((uint32)out & 0xFFFFFFE0);
     in->token = 0x80400D80;
-    in->buffer0 = (uint32)buf;
+    in->buffer0 = (uint32)buf_rec;
     USBQTD* setup = (USBQTD *)_queue_deque( _usb_qtd_q );
     setup->next_qtd = ((uint32)in & 0xFFFFFFE0);
     setup->token = 0x00080E80;
+    setup->buffer0 = (uint32)buf_snd;
 
     // update next qh next qtd
     _usb_qhead.overlay.next_qtd = (uint32)setup & 0xFFFFFFE0;
 
+    // __cio_printf("SETUP %08x    IN %08x    OUT %08x\n", setup, in, out);
+    _usb_dump_qtd( setup, false );
+
+    // enable async schedule
+    _usb_write_l( _usb_op_base, USB_ASYNCLISTADDR, (uint32)&_usb_qhead );
+    _usb_command_enable( 0x20 );
+
     // portcs
-    for( int i = 0; i < 6; i++ ) {
-        __cio_printf( "port %d %08x\n", i+1, _usb_read_l( _usb_op_base, 0x44 + 4*i ));
-    }
+    // for( uint8 i = 0; i < _usb_n_port; i++ ) {
+    //     __cio_printf( "port %d %08x\n", i+1, _usb_read_l( _usb_op_base, 0x44 + 4*i ));
+    // }
 
     // setup frame list
     // _usb_frame_list = (uint32 *)_kalloc_page(1);
-    // _usb_write_l( _usb_op_base, USB_FR_BAR, ((uint32)_usb_frame_list) );
+    // _usb_write_l( _usb_op_base, USB_PERIODICLISTBASE, ((uint32)_usb_frame_list) );
 
-    // assert( _usb_frame_list == ((uint32 *)_usb_read_l( _usb_op_base, USB_FR_BAR )));
+    // assert( _usb_frame_list == ((uint32 *)_usb_read_l( _usb_op_base, USB_PERIODICLISTBASE )));
 
     // for(int i = 0; i < USB_MAX_FRLIST; i++) { // Set the pointers to be invalid
     //     _usb_frame_list[i] = 1;
@@ -279,16 +314,17 @@ void _usb_init( void ) {
     // start the controller
     _usb_command_enable(1);
 
-    __cio_printf( "\ncommand %08x\n", _usb_read_l( _usb_op_base, USB_CMD ));
-    __cio_printf( "status %08x\n", _usb_read_l( _usb_op_base, USB_STATUS ));
-    for( uint32 j = 0; j < 10; j++ ) {
-        for( uint32 i = 0; i < 0xAFFFFFF; i++ );
-            __cio_puts( "buf ");
-            for( uint32 x = 0; x < 8; x++ )
-                __cio_printf( "%02x ", buf[x]);
-        __cio_printf( "\ncommand %08x\n", _usb_read_l( _usb_op_base, USB_CMD ));
-        __cio_printf( "status %08x\n", _usb_read_l( _usb_op_base, USB_STATUS ));
-    }
+    __cio_printf( "command %08x\n", _usb_read_l( _usb_op_base, USB_CMD ));
+    __cio_printf( "status %08x\n", _usb_read_l( _usb_op_base, USB_STS ));
+    _usb_dump_qtd( setup, false );
+    // for( uint32 j = 0; j < 10; j++ ) {
+    //     for( uint32 i = 0; i < 0xAFFFFFF; i++ );
+    //         __cio_puts( "buf_rec ");
+    //         for( uint32 x = 0; x < 8; x++ )
+    //             __cio_printf( "%02x ", buf_rec[x]);
+    //     __cio_printf( "\ncommand %08x\n", _usb_read_l( _usb_op_base, USB_CMD ));
+    //     __cio_printf( "status %08x\n", _usb_read_l( _usb_op_base, USB_STS ));
+    // }
 
     __cio_puts( "--------------------USB SHIT--------------------\n" );
     return( 94 );
