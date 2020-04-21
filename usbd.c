@@ -13,39 +13,170 @@
 #include "klib.h"
 #include "usb_util.h"
 
-typedef struct _usb_qtd_s* USBPacket;
-
-typedef struct _usb_transfer_s{
+typedef struct _usb_endpoint_s{
   struct _usb_qh_s* qh;
-  uint8 endpoint;
   USBPacket first_packet;
-} USBPipe;
+} USBEndpoint;
 
 typedef struct _usb_dev_s{
-  uint8 deviceAddr;
-  USBPipe pipes[USB_MAX_PIPES];
-
+  bool active;
+  USBEndpoint endpoints[USB_MAX_ENDPOINTS];
 } USBDev;
 
 USBDev _usb_devs[USB_MAX_DEVICES];
-uint8 nextFreeDev = 1;
 
-USBPipe* _usbd_new_transfer(uint8 addr, uint8 endpoint, uint8 speed, uint16 maxPacketSize);
-USBPacket _usbd_new_packet(uint8 type, uint16 size);
 
-void _usbd_add_packet_to_transfer(USBPipe* tran, USBPacket pack);
+void _usbd_main( int argc, char* args){
 
-void _usbd_add_data_packet(USBPacket pack, void * data, uint16 size);
 
-void _usbd_schedule_transfer(USBPipe * transfer);
 
-void _usbd_print_transfer(USBPipe * tran);
+}
 
-void _usbd_set_ioc_packet(USBPacket pack);
+void _usbd_init( void ) {
 
-void _usbd_get_data_packet(USBPacket pack, void * dst, uint16 size);
+  for(int i=0;i<USB_MAX_DEVICES;++i) {
+    _usb_devs[i].active = false;
+  }
 
-void _usbd_wait_for_packet(USBPacket pack);
+  USBEndpoint * endp = _usbd_new_endpoint(0, 0, USB_LOW_SPEED, 64); // Create the default device control pipe
+  _usbd_schedule_endpoint(endp); // Schedule the endpoint
+
+
+
+  __cio_puts(" USBD");
+}
+
+void _usbd_set_device_address(USBDev * dev, uint8 newAddr) {
+
+  USBEndpoint * dep = &(dev->endpoints[0]);
+
+  USBPacket setupPacket = _usbd_new_packet(USB_SETUP_PACKET, 8);
+
+  uint8 data[8];
+  usb_device_request_packet(data, 0x0, SET_ADDRESS, newAddr, 0x0, 0x0);
+  _usbd_add_data_packet(setupPacket, data, 8);
+
+  USBPacket statusPacket = _usbd_new_packet(USB_IN_PACKET, 0);
+
+  _usbd_add_packet_to_endpoint(dep, statusPacket);
+  _usbd_add_packet_to_endpoint(dep, setupPacket);
+  _usbd_wait_for_packet(statusPacket);
+
+  _usbd_free_packet(setupPacket);
+  _usbd_free_packet(statusPacket);
+}
+
+void _usbd_set_device_config(USBDev * dev, uint8 bConfigurationValue) {
+  USBEndpoint * dep = &(dev->endpoints[0]);
+
+  USBPacket setupPacket = _usbd_new_packet(USB_SETUP_PACKET, 8);
+  USBPacket statusPacket = _usbd_new_packet(USB_IN_PACKET, 0);
+
+  uint8 data[8];
+  usb_device_request_packet(data, 0x0, SET_CONFIGURATION,
+                            usb_bytes_to_word(0x0, bConfigurationValue), 0x0, 0x0);
+  _usbd_add_data_packet(setupPacket, data, 8);
+
+  __cio_printf("Setting config %x\n", bConfigurationValue);
+
+  _usbd_add_packet_to_endpoint(dep, statusPacket);
+  _usbd_add_packet_to_endpoint(dep, setupPacket);
+  _usbd_wait_for_packet(statusPacket);
+
+  _usbd_free_packet(setupPacket);
+  _usbd_free_packet(statusPacket);
+}
+
+void _usbd_get_device_desc(USBDev * dev, void* dst, uint8 descType, uint8 descIndex) {
+
+  USBEndpoint * dep = &(dev->endpoints[0]);
+
+  USBPacket setupPacket = _usbd_new_packet(USB_SETUP_PACKET, 8);
+
+  uint8 data[8];
+  usb_device_request_packet(data, 0x80, GET_DESCRIPTOR, usb_bytes_to_word(descType, descIndex), 0x0, 64);
+  _usbd_add_data_packet(setupPacket, data, 8);
+
+  USBPacket inPacket = _usbd_new_packet(USB_IN_PACKET, 64);
+
+  USBPacket outPacket = _usbd_new_packet(USB_OUT_PACKET, 0);
+
+  _usbd_add_packet_to_endpoint(dep, outPacket);
+  _usbd_add_packet_to_endpoint(dep, inPacket);
+  _usbd_add_packet_to_endpoint(dep, setupPacket);
+
+  _usbd_wait_for_packet(outPacket);
+  _usbd_get_data_packet(inPacket, dst, 64);
+
+  _usbd_free_packet(setupPacket);
+  _usbd_free_packet(inPacket);
+  _usbd_free_packet(outPacket);
+}
+
+void _usbd_get_string_desc(USBDev* dev, void* dst, uint8 descIndex) {
+
+  USBEndpoint * dep = &(dev->endpoints[0]);
+
+  USBPacket setupPacket = _usbd_new_packet(USB_SETUP_PACKET, 8);
+
+  uint8 data[8];
+  usb_device_request_packet(data, 0x80, GET_DESCRIPTOR, usb_bytes_to_word(STRING, descIndex),
+                            0x0409, 64);
+  _usbd_add_data_packet(setupPacket, data, 8);
+
+  USBPacket inPacket = _usbd_new_packet(USB_IN_PACKET, 64);
+
+  USBPacket outPacket = _usbd_new_packet(USB_OUT_PACKET, 0);
+
+  _usbd_add_packet_to_endpoint(dep, outPacket);
+  _usbd_add_packet_to_endpoint(dep, inPacket);
+  _usbd_add_packet_to_endpoint(dep, setupPacket);
+
+  _usbd_wait_for_packet(outPacket);
+  _usbd_get_data_packet(inPacket, dst, 64);
+
+  _usbd_free_packet(setupPacket);
+  _usbd_free_packet(inPacket);
+  _usbd_free_packet(outPacket);
+}
+
+void _usbd_list_devices( void ) {
+  __cio_printf("USB Devices: \n");
+  for(int i=0;i<USB_MAX_DEVICES;++i) {
+    USBDev * dev = &_usb_devs[i];
+    if(dev->active) {
+      __cio_printf("ID: %d\n", i);
+
+      uint8 buff[64];
+      _usbd_get_device_desc(dev, buff, DEVICE, 0);
+
+      char sBuff[64];
+      _usbd_get_string_desc(dev, sBuff, buff[14]);
+
+      __cio_printf("Manufacture: ");
+      for(int x=2;x<sBuff[0];++x){
+        __cio_printf("%c", sBuff[x]);
+      }
+
+      __cio_puts(&(sBuff[2]));
+
+      _usbd_get_string_desc(dev, sBuff, buff[15]);
+      __cio_puts("\nProduct: ");
+      __cio_puts(&sBuff[2]);
+
+    }
+  }
+}
+
+int8 _usbd_find_free_device( void ) {
+  for(int i=1;i<USB_MAX_DEVICES;++i) {
+    USBDev * dev = &_usb_devs[i];
+    if(!dev->active){
+      return i;
+    }
+  }
+  return -1;
+}
 
 void _usbd_enumerate_devices( void ) {
 
@@ -53,48 +184,50 @@ void _usbd_enumerate_devices( void ) {
 
     __cio_printf("Enumerating USB\n");
 
-    USBPipe * trans = _usbd_new_transfer(0, 0, USB_LOW_SPEED, 64); // New transfer to default device
+    uint8 deviceAddr = _usbd_find_free_device();
 
-    USBPacket setupPacket = _usbd_new_packet(USB_SETUP_PACKET, 8);
+    USBDev * defdev = &_usb_devs[0];
+    USBDev * newDev = &_usb_devs[deviceAddr];
 
-    uint8 data[8];
-    usb_device_request_packet(data, 0x0, SET_ADDRESS, 1, 0x0, 0x0);
-    _usbd_add_data_packet(setupPacket, data, 8);
-
-    USBPacket outPacket = _usbd_new_packet(USB_OUT_PACKET, 0);
-
-    _usbd_add_packet_to_transfer(trans, outPacket);
-    _usbd_add_packet_to_transfer(trans, setupPacket);
-   
     uint8 port = _usb_ehci_find_port_change();
     _usb_ehci_reset_port(port);
 
-    _usbd_print_transfer(trans);
-    _usbd_schedule_transfer(trans);
+    //_usbd_set_device_address(defdev, deviceAddr); // Set device address
 
-    __memclr(data, 8);
+    uint8 descBuff[64];
+    _usbd_get_device_desc(defdev, descBuff, DEVICE, 0);
 
-    USBPacket setup1Packet = _usbd_new_packet(USB_SETUP_PACKET, 8);
-
-    usb_device_request_packet(data, 0x80, GET_DESCRIPTOR, usb_bytes_to_word(CONFIGURATION, 0x0), 0x0, 64);
-    _usbd_add_data_packet(setup1Packet, data, 8);
-
-    USBPacket in1Packet = _usbd_new_packet(USB_IN_PACKET, 64);
-
-    USBPacket out1Packet = _usbd_new_packet(USB_OUT_PACKET, 0);
-
-    _usbd_add_packet_to_transfer(trans, out1Packet);
-    _usbd_add_packet_to_transfer(trans, in1Packet);
-    _usbd_add_packet_to_transfer(trans, setup1Packet);
-
-    _usbd_wait_for_packet(in1Packet);
+    USBEndpoint* defEndp = _usbd_new_endpoint(deviceAddr, 0, USB_LOW_SPEED, descBuff[7]);
 
     uint8 recBuff[64];
-    _usbd_get_data_packet(in1Packet, recBuff, 64);
+    _usbd_get_device_desc(defdev, recBuff, CONFIGURATION, 0);
 
-    for(int i=0;i<64;++i){
-      __cio_printf(" %x", recBuff[i]);
+    uint8 bConfigVal = recBuff[5];
+
+    uint8* intDesc = (recBuff + recBuff[0]);
+    for(int i=0;i<recBuff[4];++i) { // Loop through all interface descriptors
+
+      uint8* endpDesc = (intDesc + intDesc[0]);
+      for(int e=0;e<intDesc[4];++e) { // Loop through all endpoints
+
+        uint16 maxPacketSize = usb_bytes_to_word(endpDesc[4], endpDesc[5]) & 0x7FF;
+        USBEndpoint * endp = _usbd_new_endpoint(deviceAddr, endpDesc[2] & 0xF,
+                                                USB_LOW_SPEED, maxPacketSize);
+
+        __cio_printf("I: %d E: %d \n", intDesc[2], endpDesc[2] & 0xF);
+
+        _usbd_schedule_endpoint(endp);
+        endpDesc = (endpDesc + endpDesc[0]);
+      }
+      intDesc = (intDesc + intDesc[0]);
     }
+
+    _usbd_schedule_endpoint(defEndp);
+    newDev->active = true;
+
+    _usbd_set_device_address(defdev, deviceAddr); // Set device address
+
+    _usbd_set_device_config(newDev, bConfigVal); // Set the device configuration
 
     __cio_printf("USB Enum done\n");
 
@@ -102,12 +235,12 @@ void _usbd_enumerate_devices( void ) {
 
 }
 
-void _usbd_schedule_transfer(USBPipe * transfer){
-  _usb_ehci_schedule_async(transfer->qh);
+void _usbd_schedule_endpoint(USBEndpoint * endpoint){
+  _usb_ehci_schedule_async(endpoint->qh);
 }
 
-USBPipe * _usbd_new_transfer(uint8 addr, uint8 endpoint, uint8 speed, uint16 maxPacketSize){
-  USBPipe * trans = &(_usb_devs[addr].pipes[endpoint]);
+USBEndpoint * _usbd_new_endpoint(uint8 addr, uint8 endpoint, uint8 speed, uint16 maxPacketSize){
+  USBEndpoint * trans = &(_usb_devs[addr].endpoints[endpoint]);
   trans->qh = _usb_ehci_free_qh();
   trans->first_packet = 0x0;
   trans->qh->dword0 = 0x0;
@@ -126,22 +259,18 @@ USBPipe * _usbd_new_transfer(uint8 addr, uint8 endpoint, uint8 speed, uint16 max
   trans->qh->dword5 = 0x1;
   trans->qh->dword6 = 0x0;
   trans->qh->dword7 = 0x0;
-  trans->qh->dword8 = 0x0;
-  trans->qh->dword9 = 0x0;
-  trans->qh->dword10 = 0x0;
-  trans->qh->dword11 = 0x0;
+  //trans->qh->dword8 = 0x0;
+  //trans->qh->dword9 = 0x0;
+  //trans->qh->dword10 = 0x0;
+  //trans->qh->dword11 = 0x0;
 
   return trans;
 }
 
-void _usbd_add_packet_to_transfer(USBPipe* tran, USBPacket pack) {
+void _usbd_add_packet_to_endpoint(USBEndpoint* tran, USBPacket pack) {
   tran->first_packet = pack;
   pack->next_ptr = tran->qh->dword4;
   tran->qh->dword4 = (uint32) pack;
-
-  //while((pack->token & 0xF) == 0x80){
-   // __cio_printf("Wait for packet");
-  //}
 }
 
 USBPacket _usbd_new_packet(uint8 type, uint16 size) {
@@ -179,12 +308,17 @@ USBPacket _usbd_new_packet(uint8 type, uint16 size) {
   return pack;
 }
 
+void _usbd_free_packet(USBPacket pack) {
+  pack->next_ptr = 0x1; // Just to make sure the packet is marked invalid
+  _usb_ehci_release_qtd(pack);
+}
+
 void _usbd_set_ioc_packet(USBPacket pack) {
   pack->token = pack->token | 0x8000;
 }
 
-void _usbd_print_transfer(USBPipe * tran) {
-  __cio_printf("USB Transfer Dump\n");
+void _usbd_print_endpoint(USBEndpoint * tran) {
+  __cio_printf("USB Endpoint Dump\n");
   __cio_printf("QH %x: HPtr: %x Token: %x EPCh: %x ", tran->qh, tran->qh->dword0, tran->qh->dword1, tran->qh->dword2);
   __cio_printf("cQTD: %x nQTD: %x\n", tran->qh->dword3, tran->qh->dword4);
   struct _usb_qtd_s* cqtd = tran->first_packet;
@@ -192,7 +326,7 @@ void _usbd_print_transfer(USBPipe * tran) {
   int cqtdN = 1;
   while((cqtda & 0x1) != 0x1 ) {
     uint16 packSize = (cqtd->token & 0x7FFF0000) >> 16;
-    __cio_printf("qTD%d %x: Next: %x Token: %x Transfer Size: %d CPage: %d PID: %x Status: %x",
+    __cio_printf("qTD%d %x: Next: %x Token: %x Endpoint Size: %d CPage: %d PID: %x Status: %x",
                  cqtdN, cqtd, cqtd->next_ptr, cqtd->token, packSize,
                  (cqtd->token & 0x7000) >> 12, (cqtd->token & 0x300) >> 8, cqtd->token & 0xFF);
     __cio_printf(" Buffptr 0: %x \n", cqtd->ptr0);

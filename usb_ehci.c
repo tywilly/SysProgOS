@@ -15,6 +15,7 @@ PCIDev* usbController;
 
 struct _usb_qtd_s* _usb_tds;
 struct _usb_qh_s* async_list;
+struct _usb_qh_s* asyncHead;
 Queue _usb_free_qtdq;
 Queue _usb_free_qhq;
 
@@ -146,11 +147,19 @@ struct _usb_qtd_s* _usb_ehci_free_qtd( void ) {
   return (struct _usb_qtd_s*) _queue_deque(_usb_free_qtdq);
 }
 
+void _usb_ehci_release_qtd( struct _usb_qtd_s* qtd ){
+  _queue_enque(_usb_free_qtdq, qtd);
+}
+
 struct _usb_qh_s* _usb_ehci_free_qh( void ){
   if(_queue_front(_usb_free_qhq) == NULL){
     __panic("USB_EHCI: Not enought Queue Heads");
   }
   return (struct _usb_qh_s*) _queue_deque(_usb_free_qhq);
+}
+
+void _usb_echi_release_qh( struct _usb_qh_s* qh ) {
+  _queue_enque(_usb_free_qhq, qh);
 }
 
 void _usb_ehci_schedule_isosync( struct _usb_td_s* td ) {
@@ -160,17 +169,17 @@ void _usb_ehci_schedule_isosync( struct _usb_td_s* td ) {
 void _usb_ehci_schedule_async( struct _usb_qh_s* qh ) {
 
   if((_usb_read_long(0x0) & 0x20) == 0x0) { // Async list is not enabled
-    _usb_write_long(0x18, (uint32) qh | 0x2); // Set front of list to be QH
+    asyncHead = qh;
+    _usb_write_long(0x18, ((uint32) qh) | 0x2); // Set front of list to be QH
     qh->dword1 |= 0x8000; // Set this as the head of the list
     _usb_write_long(0x0, _usb_read_long(0x0) | 0x20); // Enable to async list
-    __cio_printf("Sch1\n");
   }else{ // A head QH should be present, so add to list
     //_usb_write_long(0x0, _usb_read_long(0x0) & 0xFFFFFFDF); // Disable list
-    struct _usb_qh_s* headQh = (struct _usb_qh_s*)(_usb_read_long(0x18) & 0xFFFFFFE0);
+    struct _usb_qh_s* headQh = asyncHead;
     qh->dword0 = headQh->dword0 | 0x2;
-    headQh->dword0 = (uint32)qh | 0x2;
+    qh->dword1 &= 0xFFFF7FFF; // Disble the head bit. Just incase
+    headQh->dword0 = ((uint32)qh) | 0x2;
     //_usb_write_long(0x0, _usb_read_long(0x0) | 0x20); // Renable list
-    __cio_printf("Sch2 N: %x O: %x O: %x\n", headQh->dword0, headQh, qh);
   }
 }
 

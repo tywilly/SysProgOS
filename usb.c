@@ -5,14 +5,20 @@
 
 #include "usb.h"
 #include "usb_ehci.h"
+#include "usbd.h"
 #include "pci.h"
 
 
 void _usb_init( void ) {
 
-  _usb_ehci_init(_pci_get_device_class( 0x0C, 0x03, 0x20 )); // Init any EHCI controllers
+  __cio_puts( " [" );
 
-  __cio_puts( " USB" );
+  _usb_ehci_init(_pci_get_device_class( 0x0C, 0x03, 0x20 )); // Init any EHCI controllers
+                                                             //
+
+  _usbd_init(); // Init the USB driver
+
+  __cio_puts( " ] USB" );
 
 }
 

@@ -1,6 +1,7 @@
 # Project Specific
 *.image
 BuildImage
+docs/
 
 # Prerequisites
 *.d

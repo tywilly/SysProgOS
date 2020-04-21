@@ -49,6 +49,10 @@ struct _usb_qh_s {
   uint32 dword9;
   uint32 dword10;
   uint32 dword11;
+  uint32 dword12;
+  uint32 dword13;
+  uint32 dword14;
+  uint32 dword15;
 };
 
 
@@ -60,7 +64,11 @@ void _usb_ehci_status( void );
 
 struct _usb_qtd_s* _usb_ehci_free_qtd( void );
 
+void _usb_ehci_release_qtd( struct _usb_qtd_s* qtd );
+
 struct _usb_qh_s* _usb_ehci_free_qh( void );
+
+void _usb_ehci_release_qh( struct _usb_qh_s* qh );
 
 void _usb_ehci_schedule_isosync( struct _usb_td_s* td);
 

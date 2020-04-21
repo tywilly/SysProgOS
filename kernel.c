@@ -323,6 +323,7 @@ void _shell( int ch ) {
         case 'u':
             __cio_puts( "\nUSB Status:\n" );
             _usb_status();
+            _usbd_list_devices();
             break;
         case 'e':
             _usbd_enumerate_devices();
