@@ -228,9 +228,6 @@ void _usb_init( void ) {
         }
     }
 
-    // n_port
-    _usb_n_port = _usb_read_l(_usb_base, USB_HCSPARAMS) & 0xF;
-
     // stop and reset the controller
     _usb_command_disable(1);
     _usb_command_enable(2);
@@ -255,7 +252,7 @@ void _usb_init( void ) {
         // TODO: this must be addressed when several will be used
     _usb_qhead.qhead_hlink = ((uint32)&_usb_qhead) & 0xFFFFFFE0 | 2;
     _usb_qhead.endpoint_crc = 0x0040D000;
-    _usb_qhead.endpoint_cap = 0x04000000;
+    _usb_qhead.endpoint_cap = 0x40000000;
     _usb_qhead.current_qtd = 0;
     _usb_qhead.overlay.next_qtd = 1;
     _usb_qhead.overlay.alt_next_qtd = 1;
@@ -270,8 +267,6 @@ void _usb_init( void ) {
         // TODO: beware the buffer data don't go over 4kB page boundary
     char buf_snd[256];
     char buf_rec[256];
-    *(uint32 *)buf_snd = 0x80060001;
-    *((uint32 *)buf_snd+1) = 0x00004000;
     USBQTD *out = (USBQTD *)_queue_deque( _usb_qtd_q );
     out->token = 0x80008C80;
     USBQTD *in = (USBQTD *)_queue_deque( _usb_qtd_q );
@@ -281,22 +276,32 @@ void _usb_init( void ) {
     USBQTD* setup = (USBQTD *)_queue_deque( _usb_qtd_q );
     setup->next_qtd = ((uint32)in & 0xFFFFFFE0);
     setup->token = 0x00080E80;
+    *(uint32 *)buf_snd = 0x80060001;
+    *((uint32 *)buf_snd+1) = 0x00004000;
     setup->buffer0 = (uint32)buf_snd;
 
     // update next qh next qtd
     _usb_qhead.overlay.next_qtd = (uint32)setup & 0xFFFFFFE0;
 
+    // reset the port where the device is connected
+    _usb_n_port = _usb_read_l( _usb_base, USB_HCSPARAMS ) & 0xF;
+    for( uint8 i = 0; i < _usb_n_port; i++ ) {
+        uint32 portsc = _usb_read_l( _usb_op_base, 0x44 + 4*i );
+        // recently connected device
+        if( portsc & 0b11 == 0b11 ) {
+            _usb_write_l( _usb_op_base, 0x44 + 4*i, portsc | 0x100 );
+            for( uint16 j = 0; j < 0xFFFF; j++ );
+            _usb_write_l( _usb_op_base, 0x44 + 4*i, portsc );
+            break;
+        }
+    }
+
     // __cio_printf("SETUP %08x    IN %08x    OUT %08x\n", setup, in, out);
-    _usb_dump_qtd( setup, false );
+    _usb_dump_qtd( in, false );
 
     // enable async schedule
     _usb_write_l( _usb_op_base, USB_ASYNCLISTADDR, (uint32)&_usb_qhead );
     _usb_command_enable( 0x20 );
-
-    // portcs
-    // for( uint8 i = 0; i < _usb_n_port; i++ ) {
-    //     __cio_printf( "port %d %08x\n", i+1, _usb_read_l( _usb_op_base, 0x44 + 4*i ));
-    // }
 
     // setup frame list
     // _usb_frame_list = (uint32 *)_kalloc_page(1);
@@ -314,16 +319,14 @@ void _usb_init( void ) {
     // start the controller
     _usb_command_enable(1);
 
-    __cio_printf( "command %08x\n", _usb_read_l( _usb_op_base, USB_CMD ));
+    _usb_dump_qtd( in, false );
     __cio_printf( "status %08x\n", _usb_read_l( _usb_op_base, USB_STS ));
-    _usb_dump_qtd( setup, false );
-    for( uint32 j = 0; j < 10; j++ ) {
+    for( uint32 j = 0; j < 1; j++ ) {
         for( uint32 i = 0; i < 0xAFFFFFF; i++ );
             __cio_puts( "buf_rec ");
             for( uint32 x = 0; x < 8; x++ )
                 __cio_printf( "%02x ", buf_rec[x]);
-        __cio_printf( "\ncommand %08x\n", _usb_read_l( _usb_op_base, USB_CMD ));
-        __cio_printf( "status %08x\n", _usb_read_l( _usb_op_base, USB_STS ));
+        __cio_printf( "      status %08x\n", _usb_read_l( _usb_op_base, USB_STS ));
     }
 
     __cio_puts( "--------------------USB SHIT--------------------\n" );
