@@ -232,20 +232,6 @@ void _usb_init( void ) {
     _usb_command_disable(1);
     _usb_command_enable(2);
 
-    // allocate and init qtds
-    _usb_qtd_q = _queue_alloc( NULL );
-    for( int i = 0; i < USB_MAX_QTD; i++ ) {
-        _usb_qtds[i].next_qtd = 1;      // invalid
-        _usb_qtds[i].alt_next_qtd = 1;  // never used
-        _usb_qtds[i].token = 1;
-        _usb_qtds[i].buffer0 = 0;
-        _usb_qtds[i].buffer1 = 0;
-        _usb_qtds[i].buffer2 = 0;
-        _usb_qtds[i].buffer3 = 0;
-        _usb_qtds[i].buffer4 = 0;
-        _queue_enque( _usb_qtd_q, (void *)&_usb_qtds[i] );
-    }
-
     // setup control queue head
     assert((uint32)&_usb_qhead == ((uint32)&_usb_qhead & 0xFFFFFFE0));
         // QHeads must be 32 bit aligned
@@ -262,6 +248,20 @@ void _usb_init( void ) {
     _usb_qhead.overlay.buffer2 = 0;
     _usb_qhead.overlay.buffer3 = 0;
     _usb_qhead.overlay.buffer4 = 0;
+
+    // allocate and init qtds
+    _usb_qtd_q = _queue_alloc( NULL );
+    for( int i = 0; i < USB_MAX_QTD; i++ ) {
+        _usb_qtds[i].next_qtd = 1;      // invalid
+        _usb_qtds[i].alt_next_qtd = 1;  // never used
+        _usb_qtds[i].token = 1;
+        _usb_qtds[i].buffer0 = 0;
+        _usb_qtds[i].buffer1 = 0;
+        _usb_qtds[i].buffer2 = 0;
+        _usb_qtds[i].buffer3 = 0;
+        _usb_qtds[i].buffer4 = 0;
+        _queue_enque( _usb_qtd_q, (void *)&_usb_qtds[i] );
+    }
 
     // get descriptor setup packet
         // TODO: beware the buffer data don't go over 4kB page boundary
@@ -285,8 +285,11 @@ void _usb_init( void ) {
         *((uint32 *)buf_rec + i) = 0;
     }
 
-    // update next qh next qtd
+    // update qh next qtd
     _usb_qhead.overlay.next_qtd = (uint32)setup & 0xFFFFFFE0;
+
+    // start the controller
+    _usb_command_enable(1);
 
     // reset the port where the device is connected
     _usb_n_port = _usb_read_l( _usb_base, USB_HCSPARAMS ) & 0xF;
@@ -321,9 +324,7 @@ void _usb_init( void ) {
     // enable periodic schedule
     // _usb_command_enable(0x10);
 
-    // start the controller
-    _usb_command_enable(1);
-
+    // DEBUG: print the receive buffer
     _usb_dump_qtd( in, false );
     __cio_printf( "status %08x\n", _usb_read_l( _usb_op_base, USB_STS ));
     for( uint32 j = 0; j < 10; j++ ) {
