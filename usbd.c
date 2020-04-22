@@ -41,7 +41,7 @@ void _usbd_init( void ) {
   USBEndpoint * endp = _usbd_new_endpoint(0, 0, USB_LOW_SPEED, 64); // Create the default device control pipe
   _usbd_schedule_endpoint(endp); // Schedule the endpoint
 
-
+ 
 
   __cio_puts(" USBD");
 }
@@ -310,6 +310,7 @@ USBPacket _usbd_new_packet(uint8 type, uint16 size) {
 
 void _usbd_free_packet(USBPacket pack) {
   pack->next_ptr = 0x1; // Just to make sure the packet is marked invalid
+  _kfree_page((void *)pack->ptr0);
   _usb_ehci_release_qtd(pack);
 }
 
