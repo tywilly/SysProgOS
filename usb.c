@@ -265,8 +265,8 @@ void _usb_init( void ) {
 
     // get descriptor setup packet
         // TODO: beware the buffer data don't go over 4kB page boundary
-    char buf_snd[256];
-    char buf_rec[256];
+    char *buf_snd = (char *)_kalloc_slice();
+    char *buf_rec = (char *)_kalloc_slice();
     USBQTD *out = (USBQTD *)_queue_deque( _usb_qtd_q );
     out->token = 0x80008C80;
     USBQTD *in = (USBQTD *)_queue_deque( _usb_qtd_q );
@@ -279,6 +279,11 @@ void _usb_init( void ) {
     *(uint32 *)buf_snd = 0x80060001;
     *((uint32 *)buf_snd+1) = 0x00004000;
     setup->buffer0 = (uint32)buf_snd;
+
+    // DEBUG: clean the receive buffer
+    for( uint32 i = 0; i < 256; i++ ) {
+        *((uint32 *)buf_rec + i) = 0;
+    }
 
     // update next qh next qtd
     _usb_qhead.overlay.next_qtd = (uint32)setup & 0xFFFFFFE0;
@@ -321,7 +326,7 @@ void _usb_init( void ) {
 
     _usb_dump_qtd( in, false );
     __cio_printf( "status %08x\n", _usb_read_l( _usb_op_base, USB_STS ));
-    for( uint32 j = 0; j < 1; j++ ) {
+    for( uint32 j = 0; j < 10; j++ ) {
         for( uint32 i = 0; i < 0xAFFFFFF; i++ );
             __cio_puts( "buf_rec ");
             for( uint32 x = 0; x < 8; x++ )
