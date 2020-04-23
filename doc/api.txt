@@ -17,27 +17,274 @@ the baseline OS as well as its augmentations.
 Baseline System Calls
 ----------------------------------------
 bogus
-    ...
+    void bogus( void );
+    A special system call intended for debugging the system call ISR. I'd bet
+    that it doesn't accomplish what you're trying to do...so please don't use
+    it unless you're debugging something.
+
+    Parameters:
+    None
+
+    Side Effects:
+    Warning on CIO with the PID and syscall number. 
+    Your process gets killed.
+
+    Returns:
+    Nothing
+
+    Example Usage:
+    bogus();
+
 exit
-    ...
+    void exit( int32 status );
+    This system call terminates whatever function calls it. The exit status
+    will be collected by the process' parent, or init.
+
+    Parameters:
+    int32 status: Your process' exit status. Typically a status of 0 indicates
+                  normal exit. Nonzero status typically indicates abnormal exit,
+                  but it's a free country.
+
+    Side Effects:
+    Your process dies.
+
+    Returns:
+    Does not return.
+
+    Example Usage:
+    exit( -32 ); // Something went horribly wrong, end my suffering!
+    exit( 0 );   // All is good, I'm moving on to a better place.
+
 getpid
-    ...
+    Pid getpid( void );
+    Request your Process ID.
+
+    Parameters:
+    None
+
+    Side Effects:
+    None
+
+    Returns:
+    Your Process ID as type Pid (unsigned 16-bit integer). See types.h for
+    more details.
+
+    Example Usage:
+    if( getpid() == 254 ) {
+        exit( -1 ); // I don't like this number
+    }
+
 getppid
-    ...
+    Pid getppid( void );
+    Request your parent's Process ID.
+
+    Parameters:
+    None
+
+    Side Effects:
+    None
+
+    Returns:
+    Your parent process' ID as type Pid (unsigned 16-bit integer). See types.h
+    for more information.
+
+    Example Usage:
+    kill( getppid() ); // make a life insurance claim
+
 gettime
-    ...
+    Time gettime( void );
+    Request the system time, in 1 ms ticks since startup.
+
+    Parameters:
+    None
+
+    Side Effects:
+    None
+
+    Returns:
+    The current system time of type Time (unsigned 64-bit integer). See types.h
+    for more information.
+
+    Example Usage:
+    if( (uint32) gettime() > 150000 ) {
+        cwrites( "I'm late!!!!\n" );
+    }
+
 getstate
-    ...
+    State getstate( uint16 pid );
+    Request the state of a process in the system.
+
+    Parameters:
+    uint16 pid: The Process ID of the process to check the state of. Passing
+                your own PID to this function is equivalent to passing 0 for
+                PID. Spoiler alert: checking your own state will almost always 
+                be RUNNING, unless something goes wrong.
+
+    Side Effects:
+    None
+
+    Returns:
+    See status_e in types.h for all possible states.
+    The integer representation of the specified process' state. If the process
+    parameter is invalid or not found, the returned state will be UNUSED.
+
+    Example Usage:
+    if( getstate( 42 ) == WAITING ) {
+        kill( 42 ); // get impatient
+    }
+
+    while( true ) {
+        if( getstate( 0 ) == RUNNING ) {
+            cwrites( "I told you so!\n" );
+        }
+    }
+
 kill
-    ...
+    int32 kill( Pid pid );
+    Take out your anger by assassinating a process in the system.
+
+    Parameters:
+    Pid pid: The process ID of your victim with type Pid.
+             Note: No matter how hard you try, you cannot kill init or idle.
+             Note: Passing 0 as the PID kills the calling process. Do this if
+                   calling exit() is not exciting enough.
+
+    Side Effects:
+    The process in question is murdered in cold blood. It is removed from
+    whatever system queue it is on, and its parent mourns the loss of the child
+    by collecting the exit status of E_KILLED.
+
+    Returns:
+    Note: If you kill yourself, you obviously won't return.
+    0 if the deed is done.
+    E_INVALID if you are not allowed to kill the process in question.
+    E_NOT_FOUND if you tried to kill a process that isn't in the system.
+
+    Example Usage:
+    if( kill( 42 ) != 0 /* I never liked that guy */ ) {
+        // he's on to us
+        kill( 0 ); // goodbye cruel world
+    }
+
 read
-    ...
+    int32 read( int chan, void *buffer, uint32 length );
+    Read data from a stream into a local buffer. You may read from console input
+    or from serial input. Console input is non-blocking, but serial input is.
+
+    Parameters:
+    int chan:       The number representing which stream to read from.
+                    Valid options include: CHAN_SIO to read from serial input,
+                    or CHAN_CONS to read from console input.
+    void *buffer:   The place to read bytes into.
+    uint32 length:  The maximum capacity of the buffer in bytes. 
+
+    Side Effects:
+    The buffer may be filled with some new data. If you're reading from serial
+    input, other processes may be scheduled until new data is available.
+
+    Returns:
+    The number of bytes read, or E_BAD_CHANNEL if you try to read from a
+    nonexistent stream, 
+
+    Example Usage:
+    char ades[256]; // like the game
+    if( read( CHAN_SIO, ades, 256 ) > 0 ) {
+        cwrites( "Gone with the wind??\n" );
+    } else {
+        cwrites( "Just act something out already!" );
+    }
+
 sleep
-    ...
+    void sleep( uint32 msec );
+    Put your process to sleep while the rest of the world goes on around you.
+    You cannot sleep for longer than 49 days, 17 hours, 2 minutes, and 47 
+    seconds. If you want to sleep longer, see exit().
+
+    Parameters:
+    uint32 msec: The number of milliseconds your process desires to be asleep
+                 for. 
+                 Note: Passing 0 milliseconds as a parameter effectively yields
+                 the CPU if there are other processes waiting.
+
+    Side Effects:
+    Your process does not run for a certain amount of time. 
+    Your process may have dreams.
+
+    Returns:
+    Nothing
+
+    Example Usage:
+    if( (uint32) gettime() < 10000 ) {
+        cwrites( "Yeah, I got time...\n" );
+        sleep( 5000 );
+    }
+
 spawn
-    ...
+    int32 spawn( int (*entry)(int, char*), char *args[] );
+    Bring a brand new process into the world. 
+
+    Parameters:
+    int (*entry)(...):  A pointer to the main function that the process should
+                        start off executing. It must take an integer for the
+                        number of arguments (like argc), and a string of
+                        NULL delimited parameters.
+    char *args[]:       The command line arguments to pass to the main program.
+
+    Side Effects:
+    If all goes well, you are the proud parent of the newest process in the 
+    system.
+
+    Returns:
+    The PID of the new process, or an error code. It could return E_MAX_PROCS if
+    there are already N_PROCS (see common.h) processes in the system. It could
+    also return E_NO_MEMORY if there is not enough space left in memory to 
+    allocate a stack for the process.
+
+    Example Usage:
+    // down with the machine!
+    int forkbomb( int argc, char *argv ) {
+        char *argv[];
+        spawn( forkbomb, &argv );
+        while( true ) { cwrites("HA"); }
+
+        return -1; // whatever
+    }
+
+    char *argv[];
+    cwrites( "MWA HA" );
+    spawn( forkbomb, argv );
+
 wait
-    ...
+    int32 wait( Pid pid, int32 *status );
+    Block until a child process exits, then collect its status.
+
+    Parameters:
+    Pid pid:        The process ID of the child to wait for.
+                    Note: Passing a pid of 0 will wait for any child to exit.
+    int32 *status:  A pointer to a safe place to put the child's status.
+
+    Side Effects:
+    If you wait for a valid child, the value that status points to will be
+    filled with the exited child's status. If none of your children have exited,
+    the calling process will be blocked, with the status WAITING.
+
+    Returns:
+    The Pid of the child that exited, or an error code: E_NO_CHILDREN if your
+    process is an empty-nester; E_INVALID if you try towait for yourself or if
+    you try to abduct another process' child; E_NOT_FOUND if the process you're
+    trying to wait for does not exist.
+
+    Example Usage:
+    int32 status;
+    uint16 pid;
+    char buf[64];
+    while( (pid = wait( 0, &status )) != E_NO_CHILDREN ) {
+        if( status == E_KILLED ) {
+            sprint( buf, "OH NO! MY BABY %d WAS KILLED! WHYYYYYY!!!?!??!\n" );
+            cwrites( buf );
+        }
+    }
+
 write
     cwritech
         ...
