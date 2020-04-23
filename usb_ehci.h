@@ -13,6 +13,12 @@
 #define MAX_TDS 20
 #define ASYNC_LIST_SIZE 20
 
+#define USB_ERROR_INTERRUPT 0x1
+#define USB_PORT_CHANGE_INTERRUPT 0x2
+#define USB_FRAME_LIST_INTERRUPT 0x3
+#define USB_HOST_ERROR_INTERRUPT 0x4
+#define USB_ASYNC_INTERRUPT 0x5
+
 #include "common.h"
 #include "pci.h"
 
@@ -55,6 +61,7 @@ struct _usb_qh_s {
   uint32 dword15;
 };
 
+void _usb_ehci_isr_callback(void (*callback)(void));
 
 void _usb_ehci_init( PCIDev* pciDev );
 
@@ -79,6 +86,10 @@ bool _usb_ehci_has_port_change( void );
 uint8 _usb_ehci_find_port_change( void );
 
 void _usb_ehci_reset_port( uint8 port );
+
+void _usb_ehci_clear_interrupt(uint8 interruptNum);
+
+bool _usb_ehci_get_interrupt_status(uint8 interruptNum);
 
 #endif
 

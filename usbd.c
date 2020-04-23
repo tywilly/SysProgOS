@@ -25,11 +25,11 @@ typedef struct _usb_dev_s{
 
 USBDev _usb_devs[USB_MAX_DEVICES];
 
-
-void _usbd_main( int argc, char* args){
-
-
-
+void _isr_handler(void){
+  if(_usb_ehci_get_interrupt_status(USB_PORT_CHANGE_INTERRUPT)){ // Handle port change
+    _usbd_enumerate_devices();
+    _usb_ehci_clear_interrupt(USB_PORT_CHANGE_INTERRUPT);
+  }
 }
 
 void _usbd_init( void ) {
@@ -41,7 +41,7 @@ void _usbd_init( void ) {
   USBEndpoint * endp = _usbd_new_endpoint(0, 0, USB_LOW_SPEED, 64); // Create the default device control pipe
   _usbd_schedule_endpoint(endp); // Schedule the endpoint
 
- 
+  _usb_ehci_isr_callback(&_isr_handler);
 
   __cio_puts(" USBD");
 }
@@ -214,8 +214,6 @@ void _usbd_enumerate_devices( void ) {
         USBEndpoint * endp = _usbd_new_endpoint(deviceAddr, endpDesc[2] & 0xF,
                                                 USB_LOW_SPEED, maxPacketSize);
 
-        __cio_printf("I: %d E: %d \n", intDesc[2], endpDesc[2] & 0xF);
-
         _usbd_schedule_endpoint(endp);
         endpDesc = (endpDesc + endpDesc[0]);
       }
@@ -231,6 +229,8 @@ void _usbd_enumerate_devices( void ) {
 
     __cio_printf("USB Enum done\n");
 
+  }else{
+    __cio_printf("\nNo new devices\n");
   }
 
 }

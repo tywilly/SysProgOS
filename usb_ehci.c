@@ -22,10 +22,16 @@ Queue _usb_free_qhq;
 uint32 base_addr;
 uint32* frame_list;
 
+void (*_isr_callback)(void);
+
 void _usb_isr( int vector, int ecode ) {
 
-  __cio_printf("USB INT V: %x, C: %x", vector, ecode);
+  (*_isr_callback)(); // Handle the call
 
+}
+
+void _usb_ehci_isr_callback(void (*callback)(void)){
+  _isr_callback = callback;
 }
 
 uint32 _usb_read_long( uint8 offset ) {
@@ -107,12 +113,12 @@ void _usb_ehci_init( PCIDev* pciDev ) {
   }
 
 
-  _pci_set_interrupt( usbController, 0x0 , 0x43 ); // Change the interrupt line
+  _pci_set_interrupt( usbController, 0x0 , 43 ); // Change the interrupt line
 
   __install_isr( usbController->interrupt, _usb_isr ); // Install ISR
-  //_usb_enable_interrupts(); // Enable interrupts
+  _usb_enable_interrupts(); // Enable interrupts
 
-  _usb_write_long(0x00, _usb_read_long(0x0) | 0x1);
+  _usb_write_long(0x00, _usb_read_long(0x0) | 0x1); // Enable the controller
 
   _usb_write_long(0x40, 0x1); // All ports route to this controller
 
@@ -211,5 +217,49 @@ void _usb_ehci_reset_port( uint8 port ) {
     }
 
     __cio_printf("USB_ECHI: port %d has been reset\n", port);
+  }
+}
+
+void _usb_ehci_clear_interrupt(uint8 interruptNum) {
+  switch(interruptNum) {
+    case USB_ERROR_INTERRUPT:
+      _usb_write_long(0x4, (_usb_read_long(0x4) & 0xF03D) | 0b10);
+      break;
+    case USB_PORT_CHANGE_INTERRUPT:
+      _usb_write_long(0x4, (_usb_read_long(0x4) & 0xF03B) | 0b100);
+      break;
+    case USB_FRAME_LIST_INTERRUPT:
+      _usb_write_long(0x4, (_usb_read_long(0x4) & 0xF037) | 0b1000);
+      break;
+    case USB_HOST_ERROR_INTERRUPT:
+      _usb_write_long(0x4, (_usb_read_long(0x4) & 0xF02F) | 0b10000);
+      break;
+    case USB_ASYNC_INTERRUPT:
+      _usb_write_long(0x4, (_usb_read_long(0x4) & 0xF01F) | 0b100000);
+      break;
+    default:
+      break;
+  }
+}
+
+bool _usb_ehci_get_interrupt_status(uint8 interruptNum) {
+  uint32 intSts, usbSts;
+  intSts = _usb_read_long(0x08);
+  usbSts = _usb_read_long(0x04);
+  switch(interruptNum){
+
+    case USB_ERROR_INTERRUPT:
+      return (intSts & 0b11) == 0b11 && (usbSts & 0b10) == 0b10;
+    case USB_PORT_CHANGE_INTERRUPT:
+      return (intSts & 0b101) == 0b101 && (usbSts & 0b100) == 0b100;
+    case USB_FRAME_LIST_INTERRUPT:
+      return (intSts & 0b1001) == 0b1001 && (usbSts & 0b1000) == 0b1000;
+    case USB_HOST_ERROR_INTERRUPT:
+      return (intSts & 0b10001) == 0b10001 && (usbSts & 0b10000) == 0b10000;
+    case USB_ASYNC_INTERRUPT:
+      return (intSts & 0b100001) == 0b100001 && (usbSts & 0b100000) == 0b100000;
+    default:
+      return false;
+
   }
 }
