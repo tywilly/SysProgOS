@@ -23,7 +23,7 @@ Our group decided to tackle making an audio player of some kind, with drivers
 for various sound hardware, CD-ROM, and USB storage for storing music files.
 Our original target devices were Intel AC97, Intel HD Audio.
 
-The other group decided to tackle networking, filesystems, and another USB 
+The other group decided to tackle networking, file systems, and another USB 
 implementation. Realizing the potential of a really cool final product, we
 decided that we would work closely with each other, and try to merge all eight
 (8!) projects into one if there was time. The end result could have been
@@ -31,7 +31,7 @@ something like a low-budget Spotify with samples streaming and playing on
 different machines.
 
 We set up a shared slack workspace for the two teams to stay in close contact,
-as well as a shared github repository. At the time of writing this document,
+as well as a shared GitHub repository. At the time of writing this document,
 it seems that no efforts will be made to merge all of the enhancements together
 into one ubersystem given the circumstances. However, someone could pick that
 up as a personal project if they desire.
@@ -117,16 +117,16 @@ hour wallowing up to my armpits in nostalgia for Windows XP. After listening
 to each sound several times, I realized that XP was the pinnacle of Microsoft
 acoustic design. So, I scraped the wav files for use (abuse?) in the baseline.
 
-For testing purposes, and until my groupmates got their storage drivers up and
+For testing purposes, and until my group-mates got their storage drivers up and
 running, I needed to compile in my audio data somehow. I found the easiest way
 was to use the linker to turn them into binary object files. It even exported
 variables I could use from the code to get to the start and end of the binary 
 blob. The only issue I ran into is that this severely limits the length of the
 audio files I can include before the program becomes too large to start at 
-0x10000. When I tried upsampling the orchestral startup sound to the AC97 
+0x10000. When I tried up-sampling the orchestral startup sound to the AC97 
 default sample rate of 48 kHz from its original 22.5, but it made the file too
 large to link in. To save space, I ended up figuring how to change the AC97 
-DAC rate, and downsampled it to 8 kHz. It sounds more muffled, but it's still
+DAC rate, and down-sampled it to 8 kHz. It sounds more muffled, but it's still
 recognizable. It was honestly more nostalgic that way, since for most of my
 childhood, the computer speakers weren't very good anyway.
 
