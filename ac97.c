@@ -66,6 +66,9 @@ void _ac97_init(void) {
         for (int i = 0; i < AC97_BDL_LEN; ++i) {
             // carve out a brand new page for our buffer
             bdl_array[i].pointer = (uint32) _kalloc_page(1);
+            if (bdl_array[i].pointer == 0) {
+                WARNING("AC97: Failed to allocate buffer\n");
+            }
 
             // clean it up
             __memclr((void *) bdl_array[i].pointer, AC97_BUFFER_LEN);
