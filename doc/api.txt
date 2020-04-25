@@ -301,7 +301,8 @@ write
     before all of the data is written, the remaining data gets lost. However,
     if the AC97 buffer fills, the number of bytes that fit into the buffer will
     be returned. Be sure to keep track of this so you can continue writing
-    sound data without skipping or replaying samples. 
+    sound data without skipping or replaying samples. In addition, the AC97 
+    controller will begin playback of data in the buffer.
 
     Returns:
     The number of bytes that were transferred, or an error code: E_BAD_CHANNEL
@@ -840,7 +841,8 @@ AC97 Driver
         }
 
     ac97_write
-        int32 ac97_write( void *buf, 
+        int32 ac97_write( const void *buf, uint32 len );
+        A shorthand for writing to the AC97 controller. See write (above).
 
 ATAPI CD-ROM Driver
     ...
