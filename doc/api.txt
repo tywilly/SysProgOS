@@ -763,11 +763,85 @@ Enhancement System Calls
 ----------------------------------------
 AC97 Driver
     ac97_getvol
-        ...
+        uint8 ac97_getvol( void );
+        Query the AC97 Audio Controller's Master volume level. The level is 
+        reported on a 6-bit (0-63) scale where 0 is muted, and 63 is earth-
+        shakingly loud (on real hardware).
+
+        Parameters: 
+        None
+
+        Side Effects:
+        None
+
+        Returns:
+        The device's master volume setting from 0 (silent) to 63 (deafening).
+        If the AC97 controller is not present or initialized, this will return
+        0.
+
+        Example Usage:
+        if( ac97_getvol() == 11 ) {
+            cwrites("Turned up to 11, but not actually that loud.\n" );
+        }
+
     ac97_setvol
-        ...
+        void ac97_setvol( uint8 vol );
+        Adjust the AC97 Master volume level to your desired level of hearing
+        loss.
+
+        Parameters:
+        uint8 vol: A 6-bit value to use as the new volume level. It will 
+                   automatically be scaled to whatever number of bits your
+                   audio mixer supports. Values outside of the valid range
+                   have no effect.
+
+        Side Effects:
+        If the AC97 controller is present and initialized, your volume level
+        may be changed.
+
+        Returns:
+        Nothing
+
+        Example Usage:
+        uint8 vol = 0;
+        while( true ) {
+            // look ma, crescendos!
+`           ac97_setvol( vol );
+            vol = (vol + 1) % 64;
+        }
+
     ac97_setrate
-        ...
+        uint16 ac97_setrate( uint16 rate );
+        Set the AC97 controller's rate of operation in Hz. This will allow you
+        to play PCM audio at different sample rates. Not all frequencies are
+        supported, but the hardware chooses the closest one.
+
+        Parameters:
+        uint16 rate: The desired sample rate in Hz (samples per second).
+
+        Side Effects:
+        If the AC97 controller is present and initialized, the sample rate may
+        be updated. If the controller was playing, it will be stopped until
+        the next call to write.
+
+        Returns:
+        The actual sample rate the hardware has switched to. It is worth
+        checking this because the hardware may not support the exact sample 
+        rate specified.
+
+        Example Usage:
+        uint16 actual = ac97_setrate( 44500 );
+        if( actual > 44500 ) {
+            cwrites( "will sound faster\n" );
+        } else if( actual < 44500 ) {
+            cwrites( "will sound slower\n" );
+        } else {
+            cwrites( "just right\n" );
+        }
+
+    ac97_write
+        int32 ac97_write( void *buf, 
+
 ATAPI CD-ROM Driver
     ...
         ...
