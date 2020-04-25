@@ -185,6 +185,13 @@ void bogus( void );
 uint8 ac97_getvol( void );
 
 /*
+** Determine whether or not the AC97 device is present and functional.
+** 
+** usage: if (ac97_initialized()) { ... }
+*/
+bool ac97_initialized(void);
+
+/*
 ** set the volume of the AC97 device.
 **
 ** This is a scale from 0 (silent) to 63 (deafening).

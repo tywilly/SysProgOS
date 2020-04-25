@@ -175,4 +175,9 @@ void _ac97_play(void);
   * Stop playback. The data buffer maintains its current state.
   */
 void _ac97_stop(void);
+
+/**
+  * Determine if the AC97 Controller is present and initialized.
+  */
+bool _ac97_initialized(void);
 #endif

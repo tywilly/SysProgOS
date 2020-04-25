@@ -1218,6 +1218,11 @@ int userZ( int argc, char *args ) {
 int startsound( int argc, char *args ) {
     int ch = '@';
 
+    if (!ac97_initialized()) {
+        cwrites("AC97 Audio device not initialized!\n");
+        exit(-1);
+    }
+
     // TODO DCB wav support library
     char *pos = (char *) &_binary_winstart_wav_start + 44;
     char *end = (char *) &_binary_winstart_wav_end;
