@@ -844,6 +844,25 @@ AC97 Driver
         int32 ac97_write( const void *buf, uint32 len );
         A shorthand for writing to the AC97 controller. See write (above).
 
+    ac97_initialized
+        bool ac97_initialized( void );
+        Determine if the AC97 Audio Device is up and running or not.
+
+        Parameters:
+        None
+
+        Side Effects:
+        None
+
+        Returns:
+        True if the AC97 audio device is up and running. False otherwise.
+
+        Example Usage:
+        if( !ac97_initialized() ) {
+            // RATS!
+            exit( -1 );
+        }
+
 ATAPI CD-ROM Driver
     ...
         ...
