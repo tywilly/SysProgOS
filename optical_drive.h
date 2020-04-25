@@ -8,8 +8,12 @@
 #define ATA_IRQ_PRIMARY 0x0E
 #define ATA_IRQ_SECONDARY 0x0F
 
-#define ATA_BUS_PRIMARY 0X1F0
+#define ATA_BUS_PRIMARY 0x1F0
 #define ATA_BUS_SECONDARY 0x170
+#define DRIVE_SELECT 0x176
+#define CD_READY 0x177
+#define ATAPI_INTERRUPT_REG 0x376
+#define SELECT_MASTER 0x00
 
 #define ATA_MASTER 0xA0
 #define ATA_SLAVE 0xB0
@@ -26,6 +30,8 @@ enum drive_type{
     SECONDARY_SLAVE = 0x017000b0,
 };
 
+#define ATA_PIO_MODE 0
+#define ATAPI_READ_COMMAND 0xa0
 #define ATA_DATA(x)           (x)
 #define ATA_FEATURES(x)      (x+1)
 #define ATA_SECTOR_COUNT(x)   (x+2)
@@ -66,5 +72,9 @@ enum drive_type{
 
 #define ATAPI_CAPACITY_READ 0X25
 #define ATAPI_PACKET 0xa0
+
+
+void _atapi_init(void);
+
 
 #endif

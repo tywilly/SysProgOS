@@ -32,7 +32,6 @@ bool _ata_bus_check(uint32 bus) {
 }
 
 enum drive_type _find_atapi_drive( void ) {
-	__cio_puts("fuxking work");
     if (_ata_bus_check(ATA_BUS_PRIMARY)) {
         if (_is_atapi(ATA_BUS_PRIMARY, ATA_MASTER))
             return PRIMARY_MASTER;
@@ -88,27 +87,39 @@ int atapi_read(uint32 base, uint32 sector) {
     uint32 ide_secondary_interrupt=0;
     uint16 size=0;
     uint32 cycle=0;
-    __outb(base+1, 0);
-    __outb(base+4, (2048 & 0xff));
-    __outb(base+5, (2048 >> 8));
+    //enable pio
+    __outb(base+1, ATA_PIO_MODE);
+    //Maximal byte count in this case based off of cd rom size
+    __outb(base+4, (ATAPI_SECTOR_SIZE  & 0xff));
+    __outb(base+5, (ATAPI_SECTOR_SIZE >> 8));
+    //identify packet command
     __outb(base+7, ATA_PACKET_COMMAND);
-    cycle=0;
-    for(int i=0; i<100; i++) {
-        if( (__inb(base+7) & 0x88)==0x08 ) {
+    //  cycle=0;
+    __cio_puts("reaches here before inerrupt");
+    //wait for drq and bsy to be clear will change to a more efficent
+    // version once I know it working
+    for(int i=0; i<1000; i++) {
+        if( (__inb(base+7) & 0x88)== 0X08 ) {
             cycle=1;
             break;
         }
     }
-    if(cycle==0) { 
+    if(cycle==0) {
+	__cio_puts("first failure in identifying drive and getting lba for read"); 
         return 0;
     }
+    //interrupt I need to implement
     ide_secondary_interrupt=0;
-    __outw(base+0, 0x25);
-    __outw(base+0, (uint16)(sector >> 16));
-    __outw(base+0, (uint16)sector);
-    __outw(base+0, 0);
-    __outw(base+0, 1);
-    __outw(base+0, 0);
+
+    //So this looks weird but atapi commands are sent in several outw portions to different ports to emulate
+    //scsi commands 
+    __outw(base, ATAPI_READ_COMMAND);
+    // slave bit portion.
+    __outw(base, (uint16)(sector >> 16));
+    __outw(base, (uint16)sector);
+    __outw(base, 0);
+    __outw(base, 1);
+    __outw(base, 0);
     cycle=0;
     for(int i=0; i<1000; i++) {
         __inb(base+7);  //wait
@@ -118,6 +129,7 @@ int atapi_read(uint32 base, uint32 sector) {
         }
     }
     if(cycle==0) {  
+	__cio_puts("second failure ");
         return 0;
     }
     size = ( ( ((unsigned short)(__inb(base+5) << 8)) | ((unsigned short)__inb(base+4)) ) / 2);
@@ -127,27 +139,24 @@ int atapi_read(uint32 base, uint32 sector) {
 
     //success
     return 1;
-
 }
 
 void _atapi_init(void) {
-   // enum drive_type loc = _find_atapi_drive();
-  //  if (loc == NO_DRIVE) {
-//	__cio_puts("No ATAPI FOUND"); 
-  //      return;
-//    }
-    //select drive
-    __outb(0x176, 0xE0);
-    if(__inb(0x376) & 0x01) {
-	__outb(0x176, 0xE0);
+    //Slightly confusing start up 
+   // enables drive interrupts
+    __outb(ATAPI_INTERRUPT_REG,ATA_DCR_HIGH_ORDER_BYTE);
+    //sets drive select to master 0x176 IS THE register for setting which drive to use
+    __outb(DRIVE_SELECT,SELECT_MASTER);
+    //0X1F0 is the task register according to osdevwiki so I'm trying to bruce force it
+    //pass in bus and drive
+    for (int c = 1; c <= 1000; c++)
+       {}
+    if(__inb(CD_READY) & 0x40 ){
+	__cio_puts(" cd is ready");
+    }else{
+	__cio_puts(" cd is not ready");	
     }
-    uint32 loc = 0x01f000a0 & 0xff;//drive
-    uint32 bus = loc >> 0x10;
-    //attempt to brute force capacity
-    uint32 lba = _atapi_capacity(bus, PRIMARY_MASTER);
-    __cio_printf("value %u" ,lba);
-    //attempt to brute force a read
-    if(atapi_read(PRIMARY_MASTER,1)) {
-	__cio_puts( "read of 1 sector" );
+    if(atapi_read(ATA_BUS_PRIMARY,(ATA_BUS_PRIMARY << 4))) {
+	__cio_puts( " read" );
     }
 }
