@@ -16,7 +16,7 @@
 #include "kmem.h"
 #include "cio.h"
 
-#define BUFF_SIZE   480000
+#define BUFF_SIZE   560000
 
 // took these notes up an octave cause it sounds better
 #define f_sharp_note 185.00 / 2
@@ -29,6 +29,7 @@ static uint16* f_sharp_buff;
 static uint16* g_sharp_buff;
 static uint16*       b_buff;
 static uint16* c_sharp_buff;
+static uint16* silent_buff;
 
 
 // computes the sign of a radian value.
@@ -82,6 +83,16 @@ static void play_sound(uint16* buff_to_play, int division) {
         }
         posted += count;
     } while (posted < count_to_play);
+
+    // play silence the other half
+    posted = 0;
+    do {
+        int count = write (CHAN_SB, silent_buff, count_to_play - posted);
+        if (count == 0) {
+            sleep(0); // yeild CPU
+        }
+        posted += count;
+    } while (posted < count_to_play);
 }
 
 int mainSB( int argc, char* args ) {
@@ -91,39 +102,39 @@ int mainSB( int argc, char* args ) {
     g_sharp_buff = _kalloc_page(num_pages);
     b_buff       = _kalloc_page(num_pages);
     c_sharp_buff = _kalloc_page(num_pages);
+    silent_buff = _kalloc_page(num_pages);
 
-    __cio_printf("%d\n", num_pages);
-
-    __cio_printf("%x\n", g_sharp_buff);
-
-    // fill the 4 buffers with notes
+    // fill the buffers with notes
     fill_buff(f_sharp_buff, f_sharp_note);
     fill_buff(g_sharp_buff, g_sharp_note);
     fill_buff(c_sharp_buff, c_sharp_note);
     fill_buff(b_buff, b_note);
+    for (int i = 0; i < BUFF_SIZE; i++) {
+        silent_buff[i] = 0;
+    }
+
+    // notes are grouped into one quarter note beat
+    // play measure 1
+    play_sound(g_sharp_buff, 16);
+    play_sound(g_sharp_buff, 16);
+    play_sound(g_sharp_buff, 16);
+    play_sound(g_sharp_buff, 16);
+
+    play_sound(g_sharp_buff, 8);
+    play_sound(g_sharp_buff, 16);
+    play_sound(g_sharp_buff, 16);
+
+    play_sound(g_sharp_buff, 16);
+    play_sound(g_sharp_buff, 16);
+    play_sound(g_sharp_buff, 16);
+    play_sound(g_sharp_buff, 16);
+
+    play_sound(g_sharp_buff, 8);
+    play_sound(c_sharp_buff, 16);
+    play_sound(c_sharp_buff, 16);
 
     // loop forever
     for(;;) {
-        //play_sound(f_sharp_buff);
-        // measure 1 (grouped into a full beat)
-        play_sound(g_sharp_buff, 16);
-        play_sound(g_sharp_buff, 16);
-        play_sound(g_sharp_buff, 16);
-        play_sound(g_sharp_buff, 16);
-
-        play_sound(g_sharp_buff, 8);
-        play_sound(g_sharp_buff, 16);
-        play_sound(g_sharp_buff, 16);
-
-        play_sound(g_sharp_buff, 16);
-        play_sound(g_sharp_buff, 16);
-        play_sound(g_sharp_buff, 16);
-        play_sound(g_sharp_buff, 16);
-
-        play_sound(g_sharp_buff, 8);
-        play_sound(c_sharp_buff, 16);
-        play_sound(c_sharp_buff, 16);
-
         // measure 2
         play_sound(c_sharp_buff, 16);
         play_sound(c_sharp_buff, 16);
@@ -143,8 +154,26 @@ int mainSB( int argc, char* args ) {
         play_sound(f_sharp_buff, 16);
         play_sound(f_sharp_buff, 16);
 
-        // play_sound(b_buff);
-        // play_sound(c_sharp_buff);
+        // measure 3, 4, 5
+        for (int i = 3; i <= 5; i++) {
+            play_sound(g_sharp_buff, 16);
+            play_sound(g_sharp_buff, 16);
+            play_sound(g_sharp_buff, 16);
+            play_sound(g_sharp_buff, 16);
+
+            play_sound(g_sharp_buff, 8);
+            play_sound(g_sharp_buff, 16);
+            play_sound(g_sharp_buff, 16);
+
+            play_sound(g_sharp_buff, 16);
+            play_sound(g_sharp_buff, 16);
+            play_sound(g_sharp_buff, 16);
+            play_sound(g_sharp_buff, 16);
+
+            play_sound(g_sharp_buff, 8);
+            play_sound(c_sharp_buff, 16);
+            play_sound(c_sharp_buff, 16);
+        }
     }
 
     // should never happen
