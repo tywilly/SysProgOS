@@ -14,6 +14,12 @@
 #include "common.h"
 #include "ulib.h"
 
+#define f_sharp_note 185.00
+#define g_sharp_note 207.65
+#define b_note       246.94
+#define c_sharp_note 277.18
+
+
 // computes the sign of a radian value.
 static double sine( double x ) {
     // transformation that requires less approximation
@@ -36,40 +42,50 @@ static double sine( double x ) {
 }
 
 
-static double get_next_value(void) {
+static double get_next_value(double hz) {
     static double current_radian = 0.0;
 
-    current_radian += TARGET_HZ / (double) AUDIO_HZ * 2 * AUDIO_PI;
+    current_radian += hz / (double) AUDIO_HZ * 2 * AUDIO_PI;
     if (current_radian > 2 * AUDIO_PI) {
         current_radian -= 2 * AUDIO_PI;
     }
     return sine(current_radian);
 }
 
-static uint16 buff[256];
+#define BUFF_SIZE   48000
+
+static uint16 buff[BUFF_SIZE];
 static int spot;
 
 int mainSB( int argc, char* args ) {
     spot = 0;
 
+    double hz = f_sharp_note;
     // loop forever
     for(;;) {
+
         // convert the sine wave to a uint16 spread over it's bounds
-        double value = ( sine( get_next_value() ) + 1.0 ) * 65535.0 / 2.0;
+        double value = ( sine( get_next_value(hz) ) + 1.0 ) * 65535.0 / 2.0;
         uint16 sample = (uint16) value;
         buff[spot] = sample;
         spot++;
-        if (spot == 256) {
+        if (spot == BUFF_SIZE) {
             spot = 0;
-            // wait until we send all 256 bytes
+            // wait until we send all the bytes
             int posted = 0;
             do {
-                int count = write (CHAN_SB, &buff, 256 - posted);
+                int count = write (CHAN_SB, &buff, BUFF_SIZE - posted);
                 if (count == 0) {
                     sleep(0); // yeild CPU
                 }
                 posted += count;
-            } while (posted < 256);
+            } while (posted < BUFF_SIZE);
+            // change note
+            if (hz == f_sharp_note) {
+                hz = g_sharp_note;
+            } else {
+                hz = f_sharp_note;
+            }
         }
     }
 

@@ -134,14 +134,14 @@ static void update_pointers( void ) {
 
     // set the number of frames to play before issuing interrupt
     __outl( base_io + 0x28, number_samples );
+
+    insert_sample_pointer = audio_samples;
 }
 
 // handle interrupts from this device.
 void _soundblaster_isr( int vector, int code ) {
 
     _sio_puts("&");
-
-    // TODO do a queueing thing
 
     // for now, resetting to the start of the samples.
     update_pointers();
@@ -187,6 +187,7 @@ int _soundblaster_write( const char* buff, int count ) {
             __cio_printf("Test: %x ", _pci_config_read16( soundblaster_dev, 0x6 ));
         }
 
+        _sio_puts(")");
         return 0;
 
         // TODO this is where we would put the process on the waiting queue.
