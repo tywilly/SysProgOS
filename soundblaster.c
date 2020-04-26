@@ -170,7 +170,9 @@ void _soundblaster_isr( int vector, int code ) {
 
 int _soundblaster_write( const char* buff, int count ) {
 
-    if (insert_sample_pointer >= SB_BYTES_ALLOCATED/16 + audio_samples) {
+    uint16* max = SB_BYTES_ALLOCATED/16 + audio_samples;
+
+    if (insert_sample_pointer >= max) {
         //__cio_puts( "+" );
 
         if (on == 0) {
@@ -190,9 +192,16 @@ int _soundblaster_write( const char* buff, int count ) {
         // TODO this is where we would put the process on the waiting queue.
     }
 
-    uint16 sample = *( (uint16*) buff );
-    // write and increment
-    *insert_sample_pointer = sample;
-    insert_sample_pointer++;
-    return 1;
+    int count_moved = 0;
+    for (int i = 0; i < count && insert_sample_pointer < max; i++) {
+        uint16 sample = ( (uint16*) buff)[i];
+        // write and increment
+        *insert_sample_pointer = sample;
+        insert_sample_pointer++;
+
+        count_moved++;
+
+    }
+
+    return count_moved;
 }
