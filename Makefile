@@ -278,7 +278,7 @@ ac97.o: common.h types.h udefs.h ulib.h klib.h x86pic.h ac97.h pci.h
 soundblaster.o: common.h types.h udefs.h ulib.h klib.h cio.h sio.h queues.h
 soundblaster.o: x86pic.h soundblaster.h pci.h kmem.h kdefs.h support.h
 soundblaster.o: kernel.h x86arch.h process.h stacks.h bootstrap.h
-userSB.o: userSB.h common.h types.h udefs.h ulib.h
+userSB.o: userSB.h common.h types.h udefs.h ulib.h kmem.h cio.h
 users.o: common.h types.h udefs.h ulib.h users.h userSB.h ac97.h pci.h
 ulibc.o: common.h types.h udefs.h ulib.h
 ulibs.o: syscalls.h common.h types.h udefs.h ulib.h queues.h
