@@ -7,7 +7,7 @@
 ** Contributor:
 **
 ** Description:	User-level code for testing the audio SoundBlaster system.
-**              This one sends a single tone of A4 on the piano = 440 hz.
+**              This plays the sandstorm sound on loop to the sound card.
 */
 
 #include "userSB.h"

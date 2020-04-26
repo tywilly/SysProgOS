@@ -7,7 +7,8 @@
 ** Contributor:
 **
 ** Description: Soundblaster module, this one works with the soundblaster
-**              hardware.
+**              hardware. Specifically, this targets the Ensoniq Audio PCI,
+**              ES1370.
 **
 */
 
@@ -89,7 +90,7 @@ void _soundblaster_init(void) {
     __outl( base_io + 0x4, 0x20 );
 
     // set the master volume and PCM out volume levels
-    // codec register is 0x10 or 0x14, not sure, think is 10 for 1370
+    // codec register is 0x10
     // set the master volume and the PCM out volume levels, in the codec
     //  space. So have to write to the codec register those values
 
@@ -116,11 +117,6 @@ void _soundblaster_init(void) {
 
     // mark as good to screen
     __cio_puts("+");
-
-    // TODO enable interrupts so we can play more sound
-    // TODO -- this currently makes no sound since we haven't given it any data
-    //   - need _soundblaster_write to be working to be able to test this
-
     on = 0;
 }
 
@@ -167,30 +163,23 @@ void _soundblaster_isr( int vector, int code ) {
     }
 }
 
-
+// soundblaster device write function
 int _soundblaster_write( const char* buff, int count ) {
 
     uint16* max = SB_BYTES_ALLOCATED/16 + audio_samples;
 
     if (insert_sample_pointer >= max) {
-        //__cio_puts( "+" );
-
         if (on == 0) {
             on = 1;
-
             // turn on the sound
             uint32 frequency_set = __inl(base_io + 0x0);
             frequency_set |= 1 << 5;
             __outl( base_io + 0x0, 0x20);
 
-            __cio_puts( "Turned on.\n" );
-            __cio_printf("Test: %x ", _pci_config_read16( soundblaster_dev, 0x6 ));
+            __cio_puts( "Turned on SoundBlaster.\n" );
         }
 
-        _sio_puts(")");
         return 0;
-
-        // TODO this is where we would put the process on the waiting queue.
     }
 
     int count_moved = 0;
