@@ -1217,11 +1217,29 @@ int userZ( int argc, char *args ) {
 */
 int startsound( int argc, char *args ) {
     int ch = '@';
+    char buf[48];
 
     if (!ac97_initialized()) {
         cwrites("AC97 Audio device not initialized!\n");
         exit(-1);
     }
+
+    // test some other features of the AC97 module
+    uint16 srate = ac97_setrate( 0 ); // doesn't set the rate, just queries it.
+    if (srate != 8000) {
+        sprint(buf, "Sample rate %d differs from expected 8000 Hz.\n", srate);
+        swrites(buf);
+        swrites("This may sound a little strange");
+    }
+
+    // see if we can set the volume
+    ac97_setvol(32); // about half
+    uint8 vol = ac97_getvol();
+    if (vol != 32) {
+        sprint(buf, "Reported volume %d differs from the value set!\n", vol);
+        swrites(buf);
+    }
+    ac97_setvol(63); // back to full blast
 
     // A WAV support library would be nice. Then you could really easily pull 
     // header information out of the RIFF file and choose the right sample rate,
@@ -1235,7 +1253,7 @@ int startsound( int argc, char *args ) {
         // play the song until you can't anymore
         //
         // A blocking write would be really nice here.
-        int32 numwritten = ac97_write( (void *) pos, end - pos );
+        int32 numwritten = write( CHAN_AC97, (void *) pos, end - pos );
         if (numwritten < 0) {
             cwrites("Writing to AC97 device failed.\n");
             exit(numwritten);
