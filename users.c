@@ -5,13 +5,14 @@
 **
 ** Author:	CSCI-452 class of 20195
 **
-** Contributor:
+** Contributor: Cody Burrows (cxb2114@rit.edu)
 **
 ** Description:	User-level code.
 */
 
 #include "common.h"
 #include "users.h"
+#include "ac97.h"
 
 /*
 ** USER PROCESSES
@@ -49,8 +50,9 @@ int userM( int, char * ); int userN( int, char * ); int userO( int, char * );
 int userP( int, char * ); int userQ( int, char * ); int userR( int, char * );
 int userS( int, char * ); int userT( int, char * ); int userU( int, char * );
 int userV( int, char * ); int userW( int, char * ); int userX( int, char * );
-int userY( int, char * ); int userZ( int, char * );
+int userY( int, char * ); int userZ( int, char * ); 
 
+int startsound( int, char * );
 
 /*
 ** User function #1:  write, exit
@@ -1211,6 +1213,71 @@ int userZ( int argc, char *args ) {
 }
 
 /*
+** Play the Windows XP Startup Sound
+*/
+int startsound( int argc, char *args ) {
+    int ch = '@';
+    char buf[48];
+
+    if (!ac97_initialized()) {
+        cwrites("AC97 Audio device not initialized!\n");
+        exit(-1);
+    }
+
+    // test some other features of the AC97 module
+    uint16 srate = ac97_setrate( 0 ); // doesn't set the rate, just queries it.
+    if (srate != 8000) {
+        sprint(buf, "Sample rate %d differs from expected 8000 Hz.\n", srate);
+        swrites(buf);
+        swrites("This may sound a little strange");
+    }
+
+    // see if we can set the volume
+    ac97_setvol(32); // about half
+    uint8 vol = ac97_getvol();
+    if (vol != 32) {
+        sprint(buf, "Reported volume %d differs from the value set!\n", vol);
+        swrites(buf);
+    }
+    ac97_setvol(63); // back to full blast
+
+    // A WAV support library would be nice. Then you could really easily pull 
+    // header information out of the RIFF file and choose the right sample rate,
+    // encoding, etc.
+    //
+    // Until I have time for that, just accept that the data starts 44 bytes
+    // after the beginning of the file.
+    char *pos = (char *) &_binary_winstart_wav_start + 44;
+    char *end = (char *) &_binary_winstart_wav_end;
+    while( pos < end ) {
+        // play the song until you can't anymore
+        //
+        // A blocking write would be really nice here.
+        int32 numwritten = write( CHAN_AC97, (void *) pos, end - pos );
+        if (numwritten < 0) {
+            cwrites("Writing to AC97 device failed.\n");
+            exit(numwritten);
+        }
+
+        // Keep track of how much was written so that we don't skip or replay
+        // samples. 
+        pos += numwritten;
+
+        if ((uint32) gettime() % 250 == 0) {
+            // Don't write to the console too often...
+            swritech(ch);
+        }
+
+        if (numwritten <= 1024) {
+            sleep(0); // yield to let other stuff happen while the buffer
+                      // empties a little more.
+        } 
+    }
+
+    return 0;
+}
+
+/*
 ** Initial process; it starts the other top-level user processes.
 **
 ** Prints a message at startup, '+' after each user process is spawned,
@@ -1271,6 +1338,17 @@ int init( int argc, char *args ) {
     for( int i = 0; i < MAX_COMMAND_ARGS; ++i ) {
         argv[i] = NULL;
     }
+
+#ifdef STARTUP_SOUND
+    // play the Windows XP startup sound
+    argv[0] = NULL; // no arguments
+    
+    whom = spawn( startsound, argv );
+    if( whom < 0 ) {
+        cwrites( "init, spawn() user O failed\n" );
+    }
+    swritech( ch );
+#endif
 
     // set up for users A, B, and C initially
     argv[0] = "main1";
@@ -1448,8 +1526,6 @@ int init( int argc, char *args ) {
     }
     swritech( ch );
 #endif
-
-    // There is no user O
 
     // User P iterates, reporting system time and sleeping
 

@@ -5,7 +5,7 @@
 **
 ** Author:	CSCI-452 class of 20195
 **
-** Contributor:
+** Contributor: Cody Burrows (cxb2114@rit.edu)
 **
 ** Description:	Common definitions for the baseline system.
 **
@@ -31,6 +31,7 @@
 
 #define	CHAN_CONS	0
 #define	CHAN_SIO	1
+#define CHAN_AC97       2
 
 // maximum number of processes in the system
 

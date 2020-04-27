@@ -5,7 +5,7 @@
 **
 ** Author:	CSCI-452 class of 20195
 **
-** Contributor:
+** Contributor: Cody Burrows (cxb2114@rit.edu)
 **
 ** Description:	Declarations for user-level library functions
 */
@@ -176,6 +176,43 @@ State getstate( uint16 pid );
 ** usage:	bogus();
 */
 void bogus( void );
+
+/*
+** get the volume of the AC97 device.
+**
+** usage: n = ac97_getvol();
+*/
+uint8 ac97_getvol( void );
+
+/*
+** Determine whether or not the AC97 device is present and functional.
+** 
+** usage: if (ac97_initialized()) { ... }
+*/
+bool ac97_initialized(void);
+
+/*
+** set the volume of the AC97 device.
+**
+** This is a scale from 0 (silent) to 63 (deafening).
+*/
+void ac97_setvol(uint8 vol);
+
+/*
+** Write to the AC97 Device. A shorthand for write(CHAN_AC97, ... );
+*/
+int32 ac97_write(void *data, uint32 len);
+
+/*
+** set the PCM output sample rate.
+**
+** This will set the output to the nearest supported sample rate (in Hz). The
+** device's new operating frequency will be returned.
+**
+** Writing 0 as the rate parameter will return the device's operating frequency
+** without making any changes.
+*/
+uint16 ac97_setrate(uint16 rate);
 
 /*
 **********************************************
