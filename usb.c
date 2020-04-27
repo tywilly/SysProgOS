@@ -5,7 +5,7 @@
 #include "usb.h"
 
 #define USB_MAX_FRLIST       1024
-#define USB_MAX_QTD          512
+#define USB_MAX_QTD          128
 // USB class, subclass, EHCI progIF
 #define USB_CLASS            0xC
 #define USB_SUBCLASS         0x3
@@ -65,7 +65,7 @@ static uint32 _usb_base;
 static uint32 _usb_op_base;
 
 static uint32 *_usb_frame_list;
-static USBQTD _usb_qtds[USB_MAX_QTD];
+static USBQTD *_usb_qtds;
 static Queue _usb_qtd_q;
 
 static USBQHead _usb_qhead;
@@ -250,6 +250,7 @@ void _usb_init( void ) {
     _usb_qhead.overlay.buffer4 = 0;
 
     // allocate and init qtds
+    _usb_qtds = (USBQTD *)_kalloc_page(1);
     _usb_qtd_q = _queue_alloc( NULL );
     for( int i = 0; i < USB_MAX_QTD; i++ ) {
         _usb_qtds[i].next_qtd = 1;      // invalid
@@ -300,7 +301,6 @@ void _usb_init( void ) {
             _usb_write_l( _usb_op_base, 0x44 + 4*i, portsc | 0x100 );
             for( uint16 j = 0; j < 0xFFFF; j++ );
             _usb_write_l( _usb_op_base, 0x44 + 4*i, portsc );
-            break;
         }
     }
 
