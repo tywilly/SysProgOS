@@ -3,7 +3,7 @@
 ** 
 ** Author: Tyler Wilcox
 ** 
-** Contributor: Cody Burrows
+** Contributor: Cody Burrows (cxb2114@rit.edu)
 ** 
 ** Description: PCI module implementation.
 ** 

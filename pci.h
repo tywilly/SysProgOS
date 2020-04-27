@@ -3,7 +3,7 @@
  **
  ** Author: Tyler Wilcox
  **
- ** Contributor: Cody Burrows
+ ** Contributor: Cody Burrows (cxb2114@rit.edu)
  **
  ** This file declares various PCI-related functionality.
  */

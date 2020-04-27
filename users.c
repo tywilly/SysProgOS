@@ -5,7 +5,7 @@
 **
 ** Author:	CSCI-452 class of 20195
 **
-** Contributor:
+** Contributor: Cody Burrows (cxb2114@rit.edu)
 **
 ** Description:	User-level code.
 */
