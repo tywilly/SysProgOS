@@ -124,8 +124,9 @@ void _ac97_isr(int vector, int code) {
         // mark buffers before cur_index as free
         uint8 cur_index = __inb(dev.nabmbar + AC97_PCM_OUT_CIV);
         while (dev.head != cur_index) {
-            // TODO DCB deallocate the buffer's page??
-            // mark the buffer as free by moving the head, so it can be refilled
+            // For now, this won't be freed to avoid overhead since the buffers
+            // get refilled so often.
+            // Mark the buffer as free by moving the head, so it can be refilled
             dev.free_buffers++;
             if (dev.head != dev.tail) {
                 dev.head = ((dev.head + 1) % AC97_BDL_LEN);
