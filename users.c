@@ -1223,26 +1223,36 @@ int startsound( int argc, char *args ) {
         exit(-1);
     }
 
-    // TODO DCB wav support library
+    // A WAV support library would be nice. Then you could really easily pull 
+    // header information out of the RIFF file and choose the right sample rate,
+    // encoding, etc.
+    //
+    // Until I have time for that, just accept that the data starts 44 bytes
+    // after the beginning of the file.
     char *pos = (char *) &_binary_winstart_wav_start + 44;
     char *end = (char *) &_binary_winstart_wav_end;
     while( pos < end ) {
         // play the song until you can't anymore
-        // TODO DCB a blocking write would be really nice right here....
-        int32 numwritten = write( CHAN_AC97, (void *) pos, end - pos );
+        //
+        // A blocking write would be really nice here.
+        int32 numwritten = ac97_write( (void *) pos, end - pos );
         if (numwritten < 0) {
             cwrites("Writing to AC97 device failed.\n");
             exit(numwritten);
         }
 
+        // Keep track of how much was written so that we don't skip or replay
+        // samples. 
         pos += numwritten;
 
         if ((uint32) gettime() % 250 == 0) {
+            // Don't write to the console too often...
             swritech(ch);
         }
 
         if (numwritten <= 1024) {
-            sleep(0); // yield to let other stuff happen while it catches up
+            sleep(0); // yield to let other stuff happen while the buffer
+                      // empties a little more.
         } 
     }
 

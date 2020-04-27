@@ -610,6 +610,12 @@ void _really_exit( Pcb *victim, Pcb *parent, int32 status ) {
     _proc_cleanup( victim );
 }
 
+static void _sys_ac97_write( uint32 arg1, uint32 arg2, uint32 arg3 ) {
+    // Just pass this on to the write system call with the right channel
+    // _sys_write will handle the return value
+    _sys_write(CHAN_AC97, arg1, arg2);
+}
+
 static void _sys_ac97_get_volume( uint32 arg1, uint32 arg2, uint32 arg3 ) {
     RET(_current) = _ac97_get_volume();
 }
@@ -658,6 +664,7 @@ void _sys_init( void ) {
     _syscalls[ SYS_ac97_setvol ]        = _sys_ac97_set_volume;
     _syscalls[ SYS_ac97_setrate ]       = _sys_ac97_set_rate;
     _syscalls[ SYS_ac97_initialized ]   = _sys_ac97_initialized;
+    _syscalls[ SYS_ac97_write ]         = _sys_ac97_write;
 
     // install the second-stage ISR
     __install_isr( INT_VEC_SYSCALL, _sys_isr );

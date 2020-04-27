@@ -199,6 +199,11 @@ bool ac97_initialized(void);
 void ac97_setvol(uint8 vol);
 
 /*
+** Write to the AC97 Device. A shorthand for write(CHAN_AC97, ... );
+*/
+int32 ac97_write(void *data, uint32 len);
+
+/*
 ** set the PCM output sample rate.
 **
 ** This will set the output to the nearest supported sample rate (in Hz). The

@@ -50,6 +50,7 @@ SYSCALL(ac97_getvol)
 SYSCALL(ac97_setvol)
 SYSCALL(ac97_setrate)
 SYSCALL(ac97_initialized);
+SYSCALL(ac97_write);
 
 /*
 ** This is a bogus system call; it's here so that we can test

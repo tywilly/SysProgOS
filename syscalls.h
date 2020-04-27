@@ -38,9 +38,10 @@
 #define SYS_ac97_setvol         12
 #define SYS_ac97_setrate        13
 #define SYS_ac97_initialized    14
+#define SYS_ac97_write          15
 
 // UPDATE THIS DEFINITION IF MORE SYSCALLS ARE ADDED!
-#define N_SYSCALLS      15
+#define N_SYSCALLS      16
 
 // dummy system call code to test our ISR
 
