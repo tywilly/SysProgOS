@@ -1,3 +1,12 @@
+/*
+** File: usb_util.h
+**
+** Author: Tyler Wilcox
+**
+** Contributor:
+**
+** Description: Useful methods when using USB
+*/
 
 #ifndef _USB_UTIL_H_
 #define _USB_UTIL_H_
@@ -27,9 +36,25 @@
 
 #include "common.h"
 
+/**
+** Create the payload for a device request packet
+**
+** @param dst  The buffer to write the payload to
+** @param bmRequestType  The request type
+** @param bRequest  The request
+** @param wValue  The value field of the request
+** @param wIndex  The index of the request
+** @param wLength  The length of the request
+*/
 void usb_device_request_packet(void* dst, uint8 bmRequestType, uint8 bRequest,
                                uint16 wValue, uint16 wIndex, uint16 wLength);
 
+/**
+** Take two bytes and form a word
+**
+** @param byte1  The upper 8 bits
+** @param byte2  The lower 8 bits
+*/
 uint16 usb_bytes_to_word(uint8 byte1, uint8 byte2);
 
 #endif
