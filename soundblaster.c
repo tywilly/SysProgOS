@@ -28,9 +28,6 @@ static void update_pointers( void );
 
 // keep track of the device
 static PCIDev* soundblaster_dev;
-static uint8 bus;
-static uint8 slot;
-static uint8 func;
 
 // memory access to the page
 static uint16* audio_samples;
@@ -58,10 +55,6 @@ void _soundblaster_init(void) {
     if (soundblaster_dev == NULL) {
         __cio_puts("!");
         return;
-    } else {
-        bus = soundblaster_dev->bus;
-        slot = soundblaster_dev->slot;
-        func = soundblaster_dev->func;
     }
 
     // setup
