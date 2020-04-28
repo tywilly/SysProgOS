@@ -20,6 +20,7 @@
 // array sizes
 #define USB_MAX_FRLIST       1024
 #define USB_MAX_QTD          128
+#define USB_MAX_QHEAD        64
 // USB class, subclass, EHCI progIF (used for PCI module)
 #define USB_CLASS            0xC
 #define USB_SUBCLASS         0x3
@@ -67,12 +68,17 @@ typedef struct usb_qtd_s {
 // at a time.
 // The overlay area is used by the controller to copy current
 // qtd data. It doesn't nee to be initialized.
+// All Qheads must be 32 byte aligned.
 typedef struct usb_qh_s {
     uint32 qhead_hlink;     // next qh in the linked list
     uint32 endpoint_crc;    // endpoint caracteristics
     uint32 endpoint_cap;    // endpoint capabilities
     uint32 current_qtd;     // pointer to current qtd
     USBQTD overlay;         // current qtd contents
+    uint32 align0;
+    uint32 align1;
+    uint32 align2;
+    uint32 align3;
 } USBQHead;
 
 /*
@@ -96,9 +102,8 @@ static uint32 _usb_op_base;
 static uint32 *_usb_frame_list; // Frame list
 static USBQTD *_usb_qtds;       // QTD array
 static Queue _usb_qtd_q;        // QTD Queue
-
-// a single QHead (for now)
-static USBQHead _usb_qhead;
+static USBQHead *_usb_qheads;   // QHead array
+static Queue _usb_qhead_q;      // QHead Queue
 
 /*
 ** PRIVATE FUNCTIONS
@@ -298,22 +303,23 @@ static void _usb_dump_qhead( USBQHead *qhead, bool vb ) {
 // - general init sequence
 //     - enable bus master and memory space
 //     - get device information from PCI
-//     - get base controller addresses
+//     - get controller base addresses
 //     - get ownership of the controller if necessary
 //     - stop and reset the controller
-// - data structure init / first transaction
-//     - setup a control queue head
+//     - route all ports to this controller
+//     - start the controller
+//     - reset ports that changed
+// - data structure init
+//     - allocate and init QHeads
 //     - allocate and init QTDs
+// - setup first transaction
+//     - setup a control queue head
 //     - setup a get device descriptor request
-// - start the controller
-// - route all ports to this controller
-// - reset ports that changedchanged
-// - enable asynchronous transfer (for the get descriptor request)
+//     - enable asynchronous transfer
 // - (setup frame list)
-// - CRASH MISERABLY
-//     - the QTD sequence is SETUP, IN, OUT
-//     - I get a 'Halt' on the IN QTD, which means something went horribly
-//       wrong, but I don't know what.
+// - CRASH MISERABLY: the QTD sequence is SETUP, IN, OUT
+//   I get a 'Halt' on the IN QTD, which means something went horribly
+//   wrong, but I don't know what.
 //
 void _usb_init( void ) {
 
@@ -355,22 +361,38 @@ void _usb_init( void ) {
 
     while((_usb_read_l(_usb_op_base, USB_CMD) & 2) == 2);
 
-    // setup control queue head
-    assert((uint32)&_usb_qhead == ((uint32)&_usb_qhead & 0xFFFFFFE0));
-        // QHeads must be 32 bit aligned
-        // TODO: this must be addressed when several will be used
-    _usb_qhead.qhead_hlink = ((uint32)&_usb_qhead) & 0xFFFFFFE0 | 2;
-    _usb_qhead.endpoint_crc = 0x0040D000;
-    _usb_qhead.endpoint_cap = 0x40000000;
-    _usb_qhead.current_qtd = 0;
-    _usb_qhead.overlay.next_qtd = 1;
-    _usb_qhead.overlay.alt_next_qtd = 1;
-    _usb_qhead.overlay.token = 0;
-    _usb_qhead.overlay.buffer0 = 0;
-    _usb_qhead.overlay.buffer1 = 0;
-    _usb_qhead.overlay.buffer2 = 0;
-    _usb_qhead.overlay.buffer3 = 0;
-    _usb_qhead.overlay.buffer4 = 0;
+    // all ports route to this controller
+    _usb_write_l( _usb_op_base, USB_CONFIGFLAG, 1 );
+
+    // start the controller
+    _usb_command_enable( 1 );
+
+    // reset the port where the device is connected
+    _usb_n_port = _usb_read_l( _usb_base, USB_HCSPARAMS ) & 0xF;
+    for( uint8 i = 0; i < _usb_n_port; i++ ) {
+        uint32 portsc = _usb_read_l( _usb_op_base, 0x44 + 4*i );
+        // recently connected device
+        if( portsc & 0b11 == 0b11 ) {
+            _usb_write_l( _usb_op_base, 0x44 + 4*i, portsc | 0x100 );
+            for( uint16 j = 0; j < 0xFFFF; j++ );
+            _usb_write_l( _usb_op_base, 0x44 + 4*i, portsc );
+        }
+    }
+
+    // allocate and init qheads
+    _usb_qheads = (USBQHead *)_kalloc_page(1);
+    _usb_qhead_q = _queue_alloc( NULL );
+    for( int i = 0; i < USB_MAX_QHEAD; i++ ) {
+        _usb_qheads[i].overlay.next_qtd = 1;
+        _usb_qheads[i].overlay.alt_next_qtd = 1;
+        _usb_qheads[i].overlay.token = 0;
+        _usb_qheads[i].overlay.buffer0 = 0;
+        _usb_qheads[i].overlay.buffer1 = 0;
+        _usb_qheads[i].overlay.buffer2 = 0;
+        _usb_qheads[i].overlay.buffer3 = 0;
+        _usb_qheads[i].overlay.buffer4 = 0;
+        _queue_enque( _usb_qhead_q, (void *)&_usb_qheads[i] );
+    }
 
     // allocate and init qtds
     _usb_qtds = (USBQTD *)_kalloc_page(1);
@@ -387,8 +409,15 @@ void _usb_init( void ) {
         _queue_enque( _usb_qtd_q, (void *)&_usb_qtds[i] );
     }
 
-    // get device descriptor request
-    // They must not cross a 4k page boundary;
+    // setup control queue head
+    USBQHead *qhead = _queue_deque( _usb_qhead_q );
+    qhead->qhead_hlink = ((uint32)qhead) & 0xFFFFFFE0 | 2;
+    qhead->endpoint_crc = 0x0040D000;
+    qhead->endpoint_cap = 0x40000000;
+    qhead->current_qtd = 0;
+
+    // setup a get_device_descriptor request
+    // Buffers must not cross a 4k page boundary;
     // I'm not sending more than 1k at the moment so a slice is enough.
     char *buf_snd = (char *)_kalloc_slice();
     char *buf_rec = (char *)_kalloc_slice();
@@ -411,35 +440,18 @@ void _usb_init( void ) {
     }
 
     // update qh next qtd
-    _usb_qhead.overlay.next_qtd = (uint32)setup & 0xFFFFFFE0;
+    qhead->overlay.next_qtd = (uint32)setup & 0xFFFFFFE0;
 
     // change the interrupt line and install ISR
     // _pci_set_interrupt( _usb_bus, _usb_device, _usb_function, 0x0, 0x43 );
     // __install_isr( 0x43, NULL );
 
-    // start the controller
-    _usb_command_enable( 1 );
-
-    // all ports route to this controller
-    _usb_write_l( _usb_op_base, USB_CONFIGFLAG, 1 );
-
-    // reset the port where the device is connected
-    _usb_n_port = _usb_read_l( _usb_base, USB_HCSPARAMS ) & 0xF;
-    for( uint8 i = 0; i < _usb_n_port; i++ ) {
-        uint32 portsc = _usb_read_l( _usb_op_base, 0x44 + 4*i );
-        // recently connected device
-        if( portsc & 0b11 == 0b11 ) {
-            _usb_write_l( _usb_op_base, 0x44 + 4*i, portsc | 0x100 );
-            for( uint16 j = 0; j < 0xFFFF; j++ );
-            _usb_write_l( _usb_op_base, 0x44 + 4*i, portsc );
-        }
-    }
-
+    // DEBUG
     // __cio_printf("SETUP %08x    IN %08x    OUT %08x\n", setup, in, out);
     _usb_dump_qtd( in, false );
 
     // enable async schedule
-    _usb_write_l( _usb_op_base, USB_ASYNCLISTADDR, (uint32)&_usb_qhead );
+    _usb_write_l( _usb_op_base, USB_ASYNCLISTADDR, (uint32)qhead );
     _usb_command_enable( 0x20 );
 
     // setup frame list
