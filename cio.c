@@ -6,6 +6,7 @@
 ** Author:	Warren R. Carithers
 **
 ** Contributor: Cody Burrows (cxb2114@rit.edu)
+**              Zach Jones   (ztj3686@rit.edu)
 **
 ** Based on:	c_io.c 1.13 (Ken Reek, Jon Coles, Warren R. Carithers)
 **

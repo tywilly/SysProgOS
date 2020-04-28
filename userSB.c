@@ -2,7 +2,8 @@
 **
 ** File:	userSB.c
 **
-** Author:	Zach Jones
+** Author:	Zach Jones (ztj3686@rit.edu)
+
 **
 ** Contributor:
 **

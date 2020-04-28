@@ -1,14 +1,15 @@
 /*
-  File: pci.c
-
-  Author: Tyler Wilcox
-
-  Contributor:
-
-  Description: PCI module implementation.
-
-  Refer to https://wiki.osdev.org/PCI for more info.
- */
+** File: pci.c
+**
+** Author: Tyler Wilcox
+**
+** Contributor:
+**              Zach Jones   (ztj3686@rit.edu)
+**
+** Description: PCI module implementation.
+**
+** Refer to https://wiki.osdev.org/PCI for more info.
+*/
 
 #define __SP_KERNEL__
 
@@ -26,9 +27,9 @@ int _pci_num_dev = 0;
 //
 void _pci_init( void ) {
 
-  _pci_enumerate_devices (); // Find some PCI devices
+    _pci_enumerate_devices (); // Find some PCI devices
 
-  __cio_puts( " PCI" );
+    __cio_puts( " PCI" );
 
 }
 
@@ -53,13 +54,13 @@ uint32 _pci_calculate_address(uint8 bus, uint8 slot, uint8 func, uint8 offset,
 // _pci_config_read() - Read a word of data in the PCI config.
 //
 uint32 _pci_config_read (uint8 bus, uint8 slot, uint8 func, uint8 offset ) {
-  uint32 tmp = 0;
-  uint32 address = _pci_calculate_address(bus, slot, func, offset, 4);
+    uint32 tmp = 0;
+    uint32 address = _pci_calculate_address(bus, slot, func, offset, 4);
 
-  __outl(PCI_ADDR_PORT, address);
+    __outl(PCI_ADDR_PORT, address);
 
-  tmp = (uint32)((__inl(PCI_VALUE_PORT))); // Get config data for the device
-  return tmp;
+    tmp = (uint32)((__inl(PCI_VALUE_PORT))); // Get config data for the device
+    return tmp;
 
 }
 
@@ -67,44 +68,43 @@ uint32 _pci_config_read (uint8 bus, uint8 slot, uint8 func, uint8 offset ) {
 // _pci_add_device() - Add the PCI device to the list if it is valid.
 //
 void _pci_add_device( uint8 bus, uint8 slot, uint8 func ) {
-  uint16 vendor = _pci_config_read (bus, slot, func, 0x00) & 0xFFFF;
+    uint16 vendor = _pci_config_read (bus, slot, func, 0x00) & 0xFFFF;
 
-  if(vendor != 0xFFFF) { // Is it a valid device?
-    PCIDev* dev = &_pci_dev_list[_pci_num_dev];
+    if(vendor != 0xFFFF) { // Is it a valid device?
+        PCIDev* dev = &_pci_dev_list[_pci_num_dev];
+        dev->id = _pci_num_dev;
+        dev->vendorid = vendor;
+        dev->deviceid = (_pci_config_read (bus, slot, func, 0x00) >> 16);
+        uint16 codes = (_pci_config_read (bus, slot, func, 0x08) >> 16);
+        dev->class = codes >> 8;
+        dev->subclass = codes & 0xFF;
+        dev->headertype = (_pci_config_read (bus, slot, func, 0x0C) >> 16) & 0xFF;
 
-    dev->bus = bus;
-    dev->slot = slot;
-    dev->func = func;
+        dev->progif = ((_pci_config_read (bus, slot, func, 0x08) >> 8) & 0xFF);
 
-    dev->id = _pci_num_dev;
-    dev->vendorid = vendor;
-    dev->deviceid = (_pci_config_read (bus, slot, func, 0x00) >> 16);
-    uint16 codes = (_pci_config_read (bus, slot, func, 0x08) >> 16);
-    dev->class = codes >> 8;
-    dev->subclass = codes & 0xFF;
-    dev->headertype = (_pci_config_read (bus, slot, func, 0x0C) >> 16) & 0xFF;
+        dev->bar0 = _pci_config_read (bus, slot, func, 0x10);
+        dev->bar1 = _pci_config_read (bus, slot, func, 0x14);
+        dev->bar2 = _pci_config_read (bus, slot, func, 0x18);
+        dev->bar3 = _pci_config_read (bus, slot, func, 0x1C);
+        dev->bar4 = _pci_config_read (bus, slot, func, 0x20);
+        dev->bar5 = _pci_config_read (bus, slot, func, 0x24);
 
-    dev->progif = ((_pci_config_read (bus, slot, func, 0x08) >> 8) & 0xFF);
+        dev->interrupt = (_pci_config_read (bus, slot, func, 0x3C) & 0xFF);
 
-    dev->bar0 = _pci_config_read (bus, slot, func, 0x10);
-    dev->bar1 = _pci_config_read (bus, slot, func, 0x14);
-    dev->bar2 = _pci_config_read (bus, slot, func, 0x18);
-    dev->bar3 = _pci_config_read (bus, slot, func, 0x1C);
-    dev->bar4 = _pci_config_read (bus, slot, func, 0x20);
-    dev->bar5 = _pci_config_read (bus, slot, func, 0x24);
+        dev->bus = bus;
+        dev->slot = slot;
+        dev->func = func;
 
-    dev->interrupt = (_pci_config_read (bus, slot, func, 0x3C) & 0xFF);
+        _pci_num_dev++;
 
-    _pci_num_dev++;
+        // Check if the device supports multiple functions
+        if ((dev->headertype & 0x80) != 0) {
+            for(int f=1; f<8; f++) {
+                _pci_add_device(bus, slot, f);
+            }
+        }
 
-    // Check if the device supports multiple functions
-    if ((dev->headertype & 0x80) != 0) {
-      for(int f=1; f<8; f++) {
-        _pci_add_device(bus, slot, f);
-      }
     }
-
-  }
 
 }
 
@@ -113,13 +113,13 @@ void _pci_add_device( uint8 bus, uint8 slot, uint8 func ) {
 //
 void _pci_enumerate_devices ( void ) {
 
-  _pci_num_dev = 0; // Reset dev counter
+    _pci_num_dev = 0; // Reset dev counter
 
-  for(uint16 bus=0; bus<256; bus++) { // All 256 bus's
-    for(uint8 slot=0; slot<32;slot++) { // All 32 devices
-      _pci_add_device( bus, slot, 0 );
+    for(uint16 bus=0; bus<256; bus++) { // All 256 bus's
+        for(uint8 slot=0; slot<32;slot++) { // All 32 devices
+            _pci_add_device( bus, slot, 0 );
+        }
     }
-  }
 
 }
 
@@ -127,31 +127,31 @@ void _pci_enumerate_devices ( void ) {
 // _pci_dump_all() - List all the connected PCI devices on the console.
 //
 void _pci_dump_all( void ) {
-  for (int i=0; i<MAX_PCI_DEVICES;i++) {
-    PCIDev* dev = &_pci_dev_list[i];
-    __cio_printf( "%d: Vendor: %04x Device: %04x Class: %02x SubClass: %02x Progif: %02x\n", i, dev->vendorid,
+    for (int i=0; i<MAX_PCI_DEVICES;i++) {
+        PCIDev* dev = &_pci_dev_list[i];
+        __cio_printf( "%d: Vendor: %04x Device: %04x Class: %02x SubClass: %02x Progif: %02x\n", i, dev->vendorid,
                   dev->deviceid, dev->class, dev->subclass, dev->progif);
-  }
+    }
 }
 
 //
 // _pci_get_device() - Get a device by the id
 //
 PCIDev* _pci_get_device( int devid ) {
-  return &_pci_dev_list[devid];
+    return &_pci_dev_list[devid];
 }
 
 //
 // _pci_get_device_class() - Get a device by class, subclass and progif.
 //
 PCIDev* _pci_get_device_class( uint8 class, uint8 subclass, uint8 progif) {
-  for(int i=0; i<MAX_PCI_DEVICES; i++) {
-    PCIDev dev = _pci_dev_list[i];
+    for(int i=0; i<MAX_PCI_DEVICES; i++) {
+        PCIDev dev = _pci_dev_list[i];
 
-    if(dev.class == class && dev.subclass == subclass && dev.progif == progif)
-      return &_pci_dev_list[i];
-  }
-  return 0;
+        if(dev.class == class && dev.subclass == subclass && dev.progif == progif)
+            return &_pci_dev_list[i];
+    }
+    return 0;
 }
 
 //
@@ -199,25 +199,25 @@ uint32 _pci_config_read32( PCIDev *dev, uint8 offset ) {
 }
 
 uint16 _pci_config_read16( PCIDev *dev, uint8 offset ) {
-  uint16 tmp = 0;
-  uint32 address = _pci_calculate_address(dev->bus, dev->slot, dev->func,
+    uint16 tmp = 0;
+    uint32 address = _pci_calculate_address(dev->bus, dev->slot, dev->func,
                                           offset, 2);
 
-  __outl(PCI_ADDR_PORT, address);
+    __outl(PCI_ADDR_PORT, address);
 
-  tmp = (uint16)((__inw(PCI_VALUE_PORT)));
-  return tmp;
+    tmp = (uint16)((__inw(PCI_VALUE_PORT)));
+    return tmp;
 }
 
 uint8 _pci_config_read8( PCIDev *dev, uint8 offset ) {
-  uint8 tmp = 0;
-  uint32 address = _pci_calculate_address(dev->bus, dev->slot, dev->func,
+    uint8 tmp = 0;
+    uint32 address = _pci_calculate_address(dev->bus, dev->slot, dev->func,
                                           offset, 1);
 
-  __outl(PCI_ADDR_PORT, address);
+    __outl(PCI_ADDR_PORT, address);
 
-  tmp = (uint8)((__inb(PCI_VALUE_PORT)));
-  return tmp;
+    tmp = (uint8)((__inb(PCI_VALUE_PORT)));
+    return tmp;
 }
 
 void _pci_write_field16( PCIDev *dev, uint8 offset, uint16 value ) {

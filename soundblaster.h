@@ -2,7 +2,7 @@
 **
 ** File:    soundblaster.h
 **
-** Author:  Zach Jones
+** Author:  Zach Jones   (ztj3686@rit.edu)
 **
 ** Contributor:
 **

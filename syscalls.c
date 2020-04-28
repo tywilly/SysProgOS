@@ -5,7 +5,7 @@
 **
 ** Author:  CSCI-452 class of 20195
 **
-** Contributor:
+** Contributor: Zach Jones   (ztj3686@rit.edu)
 **
 ** Description:  System call implementations
 */

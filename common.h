@@ -6,7 +6,7 @@
 ** Author:	CSCI-452 class of 20195
 **
 ** Contributor:
-**
+**              Zach Jones   (ztj3686@rit.edu)
 ** Description:	Common definitions for the baseline system.
 **
 ** This header file pulls in the standard header information

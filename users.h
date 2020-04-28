@@ -5,7 +5,7 @@
 **
 ** Author:  Warren R. Carithers and various CSCI-452 classes
 **
-** Contributor:
+** Contributor:  Zach Jones (ztj3686@rit.edu)
 **
 ** Description: control of user-level routines
 */
@@ -57,28 +57,27 @@
 // called exit() but continued to run), it will usually return a status
 // of 42.
 //
-//#define SPAWN_A // A, B, and C are identical, running main1()
-//#define SPAWN_B
-//#define SPAWN_C // D is like A-C, but runs main2(), which does not exit()
-//#define SPAWN_D
-//#define SPAWN_E // E, F, and G run main3(); they iterate & sleeping
-//#define SPAWN_F
-//#define SPAWN_G
-//#define SPAWN_H // H runs userH(), spawns userZ() & exits before its child
-//#define SPAWN_I // I spawns children, kills one, gets status for all
-//#define SPAWN_J // J tries to spawn 2*MAX_PROCS children
-//#define SPAWN_K // K and L run main4(), spawning copies of userX and sleeping
-//#define SPAWN_L
-//#define SPAWN_M // M and N run main5(); they spawn userW and userZ
-//#define SPAWN_N
-// no user O
-//#define SPAWN_P // P iterates, reporting system time and sleeping
-//#define SPAWN_Q // Q makes a bogus system call
-//#define SPAWN_R // R loops forever, reading one byte at a time from SIO
-//#define SPAWN_S // S loops forever
-//#define SPAWN_T // T runs main6(), spawns children, waits for them
-//#define SPAWN_U // U runs main6(), spawns children, waits for them by PID
-//#define SPAWN_V // V runs main6(), spawns children, kills them
+#define SPAWN_A // A, B, and C are identical, running main1()
+#define SPAWN_B
+#define SPAWN_C // D is like A-C, but runs main2(), which does not exit()
+#define SPAWN_D
+#define SPAWN_E // E, F, and G run main3(); they iterate & sleeping
+#define SPAWN_F
+#define SPAWN_G
+#define SPAWN_H // H runs userH(), spawns userZ() & exits before its child
+#define SPAWN_I // I spawns children, kills one, gets status for all
+#define SPAWN_J // J tries to spawn 2*MAX_PROCS children
+#define SPAWN_K // K and L run main4(), spawning copies of userX and sleeping
+#define SPAWN_L
+#define SPAWN_M // M and N run main5(); they spawn userW and userZ
+#define SPAWN_N
+#define SPAWN_P // P iterates, reporting system time and sleeping
+#define SPAWN_Q // Q makes a bogus system call
+#define SPAWN_R // R loops forever, reading one byte at a time from SIO
+#define SPAWN_S // S loops forever
+#define SPAWN_T // T runs main6(), spawns children, waits for them
+#define SPAWN_U // U runs main6(), spawns children, waits for them by PID
+#define SPAWN_V // V runs main6(), spawns children, kills them
 
 #define STARTUP_SOUND // play the windows xp startup sound
 

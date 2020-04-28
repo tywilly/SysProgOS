@@ -1,13 +1,13 @@
 /*
-** SCCS ID:	@(#)users.c	1.1	3/30/20
 **
-** File:	users.c
+** File:    users.c
 **
-** Author:	CSCI-452 class of 20195
+** Author:  CSCI-452 class of 20195
 **
 ** Contributor:
+**              Zach Jones   (ztj3686@rit.edu)
 **
-** Description:	User-level code.
+** Description: User-level code.
 */
 
 #include "common.h"
