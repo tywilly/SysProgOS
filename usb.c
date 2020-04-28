@@ -292,7 +292,8 @@ static void _usb_dump_qhead( USBQHead *qhead, bool vb ) {
 */
 
 //
-// This is an attempt at initializing the USB controller and making a first request 
+// _usb_init() - this is an attempt at initializing the USB controller 
+//               and making a first request.
 // In order, what this does is:
 // - general init sequence
 //     - enable bus master and memory space
