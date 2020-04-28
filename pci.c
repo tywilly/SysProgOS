@@ -210,6 +210,17 @@ void _pci_set_command( uint8 bus, uint8 device, uint8 function, uint16 value ) {
 }
 
 
+void _pci_set_interrupt( uint8 bus, uint8 device, uint8 function, uint8 interruptPin, uint8 interruptLine ) {
+    uint16 interrupt = (uint16)(interruptPin << 8) & interruptLine;
+    _pci_cfg_write_w( bus, device, function, 0x3C, interrupt );
+}
+
+
+uint8 _pci_get_interrupt_line( uint8 bus, uint8 device, uint8 function ) {
+    return _pci_cfg_read_b( bus, device, function, 0x3C );
+}
+
+
 uint16 _pci_get_status( uint8 bus, uint8 device, uint8 function ) {
     return( _pci_cfg_read_w( bus, device, function, PCI_STATUS ));
 }

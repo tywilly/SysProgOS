@@ -28,6 +28,9 @@ void _pci_cfg_write_b( uint8 bus, uint8 device, uint8 function, uint8 offset, ui
 void _pci_set_command( uint8 bus, uint8 device, uint8 function, uint16 value );
 uint16 _pci_get_status( uint8 bus, uint8 device, uint8 function );
 
+void _pci_set_interrupt( uint8 bus, uint8 device, uint8 function, uint8 interruptPin, uint8 interruptLine );
+uint8 _pci_get_interrupt_line( uint8 bus, uint8 device, uint8 function );
+
 PCIDevice *_pci_dev_class( uint8 class, uint8 subClass, uint8 progIF );
 
 void _pci_dump_all( void );

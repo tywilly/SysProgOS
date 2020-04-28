@@ -232,6 +232,8 @@ void _usb_init( void ) {
     _usb_command_disable(1);
     _usb_command_enable(2);
 
+    while((_usb_read_l(_usb_op_base, USB_CMD) & 2) == 2);
+
     // setup control queue head
     assert((uint32)&_usb_qhead == ((uint32)&_usb_qhead & 0xFFFFFFE0));
         // QHeads must be 32 bit aligned
@@ -289,8 +291,15 @@ void _usb_init( void ) {
     // update qh next qtd
     _usb_qhead.overlay.next_qtd = (uint32)setup & 0xFFFFFFE0;
 
+    // change the interrupt line and install ISR
+    // _pci_set_interrupt( _usb_bus, _usb_device, _usb_function, 0x0, 0x43 );
+    // __install_isr( 0x43, NULL );
+
     // start the controller
-    _usb_command_enable(1);
+    _usb_command_enable( 1 );
+
+    // all ports route to this controller
+    _usb_write_l( _usb_op_base, USB_CONFIGFLAG, 1 );
 
     // reset the port where the device is connected
     _usb_n_port = _usb_read_l( _usb_base, USB_HCSPARAMS ) & 0xF;
