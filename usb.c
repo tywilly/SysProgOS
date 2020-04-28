@@ -461,7 +461,5 @@ void _usb_init( void ) {
                 __cio_printf( "%02x ", buf_rec[x]);
         __cio_printf( "      status %08x\n", _usb_read_l( _usb_op_base, USB_STS ));
     }
-
-    __cio_puts( "--------------------USB SHIT--------------------\n" );
     return( 94 );
 }
