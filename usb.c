@@ -430,8 +430,8 @@ void _usb_init( void ) {
     USBQTD* setup = (USBQTD *)_queue_deque( _usb_qtd_q );
     setup->next_qtd = ((uint32)in & 0xFFFFFFE0);
     setup->token = 0x00080E80;
-    *(uint32 *)buf_snd = 0x80060001;
-    *((uint32 *)buf_snd+1) = 0x00004000;
+    *(uint32 *)buf_snd = 0x01000680;
+    *((uint32 *)buf_snd+1) = 0x00400000;
     setup->buffer0 = (uint32)buf_snd;
 
     // DEBUG: clean the receive buffer
@@ -444,7 +444,7 @@ void _usb_init( void ) {
 
     // change the interrupt line and install ISR
     // _pci_set_interrupt( _usb_bus, _usb_device, _usb_function, 0x0, 0x43 );
-    // __install_isr( 0x43, NULL );
+    // __install_isr( 0x43, _usb_isr );
 
     // DEBUG
     // __cio_printf("SETUP %08x    IN %08x    OUT %08x\n", setup, in, out);
