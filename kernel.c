@@ -320,6 +320,9 @@ void _shell( int ch ) {
 
             _usb_status();
             break;
+	case 'o':
+	    __cio_puts("\nCurrent CD:\n");
+	    _atapi_read();
         default:
             __cio_printf( "shell: unknown request '0x%02x'\n", ch );
 

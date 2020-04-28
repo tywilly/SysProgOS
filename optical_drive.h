@@ -75,6 +75,6 @@ enum drive_type{
 
 
 void _atapi_init(void);
-
+void _atapi_read(void);
 
 #endif

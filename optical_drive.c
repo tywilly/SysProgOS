@@ -1,7 +1,29 @@
 #include "klib.h"
 #include "cio.h"
 #include "optical_drive.h"
+#include <x86arch.h>
+#include <x86pic.h>
+#include <x86pit.h>
 
+#include "common.h"
+#include "klib.h"
+
+#include "process.h"
+#include "queues.h"
+#include "scheduler.h"
+
+volatile uint32 ide_secondary_interrupt = 0;
+volatile uint32 ide_primary_interrupt = 0;
+
+void _atapi_isr(void){
+    __cio_printf("isr one");
+    ide_primary_interrupt = 1;
+}
+
+void _atapi_isr_secondary(void){
+    __cio_printf("isr two");
+    ide_secondary_interrupt =1;
+}
 void _reset_ata(uint32 bus) {
     __outb(ATA_DCR(bus), ATA_DCR_SOFTWARE_RESET);
     ATA_SELECT_DELAY(bus);
@@ -84,7 +106,6 @@ uint32 _atapi_capacity(uint32 bus, uint32 drive) {
 */
 
 int atapi_read(uint32 base, uint32 sector) {
-    uint32 ide_secondary_interrupt=0;
     uint16 size=0;
     uint32 cycle=0;
     //enable pio
@@ -95,20 +116,19 @@ int atapi_read(uint32 base, uint32 sector) {
     //identify packet command
     __outb(base+7, ATA_PACKET_COMMAND);
     //  cycle=0;
-    __cio_puts("reaches here before inerrupt");
     //wait for drq and bsy to be clear will change to a more efficent
     // version once I know it working
+
     for(int i=0; i<1000; i++) {
-        if( (__inb(base+7) & 0x88)== 0X08 ) {
+        if( (__inb(base+7) & 0x88)== 0x08 ) {
             cycle=1;
             break;
         }
     }
     if(cycle==0) {
-	__cio_puts("first failure in identifying drive and getting lba for read"); 
+	__cio_printf("%02x",ide_secondary_interrupt); 
         return 0;
     }
-    //interrupt I need to implement
     ide_secondary_interrupt=0;
 
     //So this looks weird but atapi commands are sent in several outw portions to different ports to emulate
@@ -141,7 +161,11 @@ int atapi_read(uint32 base, uint32 sector) {
     return 1;
 }
 
+
+
 void _atapi_init(void) {
+    __install_isr( INT_VEC_ATAPI_PRIMARY, _atapi_isr );
+    __install_isr(INT_VEC_ATAPI_SECONDARY, _atapi_isr_secondary);
     //Slightly confusing start up 
    // enables drive interrupts
     __outb(ATAPI_INTERRUPT_REG,ATA_DCR_HIGH_ORDER_BYTE);
@@ -156,7 +180,11 @@ void _atapi_init(void) {
     }else{
 	__cio_puts(" cd is not ready");	
     }
-    if(atapi_read(ATA_BUS_PRIMARY,(ATA_BUS_PRIMARY << 4))) {
-	__cio_puts( " read" );
-    }
+}
+
+void _atapi_read(void) {
+	__cio_puts("attempt a read");
+   	if(atapi_read(ATA_BUS_SECONDARY,(ATA_BUS_SECONDARY << 4))) {
+     	    __cio_puts( " read" );
+   	 }
 }
