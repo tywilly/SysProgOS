@@ -22,26 +22,26 @@
 
 // Stores information about the PCI device
 typedef struct pci_dev_s {
-  int id;
-  uint8 class;
-  uint8 subclass;
-  uint8 headertype;
-  uint8 progif;
-  uint8 interrupt;
+    int id;
+    uint8 class;
+    uint8 subclass;
+    uint8 headertype;
+    uint8 progif;
+    uint8 interrupt;
 
-  uint16 vendorid;
-  uint16 deviceid;
+    uint16 vendorid;
+    uint16 deviceid;
 
-  uint32 bar0;
-  uint32 bar1;
-  uint32 bar2;
-  uint32 bar3;
-  uint32 bar4;
-  uint32 bar5;
+    uint32 bar0;
+    uint32 bar1;
+    uint32 bar2;
+    uint32 bar3;
+    uint32 bar4;
+    uint32 bar5;
 
-  uint8 bus;
-  uint8 slot;
-  uint8 func;
+    uint8 bus;
+    uint8 slot;
+    uint8 func;
 
 } PCIDev;
 
@@ -90,8 +90,11 @@ PCIDev* _pci_get_device( int devid );
 /** Get a device by its class, subclass and progif. */
 PCIDev* _pci_get_device_class( uint8 class, uint8 subclass, uint8 progif );
 
+/** Get a device by it's vendor and device ID. */
+PCIDev* _pci_get_device_vendorid_deviceid( uint16 vendor, uint16 device );
+
 /** Get a device by its vendor, device ID, class, and subclass. */
-PCIDev* _pci_get_device_id( uint16 vendor, uint16 device, uint8 class, 
+PCIDev* _pci_get_device_id( uint16 vendor, uint16 device, uint8 class,
                             uint8 subclass );
 
 /**
@@ -100,7 +103,7 @@ PCIDev* _pci_get_device_id( uint16 vendor, uint16 device, uint8 class,
   * dev: The device to write the value to
   * offset: The offset of the field to write
   * value: what to write there
-  */ 
+  */
 void _pci_write_field8( PCIDev *dev, uint8 offset, uint8 value );
 
 /**
@@ -109,7 +112,7 @@ void _pci_write_field8( PCIDev *dev, uint8 offset, uint8 value );
   * dev: The device to write the value to
   * offset: The offset of the field to write
   * value: what to write there
-  */ 
+  */
 void _pci_write_field16( PCIDev *dev, uint8 offset, uint16 value );
 
 /**
@@ -118,14 +121,14 @@ void _pci_write_field16( PCIDev *dev, uint8 offset, uint16 value );
   * dev: The device to write the value to
   * offset: The offset of the field to write
   * value: what to write there
-  */ 
+  */
 void _pci_write_field32( PCIDev *dev, uint8 offset, uint32 value );
 
 /**
   * Calculate the address of a PCI field given its bus, slot, function, offset,
   * and the size of the field.
   */
-uint32 _pci_calculate_address(uint8 bus, uint8 slot, uint8 func, uint8 offset, 
+uint32 _pci_calculate_address(uint8 bus, uint8 slot, uint8 func, uint8 offset,
                               uint8 size);
 
 #endif

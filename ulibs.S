@@ -74,4 +74,3 @@ SYSCALL(bogus)
 exit_helper:
         pushl   %eax    // use whatever was in EAX as the status
         call    exit    // terminate this process
-

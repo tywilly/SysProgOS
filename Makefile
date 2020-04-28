@@ -12,11 +12,11 @@
 
 OS_C_SRC = clock.c kernel.c klibc.c kmem.c process.c \
 	queues.c scheduler.c sio.c stacks.c syscalls.c pci.c \
-	usb.c usb_uhci.c usbhd.c usbd.c ac97.c
+	usb.c usb_uhci.c usbhd.c usbd.c ac97.c soundblaster.c userSB.c
 
 OS_C_OBJ = clock.o kernel.o klibc.o kmem.o process.o \
 	queues.o scheduler.o sio.o stacks.o syscalls.o pci.o \
-	usb.o usb_uhci.o usbhd.o usbd.o ac97.o winstart.o
+	usb.o usb_uhci.o usbhd.o usbd.o ac97.o winstart.o soundblaster.o userSB.o
 
 OS_S_SRC = klibs.S
 OS_S_OBJ = klibs.o
@@ -117,13 +117,13 @@ ASFLAGS = --32
 LD = ld
 LDFLAGS = -melf_i386 -no-pie
 
-#		
+#
 # Transformation rules - these ensure that all compilation
 # flags that are necessary are specified
 #
 # Note use of 'cpp' to convert .S files to temporary .s files: this allows
 # use of #include/#define/#ifdef statements. However, the line numbers of
-# error messages reflect the .s file rather than the original .S file. 
+# error messages reflect the .s file rather than the original .S file.
 # (If the .s file already exists before a .S file is assembled, then
 # the temporary .s file is not deleted.  This is useful for figuring
 # out the line numbers of error messages, but take care not to accidentally
@@ -164,10 +164,10 @@ LDFLAGS = -melf_i386 -no-pie
 # Default target:  usb.image
 #
 
-usb.image: bootstrap.b prog.b prog.nl BuildImage prog.dis 
+usb.image: bootstrap.b prog.b prog.nl BuildImage prog.dis
 	./BuildImage -d usb -o usb.image -b bootstrap.b prog.b 0x10000
 
-floppy.image: bootstrap.b prog.b prog.nl BuildImage prog.dis 
+floppy.image: bootstrap.b prog.b prog.nl BuildImage prog.dis
 	./BuildImage -d floppy -o floppy.image -b bootstrap.b prog.b 0x10000
 
 prog.out: $(OBJECTS)
@@ -254,7 +254,7 @@ clock.o: x86arch.h x86pic.h ./x86pit.h common.h types.h udefs.h ulib.h klib.h
 clock.o: clock.h process.h stacks.h kmem.h queues.h bootstrap.h scheduler.h
 kernel.o: common.h types.h udefs.h ulib.h kernel.h x86arch.h process.h
 kernel.o: stacks.h kmem.h queues.h bootstrap.h clock.h syscalls.h cio.h sio.h
-kernel.o: scheduler.h pci.h usb.h ac97.h users.h
+kernel.o: scheduler.h pci.h usb.h soundblaster.h ac97.h users.h
 klibc.o: common.h types.h udefs.h ulib.h
 kmem.o: common.h types.h udefs.h ulib.h klib.h x86arch.h bootstrap.h kmem.h
 kmem.o: cio.h
@@ -269,11 +269,16 @@ sio.o: klib.h
 stacks.o: common.h types.h udefs.h ulib.h stacks.h kmem.h
 syscalls.o: common.h types.h udefs.h ulib.h x86arch.h x86pic.h ./uart.h
 syscalls.o: support.h klib.h syscalls.h queues.h scheduler.h process.h
-syscalls.o: stacks.h kmem.h bootstrap.h clock.h cio.h sio.h
+syscalls.o: stacks.h kmem.h bootstrap.h clock.h cio.h sio.h soundblaster.h
+syscalls.o: ac97.h pci.h
 pci.o: common.h types.h udefs.h ulib.h klib.h pci.h
 usb.o: common.h types.h udefs.h ulib.h usb.h usb_uhci.h pci.h
 usb_uhci.o: klib.h types.h usb_uhci.h common.h udefs.h ulib.h pci.h queues.h
 ac97.o: common.h types.h udefs.h ulib.h klib.h x86pic.h ac97.h pci.h
-users.o: common.h types.h udefs.h ulib.h users.h
+soundblaster.o: common.h types.h udefs.h ulib.h klib.h cio.h sio.h queues.h
+soundblaster.o: x86pic.h soundblaster.h pci.h kmem.h kdefs.h support.h
+soundblaster.o: kernel.h x86arch.h process.h stacks.h bootstrap.h
+userSB.o: userSB.h common.h types.h udefs.h ulib.h kmem.h cio.h
+users.o: common.h types.h udefs.h ulib.h users.h userSB.h ac97.h pci.h
 ulibc.o: common.h types.h udefs.h ulib.h
 ulibs.o: syscalls.h common.h types.h udefs.h ulib.h queues.h

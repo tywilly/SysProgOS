@@ -5,7 +5,8 @@
 **
 ** Author:  CSCI-452 class of 20195
 **
-** Contributor: Cody Burrows (cxb2114@rit.edu)
+** Contributor: Zach Jones   (ztj3686@rit.edu)
+**              Cody Burrows (cxb2114@rit.edu)
 **
 ** Description:  System call implementations
 */
@@ -28,6 +29,7 @@
 #include "clock.h"
 #include "cio.h"
 #include "sio.h"
+#include "soundblaster.h"
 #include "ac97.h"
 
 /*
@@ -120,20 +122,20 @@ static void _sys_isr( int vector, int code ) {
 **    void exit( int32 status );
 */
 static void _sys_exit( uint32 arg1, uint32 arg2, uint32 arg3 ) {
-    
+
     // first, verify that we have a parent
     Pcb *parent = _pcb_find( _current->ppid );
     assert1( parent );
-    
+
     // record the exit status for this process
     _current->exit_status = (int32) arg1;
 
     // perform all the nasty parts of this mechanism
     _really_exit( _current, parent, (int32) arg1 );
-    
+
     // we need a new current process
     _dispatch();
-}   
+}
 
 /*
 ** _sys_kill - terminate a process with extreme prejudice
@@ -147,7 +149,7 @@ static void _sys_exit( uint32 arg1, uint32 arg2, uint32 arg3 ) {
 static void _sys_kill( uint32 arg1, uint32 arg2, uint32 arg3 ) {
     Pid id = (Pid) arg1;
     Pcb *parent, *victim;
-    
+
     // special case:  kill(0) --> suicide!
     if( id == 0 || id == _current->pid ) {
         parent = _pcb_find( _current->pid );
@@ -164,7 +166,7 @@ static void _sys_kill( uint32 arg1, uint32 arg2, uint32 arg3 ) {
         RET(_current) = E_INVALID;
         return;
     }
-    
+
     // we're after someone else - see if we can find them
 
     victim = _pcb_find( id );
@@ -213,23 +215,23 @@ static void _sys_kill( uint32 arg1, uint32 arg2, uint32 arg3 ) {
 */
 static void _sys_wait( uint32 arg1, uint32 arg2, uint32 arg3 ) {
     Pid pid = (Pid) arg1;
-    
+
     // if no children, nobody to wait for!
     if( _current->children < 1 ) {
         RET(_current) = E_NO_CHILDREN;
         return;
     }
-    
+
     // can't wait for ourselves
     if( pid == _current->pid ) {
         RET(_current) = E_INVALID;
         return;
     }
-    
+
     // OK, we're waiting for someone.  Figure out who(m?).
 
     Pcb *pcb;
-    
+
     if( pid != 0 ) {
 
         // looking for a specific child
@@ -272,7 +274,7 @@ static void _sys_wait( uint32 arg1, uint32 arg2, uint32 arg3 ) {
             pcb = &_pcbs[i];
         }
     }
-    
+
     // were we successful?
     if( pcb == NULL ) {
 
@@ -290,7 +292,7 @@ static void _sys_wait( uint32 arg1, uint32 arg2, uint32 arg3 ) {
     // pull it from that queue
 
     assert( _queue_remove(_zombie,pcb) == pcb );
-    
+
     // the parent gets its PID
     RET(_current) = pcb->pid;
 
@@ -299,10 +301,10 @@ static void _sys_wait( uint32 arg1, uint32 arg2, uint32 arg3 ) {
     if( status != NULL ) {
         *status = pcb->exit_status;
     }
-    
+
     // one fewer child
     _current->children -= 1;
-        
+
     // get rid of the evidence
     _proc_cleanup( pcb );
 }
@@ -418,6 +420,11 @@ static void _sys_write( uint32 arg1, uint32 arg2, uint32 arg3 ) {
 
     case CHAN_AC97:
         length = _ac97_write( buf, length );
+        RET(_current) = length;
+        break;
+
+    case CHAN_SB:
+        length = _soundblaster_write( buf, length );
         RET(_current) = length;
         break;
 
@@ -550,7 +557,7 @@ static void _sys_getstate( uint32 arg1, uint32 arg2, uint32 arg3 ) {
 ** @param status  Termination status
 */
 void _really_exit( Pcb *victim, Pcb *parent, int32 status ) {
-    
+
     // reparent all the children of this process
     Pid us = victim->pid;
     int n = 0;
@@ -564,7 +571,7 @@ void _really_exit( Pcb *victim, Pcb *parent, int32 status ) {
             ++n;
         }
     }
-    
+
     // verify that we found the correct number of children
     assert1( n == victim->children );
 
@@ -573,7 +580,7 @@ void _really_exit( Pcb *victim, Pcb *parent, int32 status ) {
         __sprint( b256, "found %d kids, expected %d", n, victim->children );
         WARNING( b256 );
     }
-    
+
     // if the parent isn't currently waiting, this
     // process becomes a zombie
     if( parent->state != WAITING ) {
@@ -585,12 +592,12 @@ void _really_exit( Pcb *victim, Pcb *parent, int32 status ) {
         assert( _queue_enque(_zombie,(void *)victim) == SUCCESS );
         return;
     }
-        
+
     // OK, we know that the parent is currently wait()ing
 
     // remove it from the waiting queue; if we can't, we're in trouble
     assert( _queue_remove(_waiting,parent) == parent );
-    
+
     // give the parent this process' PID
     RET(parent) = victim->pid;
 
@@ -599,13 +606,13 @@ void _really_exit( Pcb *victim, Pcb *parent, int32 status ) {
     if( sval != NULL ) {
         *sval = victim->exit_status;  // exit status
     }
-    
+
     // one fewer child for the parent
     parent->children -= 1;
-    
+
     // parent is no longer waiting
     _schedule( parent );
-    
+
     // all done with this process
     _proc_cleanup( victim );
 }

@@ -6,6 +6,7 @@
 ** Author:  CSCI-452 class of 20195
 **
 ** Contributor: Cody Burrows (cxb2114@rit.edu)
+**              Zach Jones   (ztj3686@rit.edu)
 **
 ** Description: Miscellaneous OS support routines.
 */
@@ -25,6 +26,7 @@
 #include "scheduler.h"
 #include "pci.h"
 #include "usb.h"
+#include "soundblaster.h"
 #include "ac97.h"
 
 // need init() and idle() addresses
@@ -145,22 +147,23 @@ void _init( void ) {
 
     __cio_puts( "Modules:" );
 
-    _kmem_init();    // kernel memory system (must be first)
-    _queue_init();   // queues (must be second)
+    _kmem_init();         // kernel memory system (must be first)
+    _queue_init();        // queues (must be second)
 
-    _clk_init();     // clock
-    _proc_init();    // processes
-    _sched_init();   // scheduler
-    _sio_init();     // serial i/o
-    _stk_init();     // stacks
-    _sys_init();     // system calls
-    _pci_init();     // PCI
-    _usb_init();     // USB
+    _clk_init();          // clock
+    _proc_init();         // processes
+    _sched_init();        // scheduler
+    _sio_init();          // serial i/o
+    _stk_init();          // stacks
+    _sys_init();          // system calls
+    _pci_init();          // PCI
+    _usb_init();          // USB
     _ac97_init();    // AC97
+    _soundblaster_init(); // sound blaster audio
 
     __cio_puts( "\nModule initialization complete.\n" );
     __cio_puts( "-------------------------------\n" );
-    //__delay( 200 );  // about 5 seconds
+    __delay( 2 );  // about 50 milliseconds
 
     /*
     ** Create the initial process
@@ -325,7 +328,7 @@ void _shell( int ch ) {
         case 'm':
             _ac97_status();
             break;
-            
+
         default:
             __cio_printf( "shell: unknown request '0x%02x'\n", ch );
 

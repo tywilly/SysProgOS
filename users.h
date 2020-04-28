@@ -5,7 +5,8 @@
 **
 ** Author:  Warren R. Carithers and various CSCI-452 classes
 **
-** Contributor: Cody Burrows (cxb2114@rit.edu)
+** Contributor:  Zach Jones (ztj3686@rit.edu)
+**               Cody Burrows (cxb2114@rit.edu)
 **
 ** Description: control of user-level routines
 */
@@ -80,6 +81,8 @@
 #define SPAWN_V // V runs main6(), spawns children, kills them
 
 #define STARTUP_SOUND // play the windows xp startup sound
+
+#define SPAWN_SB // spawn the sound blaster sampler
 
 //
 // Users W-Z are spawned from other processes; they

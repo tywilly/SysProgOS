@@ -10,7 +10,7 @@ Date:     12/8/19
 Notes on the Makefile:
 
 	DO NOT USE gmakemake!  You must edit the given Makefile to tell
-	it about the file(s) you create.  Add your own file names (both 
+	it about the file(s) you create.  Add your own file names (both
 	source and object versions) to the APP_* macros at the top of the
 	Makefile.
 
@@ -60,7 +60,7 @@ To boot your program once you have copied it to a bootable medium:
 	* insert the bootable medium
 	* make sure the terminal connected to this machine is turned on
 	* push the reset button on the front panel (at the top, on
-	  the righthand side - the larger button on the lefthand 
+	  the righthand side - the larger button on the lefthand
 	  side is the power button)
 
 	DO NOT just push the reset button - Ubuntu must be shut down

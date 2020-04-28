@@ -1,17 +1,19 @@
 /*
-** SCCS ID:	@(#)users.c	1.1	3/30/20
 **
-** File:	users.c
+** File:    users.c
 **
-** Author:	CSCI-452 class of 20195
+** Author:  CSCI-452 class of 20195
 **
-** Contributor: Cody Burrows (cxb2114@rit.edu)
+** Contributor:
+**              Zach Jones   (ztj3686@rit.edu)
+**              Cody Burrows (cxb2114@rit.edu)
 **
-** Description:	User-level code.
+** Description: User-level code.
 */
 
 #include "common.h"
 #include "users.h"
+#include "userSB.h"
 #include "ac97.h"
 
 /*
@@ -50,7 +52,7 @@ int userM( int, char * ); int userN( int, char * ); int userO( int, char * );
 int userP( int, char * ); int userQ( int, char * ); int userR( int, char * );
 int userS( int, char * ); int userT( int, char * ); int userU( int, char * );
 int userV( int, char * ); int userW( int, char * ); int userX( int, char * );
-int userY( int, char * ); int userZ( int, char * ); 
+int userY( int, char * ); int userZ( int, char * );
 
 int startsound( int, char * );
 
@@ -1241,7 +1243,7 @@ int startsound( int argc, char *args ) {
     }
     ac97_setvol(63); // back to full blast
 
-    // A WAV support library would be nice. Then you could really easily pull 
+    // A WAV support library would be nice. Then you could really easily pull
     // header information out of the RIFF file and choose the right sample rate,
     // encoding, etc.
     //
@@ -1260,7 +1262,7 @@ int startsound( int argc, char *args ) {
         }
 
         // Keep track of how much was written so that we don't skip or replay
-        // samples. 
+        // samples.
         pos += numwritten;
 
         if ((uint32) gettime() % 250 == 0) {
@@ -1271,8 +1273,16 @@ int startsound( int argc, char *args ) {
         if (numwritten <= 1024) {
             sleep(0); // yield to let other stuff happen while the buffer
                       // empties a little more.
-        } 
+        }
     }
+
+#ifdef SPAWN_SB
+    // start the sound mixer now - after 100ms of quiet
+    sleep(100);
+    // main sound blaster doesn't use it either
+    mainSB( argc, args );
+
+#endif
 
     return 0;
 }
@@ -1342,7 +1352,7 @@ int init( int argc, char *args ) {
 #ifdef STARTUP_SOUND
     // play the Windows XP startup sound
     argv[0] = NULL; // no arguments
-    
+
     whom = spawn( startsound, argv );
     if( whom < 0 ) {
         cwrites( "init, spawn() user O failed\n" );
@@ -1685,7 +1695,7 @@ int idle( int argc, char *args ) {
     uint64 now;
     char buf[128];
     char ch = '.';
-    
+
     me = getpid();
     now = gettime();
 
