@@ -2,13 +2,16 @@
 ** File: pci.c
 **
 ** Author: Tyler Wilcox
-**
-** Contributor:
+** Contributor: Cody Burrows (cxb2114@rit.edu)
 **              Zach Jones   (ztj3686@rit.edu)
 **
 ** Description: PCI module implementation.
 **
 ** Refer to https://wiki.osdev.org/PCI for more info.
+** Note that since our two teams originally intended to work together, this
+** module was co-developed so that we didn't all step on each others' toes too
+** badly when it came time to merge everything together. Obviously, that didn't
+** pan out...
 */
 
 #define __SP_KERNEL__
@@ -33,13 +36,14 @@ void _pci_init( void ) {
 
 }
 
+// Calculate the address of the desired field
 uint32 _pci_calculate_address(uint8 bus, uint8 slot, uint8 func, uint8 offset,
                               uint8 size) {
     uint32 lbus = (uint32) bus;
     uint32 lslot = (uint32) slot;
     uint32 lfunc = (uint32) func;
     uint8 size_mask = 0xFF;
-    // TODO DCB this is gross
+    // This is gross, but it works.
     if (size == 4) {
         size_mask = 0xFC;
     } else if (size == 2) {
@@ -186,6 +190,7 @@ PCIDev* _pci_get_device_id( uint16 vendor, uint16 device, uint8 class,
     return 0;
 }
 
+// Write a 32-bit PCI field
 void _pci_write_field32( PCIDev *dev, uint8 offset, uint32 value) {
     uint32 address = _pci_calculate_address(dev->bus, dev->slot, dev->func,
                                             offset, 4);
@@ -194,10 +199,12 @@ void _pci_write_field32( PCIDev *dev, uint8 offset, uint32 value) {
     __outl(PCI_VALUE_PORT, value);
 }
 
+// Read a 32-bit PCI field
 uint32 _pci_config_read32( PCIDev *dev, uint8 offset ) {
     return _pci_config_read( dev->bus, dev->slot, dev->func, offset );
 }
 
+// Read a 16-bit PCI field
 uint16 _pci_config_read16( PCIDev *dev, uint8 offset ) {
     uint16 tmp = 0;
     uint32 address = _pci_calculate_address(dev->bus, dev->slot, dev->func,
@@ -209,6 +216,7 @@ uint16 _pci_config_read16( PCIDev *dev, uint8 offset ) {
     return tmp;
 }
 
+// Read an 8-bit PCI field
 uint8 _pci_config_read8( PCIDev *dev, uint8 offset ) {
     uint8 tmp = 0;
     uint32 address = _pci_calculate_address(dev->bus, dev->slot, dev->func,
@@ -220,6 +228,7 @@ uint8 _pci_config_read8( PCIDev *dev, uint8 offset ) {
     return tmp;
 }
 
+// Write a 16-bit PCI field
 void _pci_write_field16( PCIDev *dev, uint8 offset, uint16 value ) {
     uint32 address = _pci_calculate_address(dev->bus, dev->slot, dev->func,
                                             offset, 2);
@@ -228,6 +237,7 @@ void _pci_write_field16( PCIDev *dev, uint8 offset, uint16 value ) {
     __outw(PCI_VALUE_PORT, value);
 }
 
+// Write an 8-bit PCI field
 void _pci_write_field8( PCIDev *dev, uint8 offset, uint8 value) {
     uint32 address = _pci_calculate_address(dev->bus, dev->slot, dev->func,
                                             offset, 1);

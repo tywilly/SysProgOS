@@ -5,7 +5,7 @@
 **
 ** Author:	CSCI-452 class of 20195
 **
-** Contributor:
+** Contributor: Cody Burrows (cxb2114@rit.edu)
 **
 ** Description:	assembly-language user-level library functions
 */
@@ -48,7 +48,9 @@ SYSCALL(getppid)
 SYSCALL(getstate)
 SYSCALL(ac97_getvol)
 SYSCALL(ac97_setvol)
-SYSCALL(ac97_srate)
+SYSCALL(ac97_setrate)
+SYSCALL(ac97_initialized);
+SYSCALL(ac97_write);
 
 /*
 ** This is a bogus system call; it's here so that we can test

@@ -66,6 +66,9 @@ void _ac97_init(void) {
         for (int i = 0; i < AC97_BDL_LEN; ++i) {
             // carve out a brand new page for our buffer
             bdl_array[i].pointer = (uint32) _kalloc_page(1);
+            if (bdl_array[i].pointer == 0) {
+                WARNING("AC97: Failed to allocate buffer\n");
+            }
 
             // clean it up
             __memclr((void *) bdl_array[i].pointer, AC97_BUFFER_LEN);
@@ -121,8 +124,9 @@ void _ac97_isr(int vector, int code) {
         // mark buffers before cur_index as free
         uint8 cur_index = __inb(dev.nabmbar + AC97_PCM_OUT_CIV);
         while (dev.head != cur_index) {
-            // TODO DCB deallocate the buffer's page??
-            // mark the buffer as free by moving the head, so it can be refilled
+            // For now, this won't be freed to avoid overhead since the buffers
+            // get refilled so often.
+            // Mark the buffer as free by moving the head, so it can be refilled
             dev.free_buffers++;
             if (dev.head != dev.tail) {
                 dev.head = ((dev.head + 1) % AC97_BDL_LEN);
@@ -161,8 +165,13 @@ void _ac97_isr(int vector, int code) {
 
 // Set the output volume on a 6 bit scale.
 void _ac97_set_volume(uint8 vol) {
-    if (vol >= (1 << dev.vol_bits)) {
-        __cio_puts("AC97: Volume out of range!\n");
+    if (dev.status != AC97_STATUS_OK) {
+        WARNING("AC97: Not initialized");
+        return;
+    }
+
+    if (vol >= (1 << 6)) {
+        WARNING("AC97: Volume out of range");
     }
 
     // set PCM to full volume
@@ -188,8 +197,13 @@ void _ac97_set_volume(uint8 vol) {
 
 // See what the master volume is set to.
 uint8 _ac97_get_volume(void) {
+    if (dev.status != AC97_STATUS_OK) {
+        WARNING("AC97: Not initialized");
+        return 0;
+    }
+
     // only read the lower 6 bits
-    uint16 vol = __inw(dev.nambar + AC97_MASTER_VOLUME) & 0x3F;
+    uint16 vol = (~__inw(dev.nambar + AC97_MASTER_VOLUME)) & 0x3F;
     return _ac97_scale((uint8) vol, dev.vol_bits, 6);
 }
 
@@ -201,25 +215,32 @@ uint8 _ac97_scale(uint8 value, uint8 max_bits, uint8 target_max_bits) {
 // Dump relevant status on console output.
 void _ac97_status(void) {
     __cio_printf("\n== AC97 Status ==\n");
-    __cio_printf(" |  PCM OUT SR[16]:     %08x\n", __inw(dev.nabmbar + 0x16));
-    __cio_printf(" |  PCM OUT CR[8]:      %08x\n", __inb(dev.nabmbar + 0x1B));
-    __cio_printf(" |  PCM OUT CIV[5]:     %08x\n", __inb(dev.nabmbar + 0x14));
-    __cio_printf(" |  PCM OUT LVI[5]:     %08x\n", __inb(dev.nabmbar + 0x15));
-    __cio_printf(" |  PCM OUT PIV[5]:     %08x\n", __inb(dev.nabmbar + 0x1A));
-    __cio_printf(" |  PCM OUT PICB[16]:   %08x\n", __inw(dev.nabmbar + 0x18));
-    __cio_printf(" |  GLOB CONTORL[32]:   %08x\n", __inl(dev.nabmbar + 0x2C));
-    __cio_printf(" |  GLOB STATUS[32]:    %08x\n", __inl(dev.nabmbar + 0x30));
-    __cio_printf(" |  PCI Status[16]:     %08x\n", _pci_config_read16(dev.pci_dev, 0x6));
-    __cio_printf(" |  Free Buffers:          %02d/32\n", dev.free_buffers);
-    __cio_printf(" |  Head Index:               %02d\n", dev.head);
-    __cio_printf(" |  Tail Index:               %02d\n", dev.tail);
+    if (dev.status != AC97_STATUS_OK) {
+        __cio_printf("Not initialized.\n");
+    } else {
+        __cio_printf(" |  PCM OUT SR[16]:  %08x\n", __inw(dev.nabmbar + 0x16));
+        __cio_printf(" |  PCM OUT CR[8]:   %08x\n", __inb(dev.nabmbar + 0x1B));
+        __cio_printf(" |  PCM OUT CIV[5]:  %08x\n", __inb(dev.nabmbar + 0x14));
+        __cio_printf(" |  PCM OUT LVI[5]:  %08x\n", __inb(dev.nabmbar + 0x15));
+        __cio_printf(" |  PCM OUT PIV[5]:  %08x\n", __inb(dev.nabmbar + 0x1A));
+        __cio_printf(" |  PCM OUT PICB[16]:%08x\n", __inw(dev.nabmbar + 0x18));
+        __cio_printf(" |  GLOB CONTORL[32]:%08x\n", __inl(dev.nabmbar + 0x2C));
+        __cio_printf(" |  GLOB STATUS[32]: %08x\n", __inl(dev.nabmbar + 0x30));
+        __cio_printf(" |  PCI Status[16]:  %08x\n", 
+                     _pci_config_read16(dev.pci_dev, 0x6));
+        __cio_printf(" |  Free Buffers:       %02d/32\n", dev.free_buffers);
+        __cio_printf(" |  Head Index:            %02d\n", dev.head);
+        __cio_printf(" |  Tail Index:            %02d\n", dev.tail);
+
+    }
     __cio_printf("== AC97 Status ==\n");
 }
 
 // Fill the AC97 Buffer.
 int _ac97_write(const char *buffer, int length) {
     if (dev.status != AC97_STATUS_OK) {
-        return 0;
+        WARNING("AC97: Not initialized");
+        return E_BAD_CHANNEL;
     }
 
     uint32 *source = (uint32 *) buffer;
@@ -267,12 +288,30 @@ int _ac97_write(const char *buffer, int length) {
 }
 
 // Set the PCM output sample rate
-void _ac97_set_sample_rate(uint16 rate) {
-    __outw(dev.nambar + AC97_PCM_FR_DAC_RATE, AC97_SAMPLE_RATE);
+uint16 _ac97_set_sample_rate(uint16 rate) {
+    if (dev.status != AC97_STATUS_OK) {
+        WARNING("AC97: Not initialized");
+        return 0;
+    }
+
+    if (rate != 0) {
+        if (dev.playing) {
+            _ac97_stop();
+        }
+
+        __outw(dev.nambar + AC97_PCM_FR_DAC_RATE, rate);
+    }
+
+    return __inw(dev.nambar + AC97_PCM_FR_DAC_RATE);
 }
 
 // Start things playing
 void _ac97_play(void) {
+    if (dev.status != AC97_STATUS_OK) {
+        WARNING("AC97: Not initialized");
+        return;
+    }
+
     if (!dev.playing) {
         dev.playing = true;
         __outb(dev.nabmbar + AC97_PCM_OUT_CR, 
@@ -282,7 +321,17 @@ void _ac97_play(void) {
 
 // Pause audio output
 void _ac97_stop() {
+    if (dev.status != AC97_STATUS_OK) {
+        WARNING("AC97: Not initialized");
+        return;
+    }
+
     dev.playing = false;
     __outb(dev.nabmbar + AC97_PCM_OUT_CR, __inb(dev.nabmbar + AC97_PCM_OUT_CR) &
                                           ~((uint8) AC97_PCM_OUT_CR_RPBM));
+}
+
+// Report the status to the outside world
+bool _ac97_initialized(void) {
+    return dev.status == AC97_STATUS_OK;
 }

@@ -1,13 +1,13 @@
 /*
-** SCCS ID:	@(#)syscalls.h	1.1	3/30/20
+** SCCS ID:     @(#)syscalls.h  1.1     3/30/20
 **
-** File:	syscalls.h
+** File:        syscalls.h
 **
-** Author:	CSCI-452 class of 20195
+** Author:      CSCI-452 class of 20195
 **
-** Contributor:
+** Contributor: Cody Burrows (cxb2114@rit.edu)
 **
-** Description:	System call module declarations
+** Description: System call module declarations
 */
 
 #ifndef _SYSCALL_H_
@@ -23,33 +23,35 @@
 //
 // these are used in the user-level C library stub functions
 
-#define	SYS_exit	0
-#define	SYS_kill	1
-#define	SYS_wait	2
-#define	SYS_spawn	3
-#define	SYS_read	4
-#define	SYS_write	5
-#define	SYS_sleep	6
-#define	SYS_gettime	7
-#define	SYS_getpid	8
-#define	SYS_getppid	9
-#define	SYS_getstate	10
-#define SYS_ac97_getvol 11
-#define SYS_ac97_setvol 12
-#define SYS_ac97_srate  13
+#define SYS_exit                0
+#define SYS_kill                1
+#define SYS_wait                2
+#define SYS_spawn               3
+#define SYS_read                4
+#define SYS_write               5
+#define SYS_sleep               6
+#define SYS_gettime             7
+#define SYS_getpid              8
+#define SYS_getppid             9
+#define SYS_getstate            10
+#define SYS_ac97_getvol         11
+#define SYS_ac97_setvol         12
+#define SYS_ac97_setrate        13
+#define SYS_ac97_initialized    14
+#define SYS_ac97_write          15
 
 // UPDATE THIS DEFINITION IF MORE SYSCALLS ARE ADDED!
-#define	N_SYSCALLS	14
+#define N_SYSCALLS      16
 
 // dummy system call code to test our ISR
 
-#define	SYS_bogus	0xbad
+#define SYS_bogus       0xbad
 
 // interrupt vector entry for system calls
 
-#define	INT_VEC_SYSCALL		0x42
+#define INT_VEC_SYSCALL         0x42
 
-#ifdef	__SP_KERNEL__
+#ifdef  __SP_KERNEL__
 
 // the following declarations should only be seen by the kernel
 

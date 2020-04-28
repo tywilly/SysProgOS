@@ -6,6 +6,7 @@
 ** Author:  Warren R. Carithers and various CSCI-452 classes
 **
 ** Contributor:  Zach Jones (ztj3686@rit.edu)
+**               Cody Burrows (cxb2114@rit.edu)
 **
 ** Description: control of user-level routines
 */
