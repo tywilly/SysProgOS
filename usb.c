@@ -1,12 +1,26 @@
+/*
+** File:    usb.c
+**
+** Author:  Yann MOULLEC
+**
+** Contributor: Tyler Wilcox (he helped me when I was stuck)
+**
+** Description: Implementation of the usb module
+*/
+
 #define __SP_KERNEL__
 
 #include "common.h"
-
 #include "usb.h"
 
+/*
+** PRIVATE DEFINITIONS
+*/
+
+// array sizes
 #define USB_MAX_FRLIST       1024
 #define USB_MAX_QTD          128
-// USB class, subclass, EHCI progIF
+// USB class, subclass, EHCI progIF (used for PCI module)
 #define USB_CLASS            0xC
 #define USB_SUBCLASS         0x3
 #define USB_EHCI_PROGIF      0x20
@@ -27,140 +41,217 @@
 #define USB_CONFIGFLAG       0x40   // Configured Flag Register
 #define USB_PORTSC           0x44   // Port Status/Control Register
 
-/**
- * Private types 
- */
+/*
+** PRIVATE DATA TYPES
+*/
 
+// USB queue transfer descriptor
+// QTDs are linked in a linked list to describe a complete
+// transaction sequence.
+// QTDs contain a description of the transfer (packet) and a
+// pointer to the transfer data (if any).
 typedef struct usb_qtd_s {
-    uint32 next_qtd;
+    uint32 next_qtd;        // next qtd in the linked list
     uint32 alt_next_qtd;
-    uint32 token;
-    uint32 buffer0;
+    uint32 token;           // qtd transfer information
+    uint32 buffer0;         // data buffer0 (only one used here)
     uint32 buffer1;
     uint32 buffer2;
     uint32 buffer3;
     uint32 buffer4;
 } USBQTD;
 
+// USB queue head
+// QHeads are linked in a linked list.
+// The controller follows the linked list to handle them one
+// at a time.
+// The overlay area is used by the controller to copy current
+// qtd data. It doesn't nee to be initialized.
 typedef struct usb_qh_s {
-    uint32 qhead_hlink;
-    uint32 endpoint_crc;
-    uint32 endpoint_cap;
-    uint32 current_qtd;
-    USBQTD overlay;
+    uint32 qhead_hlink;     // next qh in the linked list
+    uint32 endpoint_crc;    // endpoint caracteristics
+    uint32 endpoint_cap;    // endpoint capabilities
+    uint32 current_qtd;     // pointer to current qtd
+    USBQTD overlay;         // current qtd contents
 } USBQHead;
 
-/**
- * Private variables
- */
+/*
+** PRIVATE GLOBAL VARIABLES
+*/
 
+// PCI device related information
 static uint8 _usb_bus;
 static uint8 _usb_device;
 static uint8 _usb_function;
-static uint8 _usb_eecp_offset;
+static uint16 _usb_pci_command; // pci command register
+// USB controller information
+static uint8 _usb_eecp_offset;  // offset for eecp vvv
 static uint8 _usb_n_port;
-static uint32 _usb_eecp;
-static uint16 _usb_pci_command; 
+static uint32 _usb_eecp;        // EHCI Extended Capabilities Pointer
+// USB controller base addresses
 static uint32 _usb_base;
 static uint32 _usb_op_base;
 
-static uint32 *_usb_frame_list;
-static USBQTD *_usb_qtds;
-static Queue _usb_qtd_q;
+// USB data structures
+static uint32 *_usb_frame_list; // Frame list
+static USBQTD *_usb_qtds;       // QTD array
+static Queue _usb_qtd_q;        // QTD Queue
 
+// a single QHead (for now)
 static USBQHead _usb_qhead;
 
-/**
- * Private functions
- */
+/*
+** PRIVATE FUNCTIONS
+*/
 
+//
+// _usb_set_pci_command() - set pci command register
+//
+// Parameters:
+//    command   value for command register
+//
 static void _usb_set_pci_command( uint16 command ) {
     _usb_pci_command = command;
     _pci_set_command( _usb_bus, _usb_device, _usb_function, _usb_pci_command );
 }
 
-/**
- * Sets the pci command register bits specified by the command argument to 1
- * Before:  Register=0x0FFE     Argument=0x0001
- * After:   Register=0x0FFF
- */
+//
+// _usb_pci_command_enable() - set specific pci command register bits
+// Before:  Register=0x0FFE     toEnable=0x0001
+// After:   Register=0x0FFF
+//
+// Parameters:
+//    toEnable      bits to set
+//
 static void _usb_pci_command_enable( uint16 toEnable ) {
     _usb_set_pci_command( _usb_pci_command | toEnable );
 }
 
-/**
- * Sets the pci command register bits specified by the command argument to 0
- * Before:  Register=0x0FFF     Argument=0x0001
- * After:   Register=0x0FFE
- */
+//
+// _usb_pci_command_disable() - clear specific pci command register bits
+// Before:  Register=0x0FFF     toEnable=0x0001
+// After:   Register=0x0FFE
+//
+// Parameters:
+//    toDisable     bits to clear
+//
 static void _usb_pci_command_disable( uint16 toDisable ) {
     _usb_set_pci_command( _usb_pci_command & (~toDisable) );
 }
 
-/**
- * Reads a long word from the base address addr at offset offset
- */
+//
+// _usb_read_l() - read a long word from the usb controller
+//
+// Parameters:
+//    addr      base address
+//    offset    offset
+//
+// Returns:
+//    the long word read
+//
 static uint32 _usb_read_l( uint32 addr, uint32 offset ) {
     return( *(uint32 *)( addr + (offset & 0xFFFFFFFC) ) );
 }
 
-/**
- * Reads a word from the base address addr at offset offset
- */
+//
+// _usb_read_w() - read a word from the usb controller
+//
+// Parameters:
+//    addr      base address
+//    offset    offset
+//
+// Returns:
+//    the word read
+//
 static uint16 _usb_read_w( uint32 addr, uint32 offset ) {
     return( *(uint16 *)( addr + (offset & 0xFFFFFFFE) ) );
 }
 
-/**
- * Reads a byte from the base address addr at offset offset
- */
+//
+// _usb_read_b() - read a byte from the usb controller
+//
+// Parameters:
+//    addr      base address
+//    offset    offset
+//
+// Returns:
+//    the byte read
+//
 static uint8 _usb_read_b( uint32 addr, uint32 offset ) {
     return( *(uint8 *)( addr + offset) );
 }
 
-/**
- * Writes a long word at the base address addr plus offset offset
- */
+//
+// _usb_write_l() - write a long word to the usb controller
+//
+// Parameters:
+//    addr      base address
+//    offset    offset
+//    value     value to be written
+//
 static void _usb_write_l( uint32 addr, uint32 offset, uint32 value ) {
     *(uint32 *)( addr + (offset & 0xFFFFFFFC) ) = value;
 }
 
-/**
- * Writes a word at the base address addr plus offset offset
- */
+//
+// _usb_write_w() - write a word to the usb controller
+//
+// Parameters:
+//    addr      base address
+//    offset    offset
+//    value     value to be written
+//
 static void _usb_write_w( uint32 addr, uint32 offset, uint16 value ) {
     *(uint16 *)( addr + (offset & 0xFFFFFFFE) ) = value;
 }
 
-/**
- * Writes a byte at the base address addr plus offset offset
- */
+//
+// _usb_write_b() - write a byte to the usb controller
+//
+// Parameters:
+//    addr      base address
+//    offset    offset
+//    value     value to be written
+//
 static void _usb_write_b( uint32 addr, uint32 offset, uint8 value ) {
     *(uint8 *)( addr + offset) = value;
 }
 
-/**
- * Sets the usb command register bits specified by the command argument to 1
- * Before:  Register=0xFFFF0FFE     Argument=0x0001
- * After:   Register=0xFFFF0FFF
- */
+//
+// _usb_command_enable() - set the specified usb command register bits
+// Before:  Register=0xFFFF0FFE     Argument=0x0001
+// After:   Register=0xFFFF0FFF
+//
+// Parameters:
+//    toEnable      bits to enable
+//
 static void _usb_command_enable( uint32 toEnable ) {
     uint32 command = _usb_read_l( _usb_op_base, USB_CMD );
     command = command | toEnable;
     _usb_write_l( _usb_op_base, USB_CMD, command );
 }
 
-/**
- * Sets the usb command register bits specified by the command argument to 0
- * Before:  Register=0xFFFF0FFF     Argument=0x0001
- * After:   Register=0xFFFF0FFE
- */
+//
+// _usb_command_disable() - clear the specified usb command register bits
+// Before:  Register=0xFFFF0FFF     Argument=0x0001
+// After:   Register=0xFFFF0FFE
+//
+// Parameters:
+//    toDisable      bits to clear
+//
 static void _usb_command_disable( uint32 toDisable ) {
     uint32 command = _usb_read_l( _usb_op_base, USB_CMD );
     command = command & (~toDisable);
     _usb_write_l( _usb_op_base, USB_CMD, command );
 }
 
+//
+// _usb_dump_qtd() - dump QTD contents to console
+//
+// Parameters:
+//    qtd       pointer to QTD
+//    vb        if true prints all QTD if not stops at buffer0
+//
 static void _usb_dump_qtd( USBQTD *qtd, bool vb ) {
     __cio_printf( "QTD\n" );
     __cio_printf( " next_qtd     %08x\n", qtd->next_qtd );
@@ -175,6 +266,13 @@ static void _usb_dump_qtd( USBQTD *qtd, bool vb ) {
     }
 }
 
+//
+// _usb_dump_qhead() - dump QHead contents to console
+//
+// Parameters:
+//    qhead     pointer to QHead
+//    vb        if true prints all contents if not stops at next_qtd
+//
 static void _usb_dump_qhead( USBQHead *qhead, bool vb ) {
     __cio_printf( "QHead\n" );
     __cio_printf( " qhead_hlink  %08x\n", qhead->qhead_hlink );
@@ -189,18 +287,36 @@ static void _usb_dump_qhead( USBQHead *qhead, bool vb ) {
     }
 }
 
-/**
- * Public funtions
- */
+/*
+** PUBLIC FUNCTIONS
+*/
 
+//
+// This is an attempt at initializing the USB controller and making a first request 
+// In order, what this does is:
+// - general init sequence
+//     - enable bus master and memory space
+//     - get device information from PCI
+//     - get base controller addresses
+//     - get ownership of the controller if necessary
+//     - stop and reset the controller
+// - data structure init / first transaction
+//     - setup a control queue head
+//     - allocate and init QTDs
+//     - setup a get device descriptor request
+// - start the controller
+// - route all ports to this controller
+// - reset ports that changedchanged
+// - enable asynchronous transfer (for the get descriptor request)
+// - CRASH 
+//
 void _usb_init( void ) {
-    __cio_puts( "\n--------------------USB SHIT--------------------\n" );
 
     // Enable Bus Master and Memory Space
     _usb_set_pci_command( 0x0146 );
 
+    // Get device information from PCI
     PCIDevice *dev = _pci_dev_class( USB_CLASS, USB_SUBCLASS, USB_EHCI_PROGIF );
-
     assert( dev != NULL );
     assert( dev->bar0 != 0xFFFFFFFF );
 
@@ -266,8 +382,9 @@ void _usb_init( void ) {
         _queue_enque( _usb_qtd_q, (void *)&_usb_qtds[i] );
     }
 
-    // get descriptor setup packet
-        // TODO: beware the buffer data don't go over 4kB page boundary
+    // get device descriptor request
+    // They must not cross a 4k page boundary;
+    // I'm not sending more than 1k at the moment so a slice is enough.
     char *buf_snd = (char *)_kalloc_slice();
     char *buf_rec = (char *)_kalloc_slice();
     USBQTD *out = (USBQTD *)_queue_deque( _usb_qtd_q );
