@@ -309,7 +309,11 @@ static void _usb_dump_qhead( USBQHead *qhead, bool vb ) {
 // - route all ports to this controller
 // - reset ports that changedchanged
 // - enable asynchronous transfer (for the get descriptor request)
-// - CRASH 
+// - (setup frame list)
+// - CRASH MISERABLY
+//     - the QTD sequence is SETUP, IN, OUT
+//     - I get a 'Halt' on the IN QTD, which means something went horribly
+//       wrong, but I don't know what.
 //
 void _usb_init( void ) {
 
