@@ -24,7 +24,6 @@
 #include "sio.h"
 #include "scheduler.h"
 #include "pci.h"
-#include "usb.h"
 #include "ac97.h"
 
 // need init() and idle() addresses
@@ -155,7 +154,6 @@ void _init( void ) {
     _stk_init();     // stacks
     _sys_init();     // system calls
     _pci_init();     // PCI
-    _usb_init();     // USB
     _ac97_init();    // AC97
 
     __cio_puts( "\nModule initialization complete.\n" );
@@ -315,11 +313,6 @@ void _shell( int ch ) {
 
             _pci_dump_all();
 
-            break;
-        case 'u':
-            __cio_puts( "\nUSB Devices:\n" );
-
-            _usb_status();
             break;
 
         case 'm':
