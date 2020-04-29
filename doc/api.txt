@@ -26,7 +26,7 @@ bogus
     None
 
     Side Effects:
-    Warning on CIO with the PID and syscall number. 
+    Warning on CIO with the PID and syscall number.
     Your process gets killed.
 
     Returns:
@@ -117,7 +117,7 @@ getstate
     Parameters:
     uint16 pid: The Process ID of the process to check the state of. Passing
                 your own PID to this function is equivalent to passing 0 for
-                PID. Spoiler alert: checking your own state will almost always 
+                PID. Spoiler alert: checking your own state will almost always
                 be RUNNING, unless something goes wrong.
 
     Side Effects:
@@ -176,7 +176,7 @@ read
                     Valid options include: CHAN_SIO to read from serial input,
                     or CHAN_CONS to read from console input.
     void *buffer:   The place to read bytes into.
-    uint32 length:  The maximum capacity of the buffer in bytes. 
+    uint32 length:  The maximum capacity of the buffer in bytes.
 
     Side Effects:
     The buffer may be filled with some new data. If you're reading from serial
@@ -184,7 +184,7 @@ read
 
     Returns:
     The number of bytes read, or E_BAD_CHANNEL if you try to read from a
-    nonexistent stream, 
+    nonexistent stream,
 
     Example Usage:
     char ades[256]; // like the game
@@ -197,17 +197,17 @@ read
 sleep
     void sleep( uint32 msec );
     Put your process to sleep while the rest of the world goes on around you.
-    You cannot sleep for longer than 49 days, 17 hours, 2 minutes, and 47 
+    You cannot sleep for longer than 49 days, 17 hours, 2 minutes, and 47
     seconds. If you want to sleep longer, see exit().
 
     Parameters:
     uint32 msec: The number of milliseconds your process desires to be asleep
-                 for. 
+                 for.
                  Note: Passing 0 milliseconds as a parameter effectively yields
                  the CPU if there are other processes waiting.
 
     Side Effects:
-    Your process does not run for a certain amount of time. 
+    Your process does not run for a certain amount of time.
     Your process may have dreams.
 
     Returns:
@@ -221,7 +221,7 @@ sleep
 
 spawn
     int32 spawn( int (*entry)(int, char*), char *args[] );
-    Bring a brand new process into the world. 
+    Bring a brand new process into the world.
 
     Parameters:
     int (*entry)(...):  A pointer to the main function that the process should
@@ -231,13 +231,13 @@ spawn
     char *args[]:       The command line arguments to pass to the main program.
 
     Side Effects:
-    If all goes well, you are the proud parent of the newest process in the 
+    If all goes well, you are the proud parent of the newest process in the
     system.
 
     Returns:
     The PID of the new process, or an error code. It could return E_MAX_PROCS if
     there are already N_PROCS (see common.h) processes in the system. It could
-    also return E_NO_MEMORY if there is not enough space left in memory to 
+    also return E_NO_MEMORY if there is not enough space left in memory to
     allocate a stack for the process.
 
     Example Usage:
@@ -290,24 +290,27 @@ write
     Transfer data from a buffer to a stream without blocking.
 
     Parameters:
-    int chan:       The number of the channel you wish to write data to. 
+    int chan:       The number of the channel you wish to write data to.
                     CHAN_SIO: Serial output
                     CHAN_CONS: Console output
                     CHAN_AC97: AC97 audio output
+                    CHAN_SB:   SoundBlaster audio output
 
     Side Effects:
-    The output stream you selected may have some data written to it. 
+    The output stream you selected may have some data written to it.
     Note: this is NOT a blocking write. If the console or serial buffers fill
     before all of the data is written, the remaining data gets lost. However,
     if the AC97 buffer fills, the number of bytes that fit into the buffer will
     be returned. Be sure to keep track of this so you can continue writing
-    sound data without skipping or replaying samples. In addition, the AC97 
+    sound data without skipping or replaying samples. In addition, the AC97
     controller will begin playback of data in the buffer.
+    The sound blaster buffer fills similar to the AC97, but will loop on
+    the last input if there's no more data.
 
     Returns:
     The number of bytes that were transferred, or an error code: E_BAD_CHANNEL
     if you write to a nonexistent channel, or you write to the AC97 output
-    if an AC97 controller is not present in the system. 
+    if an AC97 controller is not present in the system.
 
     Example Usage:
     const char emancipation_proc[34] = "Four score and seven years ago...";
@@ -335,7 +338,7 @@ write
 
             Parameters: char ch: the character to dump out
 
-            Side Effects: 
+            Side Effects:
             A character is printed on console output, and the cursor is advanced
 
             Example Usage:
@@ -345,11 +348,11 @@ write
 
         cwrites
             int cwrites( const char *str );
-            Write a NULL-terminated string to console output. 
+            Write a NULL-terminated string to console output.
 
             Parameters: const char *str: The string to print.
 
-            Side Effects: 
+            Side Effects:
             Your string, or as much of it as will fit in the output buffer,
             will be printed to console output.
 
@@ -371,7 +374,7 @@ write
             uint32 size:        The number of bytes to write from the buffer
 
             Side Effects:
-            Your buffer will be printed to console output, and the cursor may 
+            Your buffer will be printed to console output, and the cursor may
             be advanced.
 
             Example Usage:
@@ -400,7 +403,7 @@ write
             Parameters: const char *str: The NULL-terminated string to write.
 
             Side Effects:
-            Some or all of your string will be written to SIO depending on how 
+            Some or all of your string will be written to SIO depending on how
             full the output buffer is.
 
             Example Usage:
@@ -422,7 +425,7 @@ write
             Side Effects:
             Some or all of your buffer will be written to SIO depending on how
             full the output buffer is.
-            You also may anger whoever is listening on the other end of the 
+            You also may anger whoever is listening on the other end of the
             line...
 
             Example Usage:
@@ -588,7 +591,7 @@ padstr
     char *str:      The string to pad
     int len:        The length of the str argument.
     int width:      The desired length of the final resulting string.
-    int leftadjust: Pass 0 to right-justify the string in the final width. 
+    int leftadjust: Pass 0 to right-justify the string in the final width.
                     Pass anything else to left-justify the string in the final
                     width, and put the padding character at the end.
     int padchar:    The character to pad with
@@ -679,7 +682,7 @@ parse_args
 
 cvt_dec0
     char *cvt_dec0( char *buf, int value );
-    Make an int32 into a string (NOT NULL-terimated) of its decimal 
+    Make an int32 into a string (NOT NULL-terimated) of its decimal
     representation.
 
     Parameters:
@@ -687,7 +690,7 @@ cvt_dec0
                 is large enough to hold all of the digits.
     int value:  The value to convert
 
-    Side Effects: 
+    Side Effects:
     The string representation of the value parameter will be copied into buf.
 
     Returns:
@@ -765,11 +768,11 @@ Enhancement System Calls
 AC97 Driver
     ac97_getvol
         uint8 ac97_getvol( void );
-        Query the AC97 Audio Controller's Master volume level. The level is 
+        Query the AC97 Audio Controller's Master volume level. The level is
         reported on a 6-bit (0-63) scale where 0 is muted, and 63 is earth-
         shakingly loud (on real hardware).
 
-        Parameters: 
+        Parameters:
         None
 
         Side Effects:
@@ -791,7 +794,7 @@ AC97 Driver
         loss.
 
         Parameters:
-        uint8 vol: A 6-bit value to use as the new volume level. It will 
+        uint8 vol: A 6-bit value to use as the new volume level. It will
                    automatically be scaled to whatever number of bits your
                    audio mixer supports. Values outside of the valid range
                    have no effect.
@@ -827,7 +830,7 @@ AC97 Driver
 
         Returns:
         The actual sample rate the hardware has switched to. It is worth
-        checking this because the hardware may not support the exact sample 
+        checking this because the hardware may not support the exact sample
         rate specified.
 
         Example Usage:
@@ -867,6 +870,8 @@ ATAPI CD-ROM Driver
     ...
         ...
 Ensoniq SoundBlaster Driver
+    piggy-backed off of the write system call, pass in the CHAN_SB parameter
+       to write to the sound blaster sound card.
     ...
         ...
 USB Storage Driver

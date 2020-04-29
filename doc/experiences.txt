@@ -1,33 +1,33 @@
 ================================================================================
 
-                                 Windows Vista 
+                                 Windows Vista
                                   Experiences
-                                    Group 4 
+                                    Group 4
 
 ================================================================================
 
 
 Abstract
 ----------------------------------------
-This document chronicles the journey taken by the team throughout the semester. 
+This document chronicles the journey taken by the team throughout the semester.
 
 
 In The Beginning...
 ----------------------------------------
 Once baseline development was coming to a close, we started considering our
 options for potential augmentations for it. A giant group amassed in the
-southeast corner of the DSL, each person excited about bolting certain 
+southeast corner of the DSL, each person excited about bolting certain
 functionality into the baseline. We ultimately decided to split into two
 teams based on which group of features would best complement each other.
 Our group decided to tackle making an audio player of some kind, with drivers
 for various sound hardware, CD-ROM, and USB storage for storing music files.
 Our original target devices were Intel AC97, Intel HD Audio.
 
-The other group decided to tackle networking, file systems, and another USB 
+The other group decided to tackle networking, file systems, and another USB
 implementation. Realizing the potential of a really cool final product, we
 decided that we would work closely with each other, and try to merge all eight
 (8!) projects into one if there was time. The end result could have been
-something like a low-budget Spotify with samples streaming and playing on 
+something like a low-budget Spotify with samples streaming and playing on
 different machines.
 
 We set up a shared slack workspace for the two teams to stay in close contact,
@@ -56,14 +56,14 @@ AC97 Driver Development
 Working from home took some adjustment for me. I am the type of person who
 thrives in structured environments. When literally all of the structure I was
 accustomed to crumbled away, it took me a few weeks to settle into new routines
-before I was able to get back to full productivity. 
+before I was able to get back to full productivity.
 
 My prior experience with embedded development helped me keep realistic
 expectations about my daily progress throughout, and mainly that it will seem
 hopeless until suddenly it will start working. My first major milestone was
-to detect whether or not there even was an AC97 Audio Controller present in 
+to detect whether or not there even was an AC97 Audio Controller present in
 the system. This didn't take too long once we had a working PCI support library
-because all I needed to do was look for vendor 0x8086 (they are obsessed with 
+because all I needed to do was look for vendor 0x8086 (they are obsessed with
 that number...) device ID 0x2415. To my knowledge, this is the only AC97 audio
 controller that QEMU is capable of emulating. I verified that this worked by
 either passing the -soundhw ac97 option or not.
@@ -73,7 +73,7 @@ this point I discovered that the actual Intel AC97 Specification was not very
 helpful in determining the initialization process. I looked at some existing
 implementations of AC97 audio drivers to better understand what needs to be
 done to bring the device up. I also discovered two other specs that included
-imperative information such as theory of operation, and even a programmer's 
+imperative information such as theory of operation, and even a programmer's
 reference manual. I worked for a few days setting register contents and reading
 them back to see if they behaved the way I expected them to. Most of the time
 I got zeroes or things other than the defaults from the specification.
@@ -87,15 +87,15 @@ At long last, I got the interrupt to fire one time only. This was the first
 real indication that the controller liked any of the bits I was tickling. After
 I added the PIC_EOI thing, it started vomiting interrupts so fast that it was
 the only thing on the console output. It still hadn't made a peep, but I hadn't
-given it anything to do yet. 
+given it anything to do yet.
 
 I spent the next couple days learning about how the DMA controller operates,
 and that it's pretty picky about things like alignment. It expects a buffer
 descriptor list, which is an array of 2 longwords that hold various information
 about each buffer. There are 32 in total. They hold things like a pointer to the
 next buffer, the number of samples in the buffer, whether or not to interrupt on
-completion, etc. I allocated a static array of those, because they're not super 
-big, and the DMA controller gets angry if they suddenly disappear. 
+completion, etc. I allocated a static array of those, because they're not super
+big, and the DMA controller gets angry if they suddenly disappear.
 
 As for the buffers themselves, they can be any length up to 4096 16-bit samples.
 On initialization, I decided to allocate 32 4KB pages with no intention of ever
@@ -120,12 +120,12 @@ acoustic design. So, I scraped the wav files for use (abuse?) in the baseline.
 For testing purposes, and until my group-mates got their storage drivers up and
 running, I needed to compile in my audio data somehow. I found the easiest way
 was to use the linker to turn them into binary object files. It even exported
-variables I could use from the code to get to the start and end of the binary 
+variables I could use from the code to get to the start and end of the binary
 blob. The only issue I ran into is that this severely limits the length of the
-audio files I can include before the program becomes too large to start at 
-0x10000. When I tried up-sampling the orchestral startup sound to the AC97 
+audio files I can include before the program becomes too large to start at
+0x10000. When I tried up-sampling the orchestral startup sound to the AC97
 default sample rate of 48 kHz from its original 22.5, but it made the file too
-large to link in. To save space, I ended up figuring how to change the AC97 
+large to link in. To save space, I ended up figuring how to change the AC97
 DAC rate, and down-sampled it to 8 kHz. It sounds more muffled, but it's still
 recognizable. It was honestly more nostalgic that way, since for most of my
 childhood, the computer speakers weren't very good anyway.
@@ -140,7 +140,7 @@ sound after init starts.
 
 I made no attempts at mixing or implementing streams. If two processes try to
 write to the controller, I'm not sure what will happen, but I am very confident
-that it will make very ugly noises. Implementing streams and mixing would 
+that it will make very ugly noises. Implementing streams and mixing would
 require significant implementation effort. If we hadn't lost a week to our
 extended spring break, I could have tackled it. A userland player that
 takes audio data from USB or CD sources was in the works, but it depends on
@@ -148,12 +148,85 @@ everyone else's drivers working. I took all of the Windows XP sounds, and I feel
 that they should all (or as many as possible) be incorporated into the system
 when certain events occur rather than using console output. I also grabbed a
 clip of Prof. Carithers saying "such is life" from a zoom meeting that plays
-marvelously. 
+marvelously.
 
 
 Ensoniq SoundBlaster Driver Development
 ----------------------------------------
-TODO: Mention something about how we abandoned Intel HDA for this.
+(Zach Jones)
+
+The transition to working from home wasn't too bad for me, the problem was my
+setup. Mac's don't compile 32-bit programs anymore, so I had to install a
+virtual machine. I went with Ubuntu since that seemed the most user-friendly
+for someone that's not used to Linux stuff. I tried to build qemu from source
+from the one suggested, but I couldn't get that to work so I used the
+pre-packaged latest version. This worked out fine.
+
+I have almost no embedded systems development experience, other than
+some knowledge of x86 assembly (I learned the 64-bit calling convention though).
+I'm glad that I was able to work with C to get almost all the code for this
+done.
+
+On my mac, turns out it doesn't have the Intel HDA, but rather something
+proprietary. On the lab machines, there was the Intel HDA. Rather than abandon
+sound, I went with a different approach, what can I run with the VMWare fusion?
+VMWare as it turns out only exports an Ensoniq / Creative Labs ES1373, which
+is the predecessor to the AC97. There is the slightly older Ensoniq
+SoundBlaster ES1370, which was a bit simpler and "documented". I put
+documented in quotes, because while it goes through some of the main registers,
+it never specifies quite a bit of the important stuff.
+It also doesn't specify that the one channel doesn't work unless you do
+some other closed-source set of instructions.
+
+Like the other sound system, my first milestone was to get it detected
+on the PCI bus. Turns out, even if you have the hardware emulated on VMWare,
+qemu doesn't emulate it unless you specify -soundhw es1370. I did the same
+thing with looking for vendor (0x1274) and device ID (0x5000).
+
+My goal was to make my version not have a dependency on getting USB or
+some other way to input data to play working first.
+My first steps was instead of trying to feed it pre-recorded sound, I
+thought "I'll just give it a 440 hz sound wave, that should sound like
+The 4th A on a piano." Turns out, since we don't have the C standard library
+at our disposal, I had to write my own implementation of the sine function.
+This made it so that I could just send sample down to the sound card as needed,
+so I initially tested it out with loop when done = true, don't interrupt.
+This made no sound, because I didn't turn the audio volume on, or PCI mastering,
+but there was no indication in the small documentation I could find.
+I had to reverse-engineer some code from Linux to get this it working.
+
+Now, the sound would play for about 1 second, but it would have about 1/10th
+of it be silent, on loop. I thought this might have to do with not implementing
+the interrupts, so I went to that next.
+I got the interrupt working pretty easily after that, and since this initial
+point took so long, I had the help of Cody for the PCI usage.
+
+The soundblaster only uses one buffer, and when it spits out the interrupt,
+you (the OS) have less than 50 ms or something like that to acknowledge and
+replace the buffer address and played count or it will hop to the beginning
+of the sound sample. Since I could only get ok quality sound with the highest
+sample rate of 48 khz, I allocated the biggest buffer possible of 64 pages.
+It only supports up to 2^^16th samples since it must fit in a 16-bit register,
+which runs out in 0.34 seconds.
+
+Also with the user program, I thought it would be cool to play a simple song.
+I was going to do the song "Hot Cross Buns" that I remember having to play in
+elementary school, but after talking to the group, "Sandstorm" by Darude, which
+is just 4 different notes would definitely sound cooler. Plus it repeats the
+3-6 measures basically the whole song, which is nice for the meme-y effect.
+
+The part of getting this setup wasn't too bad, but since this needs to be
+calculating all this data, it can't keep up with the sound that is playing,
+so it sounded really crazy. In order to do this, I create 5 buffers in the
+user program, and filled them up at startup (takes a couple seconds).
+(I allocated these from the kernel module since there's no malloc).
+This worked much better in terms of sound quality, but required a lot more
+memory (another 320 pages) to get about .3 seconds of each frequency and
+silence to separate out the notes.
+
+I also made no attempt of mixing sounds, this would be a huge task without
+sound card hardware support, and would likely take longer to mix the sound
+using CPU time than the sample rate. 
 
 
 USB Storage Driver Development
