@@ -41,6 +41,10 @@
 #define USB_ASYNCLISTADDR    0x18   // Next Asynchronous List Address
 #define USB_CONFIGFLAG       0x40   // Configured Flag Register
 #define USB_PORTSC           0x44   // Port Status/Control Register
+// QTD CONTENTS
+#define USB_SETUP            0b10
+#define USB_IN               0b01
+#define USB_OUT              0b00
 
 /*
 ** PRIVATE DATA TYPES
@@ -104,6 +108,9 @@ static USBQTD *_usb_qtds;       // QTD array
 static Queue _usb_qtd_q;        // QTD Queue
 static USBQHead *_usb_qheads;   // QHead array
 static Queue _usb_qhead_q;      // QHead Queue
+
+// flash drive information
+static USBQHead *_usb_dev_endpoints[16];
 
 /*
 ** PRIVATE FUNCTIONS
@@ -292,6 +299,81 @@ static void _usb_dump_qhead( USBQHead *qhead, bool vb ) {
     }
 }
 
+//
+// _usb_build_request() - build request data buffer for transaction
+//
+// Parameters:
+//    reqType   type of request
+//    req       request code
+//    val       value
+//    ind       index
+//    len       length
+//    data      buffer to write in
+//
+static void _usb_build_request( uint8 reqType, uint8 req, uint16 val, uint16 ind, uint16 len, void* data ) {
+    ((uint8 *)data)[0] = reqType;
+    ((uint8 *)data)[1] = req;
+    ((uint8 *)data)[2] = (uint8)(val >> 8);
+    ((uint8 *)data)[3] = (uint8)(val & 0xFF);
+    ((uint8 *)data)[4] = (uint8)(ind >> 8);
+    ((uint8 *)data)[5] = (uint8)(ind & 0xFF);
+    ((uint8 *)data)[6] = (uint8)(len >> 8);
+    ((uint8 *)data)[7] = (uint8)(len & 0xFF);
+}
+
+//
+// _usb_build_qtd() - build a qtd
+//
+// Parameters:
+//    type      qtd type: USB_IN, USB_OUT or USB_SETUP
+//    len       total bytes to transfer
+//    next      pointer to next qtd
+//    buf       pointer to data buffer
+//
+// Returns:
+//    a pointer to the qtd
+//
+static USBQTD *_usb_build_qtd( uint8 type, uint16 len, uint32 next, uint32 buf ) {
+    USBQTD *qtd = (USBQTD *)_queue_deque( _usb_qtd_q );
+
+    // qtd token
+    qtd->token = (uint32)(
+      (type == USB_IN || type == USB_OUT) << 31 | // dt
+      (len & 0xFFFE) << 16 |                      // total bytes
+      0b000011 << 10 |                            // ioc, cerr
+      (type & 0b11) << 8 |                        // PID code
+      0x80                                        // active qtd
+    );
+
+    if( next == NULL ) {
+        qtd->next_qtd = 1;      // invalid field
+    } else {
+        qtd->next_qtd = next & 0xFFFFFFE0;
+    }
+
+    // not check on buffer (data should not cross a 4k page boundary, see caller)
+    qtd->buffer0 = buf; 
+    
+    return qtd;
+}
+
+//
+// _usb_free_qtd() - free a qtd and enqueue it in the qtd_q
+//
+// Parameters:
+//    qtd       pointer to the qtd
+//
+static void _usb_free_qtd( USBQTD *qtd ) {
+    qtd->next_qtd = 1;      // invalid
+    qtd->alt_next_qtd = 1;  // never used
+    qtd->buffer0 = 0;
+    qtd->buffer1 = 0;
+    qtd->buffer2 = 0;
+    qtd->buffer3 = 0;
+    qtd->buffer4 = 0;
+    _queue_enque( _usb_qtd_q, qtd );
+}
+
 /*
 ** PUBLIC FUNCTIONS
 */
@@ -398,46 +480,27 @@ void _usb_init( void ) {
     _usb_qtds = (USBQTD *)_kalloc_page(1);
     _usb_qtd_q = _queue_alloc( NULL );
     for( int i = 0; i < USB_MAX_QTD; i++ ) {
-        _usb_qtds[i].next_qtd = 1;      // invalid
-        _usb_qtds[i].alt_next_qtd = 1;  // never used
-        _usb_qtds[i].token = 1;
-        _usb_qtds[i].buffer0 = 0;
-        _usb_qtds[i].buffer1 = 0;
-        _usb_qtds[i].buffer2 = 0;
-        _usb_qtds[i].buffer3 = 0;
-        _usb_qtds[i].buffer4 = 0;
-        _queue_enque( _usb_qtd_q, (void *)&_usb_qtds[i] );
+        _usb_free_qtd( &_usb_qtds[i] );
     }
 
-    // setup control queue head
+    // setup control queue head (device endpoint 0)
     USBQHead *qhead = _queue_deque( _usb_qhead_q );
     qhead->qhead_hlink = ((uint32)qhead) & 0xFFFFFFE0 | 2;
     qhead->endpoint_crc = 0x0040D000;
     qhead->endpoint_cap = 0x40000000;
     qhead->current_qtd = 0;
+    _usb_dev_endpoints[0] = qhead;
 
     // setup a get_device_descriptor request
     // Buffers must not cross a 4k page boundary;
     // I'm not sending more than 1k at the moment so a slice is enough.
     char *buf_snd = (char *)_kalloc_slice();
     char *buf_rec = (char *)_kalloc_slice();
-    USBQTD *out = (USBQTD *)_queue_deque( _usb_qtd_q );
-    out->token = 0x80008C80;
-    USBQTD *in = (USBQTD *)_queue_deque( _usb_qtd_q );
-    in->next_qtd = ((uint32)out & 0xFFFFFFE0);
-    in->token = 0x80400D80;
-    in->buffer0 = (uint32)buf_rec;
-    USBQTD* setup = (USBQTD *)_queue_deque( _usb_qtd_q );
-    setup->next_qtd = ((uint32)in & 0xFFFFFFE0);
-    setup->token = 0x00080E80;
-    *(uint32 *)buf_snd = 0x01000680;
-    *((uint32 *)buf_snd+1) = 0x00400000;
-    setup->buffer0 = (uint32)buf_snd;
 
-    // DEBUG: clean the receive buffer
-    for( uint32 i = 0; i < 256; i++ ) {
-        *((uint32 *)buf_rec + i) = 0;
-    }
+    USBQTD *out = _usb_build_qtd( USB_OUT, 0, NULL, NULL );
+    USBQTD *in = _usb_build_qtd( USB_IN, 0x40, out, buf_rec );
+    _usb_build_request(0x80, 0x06, 0x0001, 0x0000, 0x0040, buf_snd);
+    USBQTD *setup = _usb_build_qtd( USB_SETUP, 0x8, in, buf_snd );
 
     // update qh next qtd
     qhead->overlay.next_qtd = (uint32)setup & 0xFFFFFFE0;
@@ -446,13 +509,17 @@ void _usb_init( void ) {
     // _pci_set_interrupt( _usb_bus, _usb_device, _usb_function, 0x0, 0x43 );
     // __install_isr( 0x43, _usb_isr );
 
-    // DEBUG
-    // __cio_printf("SETUP %08x    IN %08x    OUT %08x\n", setup, in, out);
-    _usb_dump_qtd( in, false );
-
     // enable async schedule
     _usb_write_l( _usb_op_base, USB_ASYNCLISTADDR, (uint32)qhead );
     _usb_command_enable( 0x20 );
+
+    // wait for end of transaction
+    while((out->token & 0xFF) == 0x80);
+
+    // free used qtds
+    _usb_free_qtd( setup );
+    _usb_free_qtd( in );
+    _usb_free_qtd( out );
 
     // setup frame list
     // _usb_frame_list = (uint32 *)_kalloc_page(1);
@@ -467,15 +534,12 @@ void _usb_init( void ) {
     // enable periodic schedule
     // _usb_command_enable(0x10);
 
-    // DEBUG: print the receive buffer
-    _usb_dump_qtd( in, false );
-    __cio_printf( "status %08x\n", _usb_read_l( _usb_op_base, USB_STS ));
-    for( uint32 j = 0; j < 10; j++ ) {
-        for( uint32 i = 0; i < 0xAFFFFFF; i++ );
-            __cio_puts( "buf_rec ");
-            for( uint32 x = 0; x < 8; x++ )
-                __cio_printf( "%02x ", buf_rec[x]);
-        __cio_printf( "      status %08x\n", _usb_read_l( _usb_op_base, USB_STS ));
-    }
+    __cio_puts( "\n" );
+    _usb_dump_qhead( qhead, false );
+
+    for( uint32 x = 0; x < 8; x++ )
+        __cio_printf( "%02x ", buf_rec[x]);
+    __cio_puts( "\n" );
+
     return( 94 );
 }
