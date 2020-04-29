@@ -5,7 +5,6 @@
 #define ATAPI_SECTOR_SIZE 2048
  
 /* The default ISA IRQ numbers of the ATA controllers. */
-#define ATA_IRQ_PRIMARY 0x0E
 #define ATA_IRQ_SECONDARY 0x0F
 
 #define ATA_BUS_PRIMARY 0x1F0
@@ -73,7 +72,7 @@ enum drive_type{
 #define ATAPI_CAPACITY_READ 0X25
 #define ATAPI_PACKET 0xa0
 
-
+void _atapi_isr_secondary(int vector,int code);
 void _atapi_init(void);
 void _atapi_read(void);
 

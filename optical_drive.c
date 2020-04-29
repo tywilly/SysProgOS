@@ -1,26 +1,15 @@
 #include "klib.h"
 #include "cio.h"
 #include "optical_drive.h"
-#include <x86arch.h>
-#include <x86pic.h>
-#include <x86pit.h>
-
+#include "x86pic.h"
+#include "support.h"
 #include "common.h"
-#include "klib.h"
 
 #include "process.h"
-#include "queues.h"
-#include "scheduler.h"
 
 volatile uint32 ide_secondary_interrupt = 0;
-volatile uint32 ide_primary_interrupt = 0;
 
-void _atapi_isr(void){
-    __cio_printf("isr one");
-    ide_primary_interrupt = 1;
-}
-
-void _atapi_isr_secondary(void){
+void _atapi_isr_secondary(int vector, int code){
     __cio_printf("isr two");
     ide_secondary_interrupt =1;
 }
@@ -164,8 +153,7 @@ int atapi_read(uint32 base, uint32 sector) {
 
 
 void _atapi_init(void) {
-    __install_isr( INT_VEC_ATAPI_PRIMARY, _atapi_isr );
-    __install_isr(INT_VEC_ATAPI_SECONDARY, _atapi_isr_secondary);
+    __install_isr(ATA_IRQ_SECONDARY + PIC_EOI, _atapi_isr_secondary);
     //Slightly confusing start up 
    // enables drive interrupts
     __outb(ATAPI_INTERRUPT_REG,ATA_DCR_HIGH_ORDER_BYTE);
@@ -176,9 +164,7 @@ void _atapi_init(void) {
     for (int c = 1; c <= 1000; c++)
        {}
     if(__inb(CD_READY) & 0x40 ){
-	__cio_puts(" cd is ready");
-    }else{
-	__cio_puts(" cd is not ready");	
+	__cio_puts("ATAPI");
     }
 }
 
