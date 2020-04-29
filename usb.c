@@ -109,14 +109,29 @@ static Queue _usb_qtd_q;        // QTD Queue
 static USBQHead *_usb_qheads;   // QHead array
 static Queue _usb_qhead_q;      // QHead Queue
 
-// flash drive information
+// flash drive information (from config descriptor)
 // the size of the data structures are arbitrarily chosen
-static struct _usb_dev_s
-{
+// it's assumed that only one device is connected
+static struct _usb_dev_s {
     uint8 port;
+    uint8 n_itf;          // number of interfaces
+    uint8 cfg_val;        // configuration value
 } _usb_dev;
 
-static USBQHead *_usb_dev_endpoints[8];
+static struct _usb_itf_s {
+    uint8 n_edp;          // number of endpoints
+    uint8 class;          // class (08 for mass storage)
+} _usb_itf[8];
+
+static struct _usb_edp_s {
+    uint8 addr;           // number (3-0) and direction (7)
+    uint8 attr;           // transfer (1-0), sync (3-2) and usage type (5-4)
+    uint16 packet_size;
+    uint8 interval;       // interval for polling endpoint
+    USBQHead *_qhead;     // associated qhead
+} _usb_edp[8][8];
+
+static USBQHead *_usb_edp0;
 
 /*
 ** PRIVATE FUNCTIONS
@@ -405,7 +420,7 @@ static void _usb_free_qhead( USBQHead *qhead ) {
 //
 static void _usb_get_desc( uint32 req_buf, uint32 res_buf, uint16 len ) {
     // get device qhead for edp0
-    USBQHead * qhead = _usb_dev_endpoints[0];
+    USBQHead * qhead = _usb_edp0;
 
     // setup qtds
     USBQTD *out = _usb_build_qtd( USB_OUT, 0, NULL, NULL );
@@ -471,8 +486,41 @@ static void _usb_get_cfg_desc( uint32 res_buf, uint16 len ) {
     _kfree_slice( req_buf );
 }
 
-static void _usb_enumerate() {
+//
+// _usb_dump_endpoint() - dump information from specified endpoint
+//
+static void _usb_dump_endpoint( uint8 n_itf, uint8 n_edp ) {
+    __cio_printf( "    Endpoint %d: ", _usb_edp[n_itf][n_edp].addr & 0xF);
+    if( _usb_edp[n_itf][n_edp].addr >> 7 ) {
+        __cio_puts( "dir=IN  - ");
+    } else {
+        __cio_puts( "dir=OUT - ");
+    }
+    __cio_printf( "attr=%02x - ", _usb_edp[n_itf][n_edp].attr);
+    __cio_printf( "packet_size=%04x - ", _usb_edp[n_itf][n_edp].packet_size);
+    __cio_printf( "interval=%02x\n", _usb_edp[n_itf][n_edp].interval);
+}
 
+//
+// _usb_dump_interface() - dump information from specified interface
+//
+static void _usb_dump_interface( uint8 n ) {
+    __cio_printf( "  Interface %d: class=%02x - %d endpoint(s):\n", 
+        n, _usb_itf[n].class, _usb_itf[n].n_edp );
+    for( uint8 i = 0; i < _usb_itf[n].n_edp; i++ ) {
+        _usb_dump_endpoint( n, i );
+    }
+}
+
+//
+// _usb_dump_interface() - dump information from device
+//
+static void _usb_dump_dev_info() {
+    __cio_printf( "Device: port=%d - cfg_val=%02x - %d interface(s):\n", 
+        _usb_dev.port, _usb_dev.cfg_val, _usb_dev.n_itf );
+    for( uint8 i = 0; i < _usb_dev.n_itf; i++ ) {
+        _usb_dump_interface( i );
+    }
 }
 
 /*
@@ -584,20 +632,20 @@ void _usb_init( void ) {
     qhead->endpoint_crc = 0x0040D000;
     qhead->endpoint_cap = 0x40000000;
     qhead->current_qtd = 0;
-    _usb_dev_endpoints[0] = qhead;
+    _usb_edp0 = qhead;
     _usb_write_l( _usb_op_base, USB_ASYNCLISTADDR, qhead );
     _usb_command_enable( 0x20 );
 
     // send get_device_descriptor request
     // Buffers must not cross a 4k page boundary;
-    // I'm not sending more than 1k at the moment so a slice is enough.
+    // I'm not sending or getting more than 1k at the moment so a slice is enough.
     char *dev_desc = (char *)_kalloc_slice();
     char *cfg_desc = (char *)_kalloc_slice();
     _usb_get_dev_desc( dev_desc, 0x8 );
 
     // set maximum packet length for endpoint 0
-    _usb_dev_endpoints[0]->endpoint_crc =
-        _usb_dev_endpoints[0]->endpoint_crc & 0xF800FFFF | ((dev_desc[7] & 0x7FF) << 16);
+    _usb_edp0->endpoint_crc =
+        _usb_edp0->endpoint_crc & 0xF800FFFF | ((dev_desc[7] & 0x7FF) << 16);
 
     // get full device descriptor
     _usb_get_dev_desc( dev_desc, 0x12 );
@@ -605,17 +653,33 @@ void _usb_init( void ) {
     // get start of device configuration
     _usb_get_cfg_desc( cfg_desc, 0x4 );
     // then get full content (it includes interface and endpoint decriptors)
-    _usb_get_cfg_desc( cfg_desc, *(uint16 *)(cfg_desc+2) );
+    uint16 cfg_size = *(uint16 *)(cfg_desc+2);
+    if( cfg_size <= 1024 ) {
+        _usb_get_cfg_desc( cfg_desc, cfg_size );
+    } else {
+        __cio_puts( "USB ERR: Config descriptor is too long to be read\n" );
+    }
 
-    // DEBUG: print descriptor contents
-    __cio_puts( "\ndev_desc " );
-    for( uint8 x = 0; x < 18; x++ )
-        __cio_printf( "%02x ", dev_desc[x]);
-    __cio_puts( "\ncfg_desc " );
-    for( uint16 x = 0; x < *(uint16 *)(cfg_desc+2); x++ )
-        __cio_printf( "%02x ", cfg_desc[x]);
+    // fill device information from configuration descriptor
+    _usb_dev.n_itf = cfg_desc[4];
+    _usb_dev.cfg_val = cfg_desc[5];
+    uint8 index = 9;
+    // iterate on all interfaces of the device
+    for( uint8 i = 0; i < _usb_dev.n_itf; i++ ) {
+        _usb_itf[i].n_edp = cfg_desc[index + 4];
+        _usb_itf[i].class = cfg_desc[index + 5];
+        index += 9;
+        // iterate on all endpoints for the given interface
+        for( uint8 j = 0; j < _usb_itf[i].n_edp; j++ ) {
+            _usb_edp[i][j].addr = cfg_desc[index + 2];
+            _usb_edp[i][j].attr = cfg_desc[index + 3];
+            _usb_edp[i][j].packet_size = *(uint16 *)(cfg_desc+index+4);
+            _usb_edp[i][j].interval = cfg_desc[index + 6];
+            index += 7;
+        }
+    }
     __cio_puts( "\n" );
-    __cio_printf("value %02x\n", *(uint16 *)(cfg_desc+18+4));
+    _usb_dump_dev_info();
 
     // change the interrupt line and install ISR
     // _pci_set_interrupt( _usb_bus, _usb_device, _usb_function, 0x0, 0x43 );
