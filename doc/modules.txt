@@ -2,7 +2,7 @@
 
                                  Windows Vista
                               Modules Description
-                                    Group 4 
+                                    Group 4
 
 ================================================================================
 
@@ -17,7 +17,7 @@ module's API, and interaction with the rest of the OS will be discussed.
 
 AC97 Module
 ----------------------------------------
-The AC97 Module in Windows Vista handles configuring the device for use by 
+The AC97 Module in Windows Vista handles configuring the device for use by
 user-level processes, and manages a buffer to store PCM audio data for output
 from the speakers.
 
@@ -26,7 +26,7 @@ The only internal data structures the module stores include the following:
     information, as well as buffer state. This is implemented as a struct so
     that future support for multiple AC97 Controllers could be implemented.
 
-    AC97BufferDescriptor: A 4-byte structure that the DMA Engine uses to 
+    AC97BufferDescriptor: A 4-byte structure that the DMA Engine uses to
     identify audio buffers. Within the two longwords in the struct, there are
     certain control bits, and information fields. I originally wanted to
     implement this as the following bit field:
@@ -74,10 +74,10 @@ The AC97 Initialization routine performs the following duties:
        Controller.
     7. Enables FIFO Error and Buffer Completion Interrupts
     8. Determines the number of volume bits the controller supports (5 or 6).
-       This is completely transparent to the user, as all user volume 
+       This is completely transparent to the user, as all user volume
        interactions are 6 bits.
     9. Sets the Master and PCM output volume to full blast. This is best for use
-       in a VM, since the host OS also has a sound mixer that will likely 
+       in a VM, since the host OS also has a sound mixer that will likely
        reduce the volume further.
 
 Theory of Operation:
@@ -85,7 +85,7 @@ Theory of Operation:
     bit in the bus master control register is cleared, the device is idle.
     No DMA transfers occur, and no audio is played. When it is set, the
     controller loops through the BDL entries, playing each buffer's audio until
-    it reaches the Last Valid Index (LVI). 
+    it reaches the Last Valid Index (LVI).
 
     When a user program writes to CHAN_AC97, the buffer is filled with the audio
     file's data (or as much as will fit). Then, the RUN/PAUSE bit is set, and
@@ -93,11 +93,11 @@ Theory of Operation:
     to play. As the controller chews through the buffers in the BDL, it
     interrupts the CPU after completing each one. The AC97 ISR marks the
     buffers that have played as free. If the controller reaches LVI, and there's
-    no more data left in the buffer, it clears the RUN/PAUSE bit, sending the 
+    no more data left in the buffer, it clears the RUN/PAUSE bit, sending the
     controller back to its idle state.
 
     Playing uninterrupted audio involves the user calling write on CHAN_AC97
-    repeatedly until all of the data has made it through the buffer. At the 
+    repeatedly until all of the data has made it through the buffer. At the
     moment the system lacks a blocking write. Once the internal buffers fill
     for other system calls, the excess data is dropped on the floor. This is
     not acceptable for audio, as this will cause skipping and other undesirable
@@ -107,11 +107,11 @@ Theory of Operation:
     RUN/PAUSE bit and set the controller off running.
 
 Streams and Mixing:
-    There was not enough time to consider developing a sound architecture to 
-    handle proper stream mixing. If two processes try to write to the AC97 
+    There was not enough time to consider developing a sound architecture to
+    handle proper stream mixing. If two processes try to write to the AC97
     Controller at the same time, it probably won't sound very good.
 
-    A sound architecture could also help unify system calls to the Ensoniq 
+    A sound architecture could also help unify system calls to the Ensoniq
     SoundBlaster Module, but again, there was not enough time.
 
 System Calls:
@@ -120,7 +120,7 @@ System Calls:
     to know much about how it works. They are able to see if it's initialized,
     set and query volume and sample rate, and write to it using the write
     syscall.
-    See api.txt for specifics about each one. 
+    See api.txt for specifics about each one.
 
 Memory Usage:
     This module allocates a lot of memory for PCM samples, and never gives it
@@ -128,24 +128,94 @@ Memory Usage:
     Bytes each, totaling 128. Each of those entries points to a page which can
     be filled with up to 4K bytes of data. The total memory usage for buffers
     is 131,200 bytes. None of the pages allocated for buffers are ever returned
-    to the system because at high sample rates, such as 48 kHz (CD quality), 
+    to the system because at high sample rates, such as 48 kHz (CD quality),
     the buffer holds a fraction of a second of audio data when completely full.
-    Deallocating and re-allocating the buffers when they are emptied and 
-    refilled would incur significant overhead. A future enhancement could 
+    Deallocating and re-allocating the buffers when they are emptied and
+    refilled would incur significant overhead. A future enhancement could
     include deallocating the buffers when there are no streams playing.
 
 Performance:
     The AC97 Module in Windows Vista supports stereo (signed 16-bit) PCM audio
     sampled as low as 2 kHz, and as high as 48 kHz. At 48 kHz (CD quality),
-    there is no noticable clipping. I was not able to test even high quality 
+    there is no noticeable clipping. I was not able to test even high quality
     audio, but there is nothing in theory that should stop it from working,
     as long as the ISR can keep up.
 
 
 Ensoniq SoundBlaster Module
 ----------------------------------------
-...
+The SoundBlaster module handles the configuration of the SoundBlaster device.
+There is no data structures the module stores other the PCI Device, from
+the PCI module.
+This is defined as follows:
+    typedef struct pci_dev_s {
+        int id;
+        uint8 class;
+        uint8 subclass;
+        uint8 headertype;
+        uint8 progif;
+        uint8 interrupt;
 
+        uint16 vendorid;
+        uint16 deviceid;
+
+        uint32 bar0;
+        uint32 bar1;
+        uint32 bar2;
+        uint32 bar3;
+        uint32 bar4;
+        uint32 bar5;
+
+        uint8 bus;
+        uint8 slot;
+        uint8 func;
+    } PCIDev;
+The only other pieces of info are:
+  1. A pointer to a buffer of data to be used as the sound buffer for samples.
+  2. A pointer to where to put the samples into this buffer.
+
+At the moment, this module only supports a single controller and single
+device.
+
+The SoundBlaster initialization routine does the following duties:
+   1. Detects the presences of a SoundBlaster ES1370 controller. Other versions
+      are not currently supported. If the device is not present, this returns.
+   2. Allocate a buffer for samples of audio.
+   3. Sets up the ISR callback function
+   4. Enables PCI Bus Mastering, to allow the controller to initiate DMA
+      transfers.
+   5. Resets the controller's data.
+   6. Sets the volume.
+   7. Sets the parameters to do 48khz sound, mono, looped mode, and informs
+      the controller of the buffer address and number of samples it can play.
+
+Theory of Operation:
+   The SoundBlaster device is always running once it starts when the buffer
+   fills after the first time. The sound plays until the buffer fills, and
+   then it interrupts, and the next inserts go into the beginning of the
+   buffer. In order to get continued sound, the player must be able to generate
+   samples faster than the sound card plays them. If this doesn't happen, the
+   card will loop the last few samples, which provides a smooth experience
+   if there is any lag.
+
+Streams and mixing:
+   There was also not enough time to get this implemented, so instead the
+   sample user program was built to make a cool tune.
+
+Memory usage:
+   The kernel allocates 64, 4k byte pages to use as the buffer. This is half
+   of the usage of the AC97, but this is much more limiting as there's
+   no ability to swap out buffers as they are put out to the speaker.
+   In order to reduce lag spikes from other user programs causing noticable
+   degradations in the notes, the user program uses big buffers to hold
+   the samples of notes to play. This requires an addition 320 pages of
+   memory, but results in nice audio quality. (1.3 MB of RAM)
+
+Performance:
+   The sound works, and since the sound was created rather than played back,
+   it's hard to tell how high quality it is. There was no clipping of the audio,
+   and the loop mode allows for small lag spikes to be not as noticeable to
+   the end user.
 
 ATAPI CD-ROM Module
 ----------------------------------------
