@@ -36,7 +36,7 @@ void _ac97_init(void) {
         // Keep track of the PCI Device and its relevant BARs
         dev.nambar = pci_dev->bar0 & ~((uint32) 1);
         dev.nabmbar = pci_dev->bar1 & ~((uint32) 1);
-        __cio_printf("NAMBAR: %x, NABMBAR: %x\n", dev.nambar, dev.nabmbar);
+        __cio_printf("\nNAMBAR: %x, NABMBAR: %x\n", dev.nambar, dev.nabmbar);
 
         _ac97_stop();
 
@@ -51,6 +51,7 @@ void _ac97_init(void) {
         // the interrupt comes through the PIC
         uint8 interrupt = _pci_get_interrupt_line(pci_dev->bus, pci_dev->device,
                                                   pci_dev->function);
+        __cio_printf("Interrupt %x\n", interrupt);
         __install_isr(interrupt + PIC_EOI, _ac97_isr);
 
         // enable ac97 interrupts for FIFO Errors and Interrupt On Completion
