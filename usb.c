@@ -908,6 +908,10 @@ void _usb_init( void ) {
     __cio_puts( " USB" );
 }
 
+//
+// _usb_dump_all() - dump all device information / string 
+//     descriptors gathered from the init sequence
+//
 void _usb_dump_all() {
     __cio_puts("\n------------------------ USB Configuration ------------------------\n");
     _usb_dump_dev_info();
