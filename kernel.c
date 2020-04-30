@@ -314,11 +314,9 @@ void _shell( int ch ) {
             _pci_dump_all();
 
             break;
-        // case 'u':
-        //     __cio_puts( "\nUSB Devices:\n" );
-
-        //     _usb_status();
-        //     break;
+        case 'u':
+            _usb_dump_all();
+            break;
         default:
             __cio_printf( "shell: unknown request '0x%02x'\n", ch );
 
@@ -333,7 +331,7 @@ void _shell( int ch ) {
             __cio_puts( "   q  -- dump the queues\n" );
             __cio_puts( "   s  -- dump stacks for active processes\n" );
             __cio_puts( "   l  -- list all PCI devices\n");
-            // __cio_puts( "   u  -- get the status of the USB controller\n" );
+            __cio_puts( "   u  -- dump USB init information\n" );
             __cio_puts( "   x  -- exit\n" );
             break;
         }

@@ -118,11 +118,16 @@ static struct _usb_dev_s {
     uint8 addr;
     uint8 n_itf;          // number of interfaces
     uint8 cfg_val;        // configuration value
+    uint8 str_man;        // string descriptor index
+    uint8 str_pdt;          // for manufacturer, product
+    uint8 str_num;          // serial number
+    uint8 str_cfg;          // and configuration
 } _usb_dev;
 
 static struct _usb_itf_s {
     uint8 n_edp;          // number of endpoints
     uint8 class;          // class (08 for mass storage)
+    uint8 str_idx;        // string descriptor index 
 } _usb_itf[8];
 
 static struct _usb_edp_s {
@@ -506,12 +511,13 @@ static void _usb_get_cfg_desc( uint32 res_buf, uint16 len ) {
 //
 // Parameters:
 //    res_buf       buffer to write the result
+//    index         index to read in the descriptor
 //    len           length of the descriptor
 //
-static void _usb_get_str_desc( uint32 res_buf, uint16 len ) {
+static void _usb_get_str_desc( uint32 res_buf, uint8 index, uint16 len ) {
     // setup request buffer
     char *req_buf = (char *)_kalloc_slice();
-    _usb_build_request(0x80, 0x06, 0x0300, 0x0000, len & 0x7FFF, req_buf);
+    _usb_build_request(0x80, 0x06, (0x03 << 8) | index, 0x0000, len & 0x7FFF, req_buf);
     
     // get descriptor request
     _usb_get_trans( (uint32)req_buf, res_buf, len );
@@ -536,6 +542,40 @@ static void _usb_get_cfg( uint32 res_buf ) {
 
     // free request buffer
     _kfree_slice( req_buf );
+}
+
+//
+// _usb_dump_str_desc() - dump contents of string descriptors
+//
+static void _usb_dump_str_desc( void ) {
+    uint8 i;
+    char *str_desc = (char *)_kalloc_slice();
+    _usb_get_str_desc( (uint32)str_desc, _usb_dev.str_man, 0x2 );
+    _usb_get_str_desc( (uint32)str_desc, _usb_dev.str_man, str_desc[0] );
+    __cio_puts( "Manufacturer:  " );
+    for( i = 2; i < str_desc[0]; i++ ) {
+        __cio_puts( str_desc + i );
+    }
+    __cio_puts( "\nProduct:       " );
+    _usb_get_str_desc( (uint32)str_desc, _usb_dev.str_pdt, 0x2 );
+    _usb_get_str_desc( (uint32)str_desc, _usb_dev.str_pdt, str_desc[0] );
+    for( i = 2; i < str_desc[0]; i++ ) {
+        __cio_puts( str_desc + i );
+    }
+    __cio_puts( "\nSerial Number: " );
+    _usb_get_str_desc( (uint32)str_desc, _usb_dev.str_num, 0x2 );
+    _usb_get_str_desc( (uint32)str_desc, _usb_dev.str_num, str_desc[0] );
+    for( i = 2; i < str_desc[0]; i++ ) {
+        __cio_puts( str_desc + i );
+    }
+    __cio_puts( "\nConfiguration: " );
+    _usb_get_str_desc( (uint32)str_desc, _usb_dev.str_cfg, 0x2 );
+    _usb_get_str_desc( (uint32)str_desc, _usb_dev.str_cfg, str_desc[0] );
+    for( i = 2; i < str_desc[0]; i++ ) {
+        __cio_puts( str_desc + i );
+    }
+    __cio_puts("\n");
+    _kfree_slice( str_desc );
 }
 
 //
@@ -662,8 +702,9 @@ static void _usb_dump_dev_info( void ) {
 */
 
 //
-// _usb_init() - this is an attempt at initializing the USB controller 
-//               and making a first request.
+// _usb_init() - USB controller initialization. Since the flash
+//               drive is plugged in from the start, device
+//               enumeration is done in this function directly.
 // In order, what this does is:
 // - general init sequence
 //     - enable bus master and memory space
@@ -684,7 +725,11 @@ static void _usb_dump_dev_info( void ) {
 //     - get config descriptor
 //     - get interface descriptors
 //     - get endpoints descriptors
-// - setup frame list
+// - set device address
+// - set configuration
+// - // setup interrupt isr
+// - // setup frame list
+//     - // enable periodic schedule
 //
 void _usb_init( void ) {
 
@@ -771,11 +816,20 @@ void _usb_init( void ) {
     _usb_write_l( _usb_op_base, USB_ASYNCLISTADDR, (uint32)qhead );
     _usb_command_enable( 0x20 );
 
-    // send get_device_descriptor request
-    // Buffers must not cross a 4k page boundary;
-    // I'm not sending or getting more than 1k at the moment so a slice is enough.
+    //
+    // First transactions: 
+    //   Because descriptor length may vary, descriptors are gotten twice; the
+    //     first time to get there length, the second time to get the full
+    //     descriptor.
+    //   Also, buffers must not cross a 4k page boundary; I'm not sending
+    //     or getting more than 1k at the moment so a slice is enough.
+    //   Finally, not to overload the code with checks, length that are read
+    //     from descriptors are assumed to be lower than 1K, for the
+    //     descriptors to fit in the allocated buffers.
+    //
+
+    // get device descriptor
     char *dev_desc = (char *)_kalloc_slice();
-    char *cfg_desc = (char *)_kalloc_slice();
     _usb_get_dev_desc( (uint32)dev_desc, 0x8 );
     _usb_dev.class = dev_desc[4];       // get device class
 
@@ -785,25 +839,25 @@ void _usb_init( void ) {
 
     // get full device descriptor
     _usb_get_dev_desc( (uint32)dev_desc, 0x12 );
+    _usb_dev.str_man = dev_desc[14];    // get string descriptor indices
+    _usb_dev.str_pdt = dev_desc[15];
+    _usb_dev.str_num = dev_desc[16];
 
-    // get start of device configuration
+    // get device configuration descriptor
+    char *cfg_desc = (char *)_kalloc_slice();
     _usb_get_cfg_desc( (uint32)cfg_desc, 0x4 );
-    // then get full content (it includes interface and endpoint decriptors)
-    uint16 cfg_size = *(uint16 *)(cfg_desc+2);
-    if( cfg_size <= 1024 ) {
-        _usb_get_cfg_desc( (uint32)cfg_desc, cfg_size );
-    } else {
-        __cio_puts( "USB ERR: Config descriptor is too long to be read\n" );
-    }
+    _usb_get_cfg_desc( (uint32)cfg_desc, *(uint16 *)(cfg_desc+2) );
 
     // fill device information from configuration descriptor
     _usb_dev.n_itf = cfg_desc[4];
     _usb_dev.cfg_val = cfg_desc[5];
+    _usb_dev.str_cfg = cfg_desc[6];
     uint8 index = 9;
     // iterate on all interfaces of the device
     for( uint8 i = 0; i < _usb_dev.n_itf; i++ ) {
         _usb_itf[i].n_edp = cfg_desc[index + 4];
         _usb_itf[i].class = cfg_desc[index + 5];
+        _usb_itf[i].str_idx = cfg_desc[index + 8];
         index += 9;
         // iterate on all endpoints for the given interface
         for( uint8 j = 0; j < _usb_itf[i].n_edp; j++ ) {
@@ -814,9 +868,6 @@ void _usb_init( void ) {
             index += 7;
         }
     }
-    
-    __cio_puts( "\n\n" );
-    _usb_dump_dev_info();
 
     // check that device is mass storage and uses bulk transfer
     // I don't know how to manage the fact that there are potentially many interfaces,
@@ -837,12 +888,6 @@ void _usb_init( void ) {
     // set device configuration
     _usb_set_cfg( _usb_dev.cfg_val );
 
-    // get string descriptor
-    char *str_desc = (char *)_kalloc_page( 1 );
-    _usb_get_str_desc( str_desc, 0x2 );
-    __cio_printf( "str_desc %02x %02x\n", str_desc[0], str_desc[1] );
-
-
     // change the interrupt line and install ISR
     // _pci_set_interrupt( _usb_bus, _usb_device, _usb_function, 0x0, 0x43 );
     // __install_isr( 0x43, _usb_isr );
@@ -859,4 +904,14 @@ void _usb_init( void ) {
 
     // enable periodic schedule
     // _usb_command_enable(0x10);
+
+    __cio_puts( " USB" );
+}
+
+void _usb_dump_all() {
+    __cio_puts("\n------------------------ USB Configuration ------------------------\n");
+    _usb_dump_dev_info();
+    __cio_puts("--------------------- USB String descriptors  ---------------------\n");
+    _usb_dump_str_desc();
+    __cio_puts("-------------------------------------------------------------------\n");
 }
