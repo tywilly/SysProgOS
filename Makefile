@@ -12,11 +12,11 @@
 
 OS_C_SRC = clock.c kernel.c klibc.c kmem.c process.c \
 	queues.c scheduler.c sio.c stacks.c syscalls.c pci.c \
-	usb.c usb_uhci.c usbhd.c usbd.c ac97.c soundblaster.c userSB.c
+	ac97.c soundblaster.c userSB.c
 
 OS_C_OBJ = clock.o kernel.o klibc.o kmem.o process.o \
 	queues.o scheduler.o sio.o stacks.o syscalls.o pci.o \
-	usb.o usb_uhci.o usbhd.o usbd.o ac97.o winstart.o soundblaster.o userSB.o
+	ac97.o winstart.o soundblaster.o userSB.o
 
 OS_S_SRC = klibs.S
 OS_S_OBJ = klibs.o
@@ -254,7 +254,7 @@ clock.o: x86arch.h x86pic.h ./x86pit.h common.h types.h udefs.h ulib.h klib.h
 clock.o: clock.h process.h stacks.h kmem.h queues.h bootstrap.h scheduler.h
 kernel.o: common.h types.h udefs.h ulib.h kernel.h x86arch.h process.h
 kernel.o: stacks.h kmem.h queues.h bootstrap.h clock.h syscalls.h cio.h sio.h
-kernel.o: scheduler.h pci.h usb.h soundblaster.h ac97.h users.h
+kernel.o: scheduler.h pci.h soundblaster.h ac97.h users.h
 klibc.o: common.h types.h udefs.h ulib.h
 kmem.o: common.h types.h udefs.h ulib.h klib.h x86arch.h bootstrap.h kmem.h
 kmem.o: cio.h
@@ -272,8 +272,6 @@ syscalls.o: support.h klib.h syscalls.h queues.h scheduler.h process.h
 syscalls.o: stacks.h kmem.h bootstrap.h clock.h cio.h sio.h soundblaster.h
 syscalls.o: ac97.h pci.h
 pci.o: common.h types.h udefs.h ulib.h klib.h pci.h
-usb.o: common.h types.h udefs.h ulib.h usb.h usb_uhci.h pci.h
-usb_uhci.o: klib.h types.h usb_uhci.h common.h udefs.h ulib.h pci.h queues.h
 ac97.o: common.h types.h udefs.h ulib.h klib.h x86pic.h ac97.h pci.h
 soundblaster.o: common.h types.h udefs.h ulib.h klib.h cio.h sio.h queues.h
 soundblaster.o: x86pic.h soundblaster.h pci.h kmem.h kdefs.h support.h

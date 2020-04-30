@@ -25,7 +25,6 @@
 #include "sio.h"
 #include "scheduler.h"
 #include "pci.h"
-#include "usb.h"
 #include "soundblaster.h"
 #include "ac97.h"
 
@@ -147,17 +146,16 @@ void _init( void ) {
 
     __cio_puts( "Modules:" );
 
-    _kmem_init();         // kernel memory system (must be first)
-    _queue_init();        // queues (must be second)
+    _kmem_init();    // kernel memory system (must be first)
+    _queue_init();   // queues (must be second)
 
-    _clk_init();          // clock
-    _proc_init();         // processes
-    _sched_init();        // scheduler
-    _sio_init();          // serial i/o
-    _stk_init();          // stacks
-    _sys_init();          // system calls
-    _pci_init();          // PCI
-    _usb_init();          // USB
+    _clk_init();     // clock
+    _proc_init();    // processes
+    _sched_init();   // scheduler
+    _sio_init();     // serial i/o
+    _stk_init();     // stacks
+    _sys_init();     // system calls
+    _pci_init();     // PCI
     _ac97_init();    // AC97
     _soundblaster_init(); // sound blaster audio
 
@@ -318,11 +316,6 @@ void _shell( int ch ) {
 
             _pci_dump_all();
 
-            break;
-        case 'u':
-            __cio_puts( "\nUSB Devices:\n" );
-
-            _usb_status();
             break;
 
         case 'm':
