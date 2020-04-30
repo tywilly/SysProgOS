@@ -114,6 +114,8 @@ static Queue _usb_qhead_q;      // QHead Queue
 // it's assumed that only one device is connected
 static struct _usb_dev_s {
     uint8 port;
+    uint8 class;
+    uint8 addr;
     uint8 n_itf;          // number of interfaces
     uint8 cfg_val;        // configuration value
 } _usb_dev;
@@ -128,7 +130,7 @@ static struct _usb_edp_s {
     uint8 attr;           // transfer (1-0), sync (3-2) and usage type (5-4)
     uint16 packet_size;
     uint8 interval;       // interval for polling endpoint
-    USBQHead *_qhead;     // associated qhead
+    USBQHead *qhead;      // associated qhead
 } _usb_edp[8][8];
 
 static USBQHead *_usb_edp0;
@@ -136,6 +138,10 @@ static USBQHead *_usb_edp0;
 /*
 ** PRIVATE FUNCTIONS
 */
+
+//
+// PCI related functions
+//
 
 //
 // _usb_set_pci_command() - set pci command register
@@ -171,6 +177,10 @@ static void _usb_pci_command_enable( uint16 toEnable ) {
 static void _usb_pci_command_disable( uint16 toDisable ) {
     _usb_set_pci_command( _usb_pci_command & (~toDisable) );
 }
+
+//
+// USB memory access
+//
 
 //
 // _usb_read_l() - read a long word from the usb controller
@@ -279,6 +289,46 @@ static void _usb_command_disable( uint32 toDisable ) {
 }
 
 //
+// QTD/QHead related functions
+//
+
+//
+// _usb_free_qtd() - free a qtd and enqueue it in the qtd_q
+//
+// Parameters:
+//    qtd       pointer to the qtd
+//
+
+static void _usb_free_qtd( USBQTD *qtd ) {
+    qtd->next_qtd = 1;      // invalid
+    qtd->alt_next_qtd = 1;  // never used
+    qtd->buffer0 = 0;
+    qtd->buffer1 = 0;
+    qtd->buffer2 = 0;
+    qtd->buffer3 = 0;
+    qtd->buffer4 = 0;
+    _queue_enque( _usb_qtd_q, qtd );
+}
+
+//
+// _usb_free_qhead() - free a qhead and enqueue it in the qhead_q
+//
+// Parameters:
+//    qhead     pointer to the qhead
+//
+static void _usb_free_qhead( USBQHead *qhead ) {
+    qhead->overlay.next_qtd = 1;
+    qhead->overlay.alt_next_qtd = 1;
+    qhead->overlay.token = 0;
+    qhead->overlay.buffer0 = 0;
+    qhead->overlay.buffer1 = 0;
+    qhead->overlay.buffer2 = 0;
+    qhead->overlay.buffer3 = 0;
+    qhead->overlay.buffer4 = 0;
+    _queue_enque( _usb_qhead_q, qhead );
+}
+
+//
 // _usb_dump_qtd() - dump QTD contents to console
 //
 // Parameters:
@@ -357,7 +407,7 @@ static USBQTD *_usb_build_qtd( uint8 type, uint16 len, uint32 next, uint32 buf )
     // qtd token
     qtd->token = (uint32)(
       (type == USB_IN || type == USB_OUT) << 31 | // dt
-      (len & 0xEFFF) << 16 |                      // total bytes
+      (len & 0x7FFF) << 16 |                      // total bytes
       0b000011 << 10 |                            // ioc, cerr
       (type & 0b11) << 8 |                        // PID code
       0x80                                        // active qtd
@@ -376,58 +426,22 @@ static USBQTD *_usb_build_qtd( uint8 type, uint16 len, uint32 next, uint32 buf )
 }
 
 //
-// _usb_free_qtd() - free a qtd and enqueue it in the qtd_q
-//
-// Parameters:
-//    qtd       pointer to the qtd
-//
-static void _usb_free_qtd( USBQTD *qtd ) {
-    qtd->next_qtd = 1;      // invalid
-    qtd->alt_next_qtd = 1;  // never used
-    qtd->buffer0 = 0;
-    qtd->buffer1 = 0;
-    qtd->buffer2 = 0;
-    qtd->buffer3 = 0;
-    qtd->buffer4 = 0;
-    _queue_enque( _usb_qtd_q, qtd );
-}
-
-//
-// _usb_free_qhead() - free a qhead and enqueue it in the qhead_q
-//
-// Parameters:
-//    qhead     pointer to the qhead
-//
-static void _usb_free_qhead( USBQHead *qhead ) {
-    qhead->overlay.next_qtd = 1;
-    qhead->overlay.alt_next_qtd = 1;
-    qhead->overlay.token = 0;
-    qhead->overlay.buffer0 = 0;
-    qhead->overlay.buffer1 = 0;
-    qhead->overlay.buffer2 = 0;
-    qhead->overlay.buffer3 = 0;
-    qhead->overlay.buffer4 = 0;
-    _queue_enque( _usb_qhead_q, qhead );
-}
-
-//
-// _usb_get_desc() - get the descriptor corresponding to the given request buffer
+// _usb_get_trans() - perform a get transcation (SETUP + IN + OUT)
 //
 // Parameters:
 //    req_buf       pointer to request buffer
 //    res_buf       buffer to write the result
-//    len           length of the descriptor
+//    len           length of the required data
 //
-static void _usb_get_desc( uint32 req_buf, uint32 res_buf, uint16 len ) {
+static void _usb_get_trans( uint32 req_buf, uint32 res_buf, uint16 len ) {
     // get device qhead for edp0
-    USBQHead * qhead = _usb_edp0;
+    USBQHead *qhead = _usb_edp0;
 
     // setup qtds
     USBQTD *out = _usb_build_qtd( USB_OUT, 0, NULL, NULL );
-    USBQTD *in = _usb_build_qtd( USB_IN, len, out, res_buf );
-    USBQTD *setup = _usb_build_qtd( USB_SETUP, 0x8, in, req_buf );
+    USBQTD *in = _usb_build_qtd( USB_IN, len, (uint32)out, res_buf );
+    USBQTD *setup = _usb_build_qtd( USB_SETUP, 0x8, (uint32)in, req_buf );
 
-    // TODO: work on endpoints and qhead structs
     // update qh next qtd
     qhead->overlay.next_qtd = (uint32)setup & 0xFFFFFFE0;
 
@@ -435,14 +449,14 @@ static void _usb_get_desc( uint32 req_buf, uint32 res_buf, uint16 len ) {
     while((out->token & 0xFF) == 0x80);
     
     if( 
-        setup->token & 0xEF != 0 ||
-        out->token & 0xEF != 0 ||
-        in->token & 0xEF != 0
+        (setup->token & 0x7F) != 0 ||
+        (out->token & 0x7F) != 0 ||
+        (in->token & 0x7F) != 0
     ) {
-        __cio_puts( "USB transaction error\n" );
+        __cio_puts( "USB ERR: Transaction error\n" );
     }
 
-    // free used qtds and request buffer
+    // free used qtds
     _usb_free_qtd( setup );
     _usb_free_qtd( in );
     _usb_free_qtd( out );
@@ -459,10 +473,10 @@ static void _usb_get_desc( uint32 req_buf, uint32 res_buf, uint16 len ) {
 static void _usb_get_dev_desc( uint32 res_buf, uint16 len ) {
     // setup request buffer
     char *req_buf = (char *)_kalloc_slice();
-    _usb_build_request(0x80, 0x06, 0x0100, 0x0000, len & 0xEFFF, req_buf);
+    _usb_build_request(0x80, 0x06, 0x0100, 0x0000, len & 0x7FFF, req_buf);
     
     // get descriptor request
-    _usb_get_desc( req_buf, res_buf, len );
+    _usb_get_trans( (uint32)req_buf, res_buf, len );
 
     // free request buffer
     _kfree_slice( req_buf );
@@ -473,18 +487,138 @@ static void _usb_get_dev_desc( uint32 res_buf, uint16 len ) {
 //
 // Parameters:
 //    res_buf       buffer to write the result
+//    len           length of the descriptor
 //
 static void _usb_get_cfg_desc( uint32 res_buf, uint16 len ) {
     // setup request buffer
     char *req_buf = (char *)_kalloc_slice();
-    _usb_build_request(0x80, 0x06, 0x0200, 0x0000, len & 0xEFFF, req_buf);
+    _usb_build_request(0x80, 0x06, 0x0200, 0x0000, len & 0x7FFF, req_buf);
     
     // get descriptor request
-    _usb_get_desc( req_buf, res_buf, len );
+    _usb_get_trans( (uint32)req_buf, res_buf, len );
 
     // free request buffer
     _kfree_slice( req_buf );
 }
+
+//
+// _usb_get_str_desc() - get the string descriptor
+//
+// Parameters:
+//    res_buf       buffer to write the result
+//    len           length of the descriptor
+//
+static void _usb_get_str_desc( uint32 res_buf, uint16 len ) {
+    // setup request buffer
+    char *req_buf = (char *)_kalloc_slice();
+    _usb_build_request(0x80, 0x06, 0x0300, 0x0000, len & 0x7FFF, req_buf);
+    
+    // get descriptor request
+    _usb_get_trans( (uint32)req_buf, res_buf, len );
+
+    // free request buffer
+    _kfree_slice( req_buf );
+}
+
+//
+// _usb_get_cfg() - get the configuration value
+//
+// Parameters:
+//    res_buf       buffer to write the result
+//
+static void _usb_get_cfg( uint32 res_buf ) {
+    // setup request buffer
+    char *req_buf = (char *)_kalloc_slice();
+    _usb_build_request(0x80, 0x08, 0x0000, 0x0000, 0x0001, req_buf);
+    
+    // get descriptor request
+    _usb_get_trans( (uint32)req_buf, res_buf, 0x0001 );
+
+    // free request buffer
+    _kfree_slice( req_buf );
+}
+
+//
+// _usb_set_trans() - perform a set transaction (SETUP + IN)
+//
+// Parameters:
+//    req_buf       request buffer
+//
+static void _usb_set_trans( uint32 req_buf ) {
+    // get device qhead for edp0
+    USBQHead *qhead = _usb_edp0;
+
+    // setup qtds
+    USBQTD *in = _usb_build_qtd( USB_IN, 0, NULL, NULL );
+    USBQTD *setup = _usb_build_qtd( USB_SETUP, 0x8, (uint32)in, req_buf );
+
+    // update qh next qtd
+    qhead->overlay.next_qtd = (uint32)setup & 0xFFFFFFE0;
+
+    // wait for end of transaction
+    while((in->token & 0xFF) == 0x80);
+
+    if( 
+        (setup->token & 0x7F) != 0 ||
+        (in->token & 0x7F) != 0
+    ) {
+        __cio_puts( "USB ERR: Transaction error\n" );
+    }
+
+    // free used qtds
+    _usb_free_qtd( setup );
+    _usb_free_qtd( in );
+}
+
+//
+// _usb_set_addr() - set the device address and updates the field in qheads
+//
+// Parameters:
+//    addr          device address
+//
+static void _usb_set_addr( uint8 addr ) {
+    // setup request buffer
+    char *req_buf = (char *)_kalloc_slice();
+    _usb_build_request( 0x00, 0x05, (uint16)(addr & 0x7F), 0x0000, 0x0000, req_buf );
+
+    // perform set transaction
+    _usb_set_trans( (uint32)req_buf );
+
+    // free request buffer
+    _kfree_slice( req_buf );
+
+    // change other occurrances of device address
+    _usb_dev.addr = addr & 0x7F;
+    _usb_edp0->endpoint_crc = (_usb_edp0->endpoint_crc & 0xFFFFFF80) | (addr & 0x7F);
+    for( uint8 i = 0; i < _usb_dev.n_itf; i++ ) {
+        for( uint8 j = 0; j < _usb_itf[i].n_edp && _usb_edp[i][j].qhead != NULL; j++ ) {
+            _usb_edp[i][j].qhead->endpoint_crc =
+                (_usb_edp[i][j].qhead->endpoint_crc & 0xFFFFFF80) | (addr & 0x7F);
+        }
+    }
+}
+
+//
+// _usb_set_cfg() - set the device configuration
+//
+// Parameters:
+//    value         configuration value (given in the config descriptor)
+//
+static void _usb_set_cfg( uint8 value ) {
+    // setup request buffer
+    char *req_buf = (char *)_kalloc_slice();
+    _usb_build_request( 0x00, 0x09, (uint16)value, 0x0000, 0x0000, req_buf );
+
+    // perform set transaction
+    _usb_set_trans( (uint32)req_buf );
+
+    // free request buffer
+    _kfree_slice( req_buf );
+}
+
+//
+// Device/Interface/Endpoint struct related functions
+//
 
 //
 // _usb_dump_endpoint() - dump information from specified endpoint
@@ -515,8 +649,8 @@ static void _usb_dump_interface( uint8 n ) {
 //
 // _usb_dump_interface() - dump information from device
 //
-static void _usb_dump_dev_info() {
-    __cio_printf( "Device: port=%d - cfg_val=%02x - %d interface(s):\n", 
+static void _usb_dump_dev_info( void ) {
+    __cio_printf( "Flash drive: port=%d - cfg_val=%02x - %d interface(s):\n", 
         _usb_dev.port, _usb_dev.cfg_val, _usb_dev.n_itf );
     for( uint8 i = 0; i < _usb_dev.n_itf; i++ ) {
         _usb_dump_interface( i );
@@ -543,14 +677,14 @@ static void _usb_dump_dev_info() {
 // - data structure init
 //     - allocate and init QHeads
 //     - allocate and init QTDs
-// - setup first transaction
-//     - setup a control queue head
-//     - setup a get device descriptor request
+// - setup endpoint 0
 //     - enable asynchronous transfer
-// - (setup frame list)
-// - CRASH MISERABLY: the QTD sequence is SETUP, IN, OUT
-//   I get a 'Halt' on the IN QTD, which means something went horribly
-//   wrong, but I don't know what.
+// - get descriptors
+//     - get device descriptor
+//     - get config descriptor
+//     - get interface descriptors
+//     - get endpoints descriptors
+// - setup frame list
 //
 void _usb_init( void ) {
 
@@ -603,7 +737,7 @@ void _usb_init( void ) {
     for( uint8 i = 0; i < _usb_n_port; i++ ) {
         uint32 portsc = _usb_read_l( _usb_op_base, 0x44 + 4*i );
         // recently connected device
-        if( portsc & 0b11 == 0b11 ) {
+        if( (portsc & 0b11) == 0b11 ) {
             _usb_write_l( _usb_op_base, 0x44 + 4*i, portsc | 0x100 );
             for( uint16 j = 0; j < 0xFFFF; j++ );
             _usb_write_l( _usb_op_base, 0x44 + 4*i, portsc );
@@ -628,12 +762,13 @@ void _usb_init( void ) {
 
     // setup control queue head (device endpoint 0)
     USBQHead *qhead = _queue_deque( _usb_qhead_q );
-    qhead->qhead_hlink = ((uint32)qhead) & 0xFFFFFFE0 | 2;
+    qhead->qhead_hlink = (((uint32)qhead) & 0xFFFFFFE0) | 2;
     qhead->endpoint_crc = 0x0040D000;
     qhead->endpoint_cap = 0x40000000;
     qhead->current_qtd = 0;
     _usb_edp0 = qhead;
-    _usb_write_l( _usb_op_base, USB_ASYNCLISTADDR, qhead );
+    _usb_dev.addr = 0;      // temporarily set device address to 0
+    _usb_write_l( _usb_op_base, USB_ASYNCLISTADDR, (uint32)qhead );
     _usb_command_enable( 0x20 );
 
     // send get_device_descriptor request
@@ -641,21 +776,22 @@ void _usb_init( void ) {
     // I'm not sending or getting more than 1k at the moment so a slice is enough.
     char *dev_desc = (char *)_kalloc_slice();
     char *cfg_desc = (char *)_kalloc_slice();
-    _usb_get_dev_desc( dev_desc, 0x8 );
+    _usb_get_dev_desc( (uint32)dev_desc, 0x8 );
+    _usb_dev.class = dev_desc[4];       // get device class
 
     // set maximum packet length for endpoint 0
     _usb_edp0->endpoint_crc =
-        _usb_edp0->endpoint_crc & 0xF800FFFF | ((dev_desc[7] & 0x7FF) << 16);
+        (_usb_edp0->endpoint_crc & 0xF800FFFF) | ((dev_desc[7] & 0x7FF) << 16);
 
     // get full device descriptor
-    _usb_get_dev_desc( dev_desc, 0x12 );
+    _usb_get_dev_desc( (uint32)dev_desc, 0x12 );
 
     // get start of device configuration
-    _usb_get_cfg_desc( cfg_desc, 0x4 );
+    _usb_get_cfg_desc( (uint32)cfg_desc, 0x4 );
     // then get full content (it includes interface and endpoint decriptors)
     uint16 cfg_size = *(uint16 *)(cfg_desc+2);
     if( cfg_size <= 1024 ) {
-        _usb_get_cfg_desc( cfg_desc, cfg_size );
+        _usb_get_cfg_desc( (uint32)cfg_desc, cfg_size );
     } else {
         __cio_puts( "USB ERR: Config descriptor is too long to be read\n" );
     }
@@ -678,8 +814,34 @@ void _usb_init( void ) {
             index += 7;
         }
     }
-    __cio_puts( "\n" );
+    
+    __cio_puts( "\n\n" );
     _usb_dump_dev_info();
+
+    // check that device is mass storage and uses bulk transfer
+    // I don't know how to manage the fact that there are potentially many interfaces,
+    // so I use the fact that I know the device I use only has 1.
+    if( _usb_dev.class != 8 && _usb_itf[0].class != 8 ) {
+        __cio_puts( "USB ERR: Device is not mass storage\n" );
+    }
+    for( uint8 i = 0; i < _usb_itf[0].n_edp; i++ ) {
+        if( (_usb_edp[0][i].attr & 0b11) != 0b10 ) {
+            __cio_puts( "USB ERR: Device doesn't use bulk transfer\n" );
+            break;
+        }
+    }
+
+    // set device address to 0x66 (because it's a nice number)
+    _usb_set_addr( 0x66 );
+
+    // set device configuration
+    _usb_set_cfg( _usb_dev.cfg_val );
+
+    // get string descriptor
+    char *str_desc = (char *)_kalloc_page( 1 );
+    _usb_get_str_desc( str_desc, 0x2 );
+    __cio_printf( "str_desc %02x %02x\n", str_desc[0], str_desc[1] );
+
 
     // change the interrupt line and install ISR
     // _pci_set_interrupt( _usb_bus, _usb_device, _usb_function, 0x0, 0x43 );
@@ -697,6 +859,4 @@ void _usb_init( void ) {
 
     // enable periodic schedule
     // _usb_command_enable(0x10);
-
-    return( 94 );
 }
