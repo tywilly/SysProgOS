@@ -76,7 +76,6 @@ typedef struct buffer_descriptor_s {
   * Store everything we know about the ac97 device.
   */
 typedef struct ac97_dev {
-    PCIDev *pci_dev;            // reference to PCI Device for debugging
     AC97BufferDescriptor *bdl;  // ptr to the first buffer descriptor in the BDL
     uint16 nabmbar;             // Native Audio Bus Master Base Address Register
     uint16 nambar;              // Native Audio Mixer Base Address Register

@@ -30,14 +30,13 @@ void _ac97_init(void) {
     dev.status = AC97_STATUS_OK;
 
     // detect the ac97 controller
-    PCIDev *pci_dev = _pci_get_device_id(AC97_VENDOR_ID, AC97_DEVICE_ID, 
-                                         AC97_PCI_CLASS, AC97_PCI_SUBCL);
+    PCIDevice *pci_dev = _pci_dev_vendor(AC97_VENDOR_ID, AC97_DEVICE_ID);
 
     if (pci_dev != 0) {
         // Keep track of the PCI Device and its relevant BARs
-        dev.pci_dev = pci_dev;
         dev.nambar = pci_dev->bar0 & ~((uint32) 1);
         dev.nabmbar = pci_dev->bar1 & ~((uint32) 1);
+        __cio_printf("NAMBAR: %x, NABMBAR: %x\n", dev.nambar, dev.nabmbar);
 
         _ac97_stop();
 
@@ -50,7 +49,9 @@ void _ac97_init(void) {
 
         // set the ac97 interrupt service routine function
         // the interrupt comes through the PIC
-        __install_isr(pci_dev->interrupt + PIC_EOI, _ac97_isr);
+        uint8 interrupt = _pci_get_interrupt_line(pci_dev->bus, pci_dev->device,
+                                                  pci_dev->function);
+        __install_isr(interrupt + PIC_EOI, _ac97_isr);
 
         // enable ac97 interrupts for FIFO Errors and Interrupt On Completion
         __outb(dev.nabmbar + AC97_PCM_OUT_CR, 
@@ -58,7 +59,7 @@ void _ac97_init(void) {
 
         // enable bus mastering, disable memory mapping
         // allows the controller to initiate DMA transfers
-        _pci_write_field16(pci_dev, PCI_COMMAND, 0x5);
+        _pci_set_command(pci_dev->bus, pci_dev->device, pci_dev->function, 0x5);
 
         // set up buffer desciptor list using a statically allocated memory hunk
         __memclr(bdl_array, sizeof(AC97BufferDescriptor) * AC97_BDL_LEN);
@@ -226,8 +227,6 @@ void _ac97_status(void) {
         __cio_printf(" |  PCM OUT PICB[16]:%08x\n", __inw(dev.nabmbar + 0x18));
         __cio_printf(" |  GLOB CONTORL[32]:%08x\n", __inl(dev.nabmbar + 0x2C));
         __cio_printf(" |  GLOB STATUS[32]: %08x\n", __inl(dev.nabmbar + 0x30));
-        __cio_printf(" |  PCI Status[16]:  %08x\n", 
-                     _pci_config_read16(dev.pci_dev, 0x6));
         __cio_printf(" |  Free Buffers:       %02d/32\n", dev.free_buffers);
         __cio_printf(" |  Head Index:            %02d\n", dev.head);
         __cio_printf(" |  Tail Index:            %02d\n", dev.tail);

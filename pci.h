@@ -1,136 +1,233 @@
-/**
- ** File: pci.h
- **
- ** Author: Tyler Wilcox
- **
- ** Contributor: Cody Burrows (cxb2114@rit.edu)
- **
- ** This file declares various PCI-related functionality.
- */
+/*
+** File:    pci.h
+**
+** Author:  Yann MOULLEC
+**
+** Contributor:
+**
+** Description: PCI module declarations 
+*/
 
 #ifndef _PCI_H_
 #define _PCI_H_
 
-#define MAX_PCI_DEVICES 15
-#define PCI_ADDR_PORT   0xCF8
-#define PCI_VALUE_PORT  0xCFC
-#define PCI_COMMAND     0x04
+/*
+** General (C and/or assembly) definitions
+*/
 
-#include "common.h"
+/*
+** Start of C-only definitions
+*/
 
-#ifndef __SP_ASM__
+/*
+** Types
+*/
 
-// Stores information about the PCI device
-typedef struct pci_dev_s {
-    int id;
+typedef struct pci_device_s {
+    uint8 bus;
+    uint8 device;
+    uint8 function;
     uint8 class;
-    uint8 subclass;
-    uint8 headertype;
-    uint8 progif;
-    uint8 interrupt;
-
-    uint16 vendorid;
-    uint16 deviceid;
-
+    uint8 subClass;
+    uint8 progIF;
+    uint16 vendorID;
+    uint16 deviceID;
     uint32 bar0;
     uint32 bar1;
-    uint32 bar2;
-    uint32 bar3;
-    uint32 bar4;
-    uint32 bar5;
+} PCIDevice;
 
-    uint8 bus;
-    uint8 slot;
-    uint8 func;
+/*
+** Prototypes
+*/
 
-} PCIDev;
-
-/** Initializes the PCI module */
+//
+// _pci_init() - checks all buses for connected devices
+//
 void _pci_init( void );
 
-/**
-  * Read the PCI device's configuration given its bus, slot, function, and
-  * an offset.
-  */
-uint32 _pci_config_read ( uint8 bus, uint8 slot, uint8 func, uint8 offset );
+//
+// _pci_dev_class() - get the first device descriptor matching the given class
+//
+// Parameters:
+//    class         class code
+//    subclass      subclass code
+//    progIF        programming interface code
+//
+// Returns:
+//    a pointer to the device descriptor
+//
+PCIDevice *_pci_dev_class( uint8 class, uint8 subClass, uint8 progIF );
 
-/**
-  * Helper function for reading a 1-byte PCI field.
-  *
-  * dev: A pointer to the PCI device to query
-  * offset: The offset of the field to read.
-  */
-uint8 _pci_config_read8 ( PCIDev *dev, uint8 offset );
+//
+// _pci_dev_vendor() - get the first device descriptor matching the given
+//                     parameters.
+//
+// Parameters:
+//    vendor        device vendor code
+//    deviceID      device id code
+//
+// Returns:
+//    a pointer to the device descriptor
+//
+PCIDevice *_pci_dev_vendor( uint16 vendor, uint16 deviceID );
 
-/**
-  * Helper function for reading a 2-byte PCI field.
-  *
-  * dev: A pointer to the PCI device to query
-  * offset: The offset of the field to read.
-  */
-uint16 _pci_config_read16 ( PCIDev *dev, uint8 offset );
+//
+// General read functions
+//
 
-/**
-  * Helper function for reading a 4-byte PCI field.
-  *
-  * dev: A pointer to the PCI device to query
-  * offset: The offset of the field to read.
-  */
-uint32 _pci_config_read32 ( PCIDev *dev, uint8 offset );
+//
+// _pci_cfg_read_l() - read a long word from the device configuration register
+//
+// Parameters:
+//    bus           bus number
+//    device        device number
+//    function      function number
+//    offset        configuration register offset
+//
+// Returns:
+//    the long word read
+//
+uint32 _pci_cfg_read_l( uint8 bus, uint8 device, uint8 function, uint8 offset );
 
-/** Detect all of the PCI devices present in the system */
-void _pci_enumerate_devices ( void );
+//
+// _pci_cfg_read_w() - read a word from the device configuration register
+//
+// Parameters:
+//    bus           bus number
+//    device        device number
+//    function      function number
+//    offset        configuration register offset
+//
+// Returns:
+//    the word read
+//
+uint16 _pci_cfg_read_w( uint8 bus, uint8 device, uint8 function, uint8 offset );
 
-/** Print all of the detected devices to the console */
+//
+// _pci_cfg_read_b() - read a byte from the device configuration register
+//
+// Parameters:
+//    bus           bus number
+//    device        device number
+//    function      function number
+//    offset        configuration register offset
+//
+// Returns:
+//    the byte read
+//
+uint8 _pci_cfg_read_b( uint8 bus, uint8 device, uint8 function, uint8 offset );
+
+//
+// General write functions
+//
+
+//
+// _pci_cfg_write_l() - write a long word in the device configuration register
+//
+// Parameters:
+//    bus           bus number
+//    device        device number
+//    function      function number
+//    offset        configuration register offset
+//    value         value to be written
+//
+void _pci_cfg_write_l( uint8 bus, uint8 device, uint8 function, uint8 offset, uint32 value );
+
+//
+// _pci_cfg_write_w() - write a word in the device configuration register
+//
+// Parameters:
+//    bus           bus number
+//    device        device number
+//    function      function number
+//    offset        configuration register offset
+//    value         value to be written
+//
+void _pci_cfg_write_w( uint8 bus, uint8 device, uint8 function, uint8 offset, uint16 value );
+
+//
+// _pci_cfg_write_b() - write a byte in the device configuration register
+//
+// Parameters:
+//    bus           bus number
+//    device        device number
+//    function      function number
+//    offset        configuration register offset
+//    value         value to be written
+//
+void _pci_cfg_write_b( uint8 bus, uint8 device, uint8 function, uint8 offset, uint8 value );
+
+//
+// Register specific functions
+//
+
+//
+// _pci_set_command() - set the device command register
+//
+// Parameters:
+//    bus           bus number
+//    device        device number
+//    function      function number
+//    value         value to be written
+//
+void _pci_set_command( uint8 bus, uint8 device, uint8 function, uint16 value );
+
+//
+// _pci_set_interrupt() - set the device interrupt line and pin registers
+//
+// Parameters:
+//    bus               bus number
+//    device            device number
+//    function          function number
+//    interruptPin      value to be written in interruptPin
+//    interruptLine     value to be written in interruptLine
+//
+uint16 _pci_get_status( uint8 bus, uint8 device, uint8 function );
+
+//
+// _pci_get_interrupt_line() - get the device interrupt line register
+//
+// Parameters:
+//    bus           bus number
+//    device        device number
+//    function      function number
+//
+// Returns:
+//    the interrupt line register
+//
+void _pci_set_interrupt( uint8 bus, uint8 device, uint8 function, uint8 interruptPin, uint8 interruptLine );
+
+//
+// _pci_get_status() - get the device status register
+//
+// Parameters:
+//    bus           bus number
+//    device        device number
+//    function      function number
+//
+// Returns:
+//    the status register
+//
+uint8 _pci_get_interrupt_line( uint8 bus, uint8 device, uint8 function );
+
+//
+// Debugging function
+//
+
+//
+// _pci_dump_all() - dump all device information to the console
+//
 void _pci_dump_all( void );
 
-/** Get a device by its ID */
-PCIDev* _pci_get_device( int devid );
-
-/** Get a device by its class, subclass and progif. */
-PCIDev* _pci_get_device_class( uint8 class, uint8 subclass, uint8 progif );
-
-/** Get a device by it's vendor and device ID. */
-PCIDev* _pci_get_device_vendorid_deviceid( uint16 vendor, uint16 device );
-
-/** Get a device by its vendor, device ID, class, and subclass. */
-PCIDev* _pci_get_device_id( uint16 vendor, uint16 device, uint8 class,
-                            uint8 subclass );
-
-/**
-  * A helper function to write a 1-byte value to a PCI field
-  *
-  * dev: The device to write the value to
-  * offset: The offset of the field to write
-  * value: what to write there
-  */
-void _pci_write_field8( PCIDev *dev, uint8 offset, uint8 value );
-
-/**
-  * A helper function to write a 2-byte value to a PCI field
-  *
-  * dev: The device to write the value to
-  * offset: The offset of the field to write
-  * value: what to write there
-  */
-void _pci_write_field16( PCIDev *dev, uint8 offset, uint16 value );
-
-/**
-  * A helper function to write a 4-byte value to a PCI field
-  *
-  * dev: The device to write the value to
-  * offset: The offset of the field to write
-  * value: what to write there
-  */
-void _pci_write_field32( PCIDev *dev, uint8 offset, uint32 value );
-
-/**
-  * Calculate the address of a PCI field given its bus, slot, function, offset,
-  * and the size of the field.
-  */
-uint32 _pci_calculate_address(uint8 bus, uint8 slot, uint8 func, uint8 offset,
-                              uint8 size);
-
-#endif
+//
+// _pci_dump_header() - dump device header information to the console
+//
+// Parameters:
+//    bus           bus number
+//    device        device number
+//    function      function number
+//    nlines        number of header lines to dump
+//
+void _pci_dump_header( uint8 bus, uint8 device, uint8 function, uint8 nlines );
 
 #endif

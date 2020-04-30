@@ -27,7 +27,7 @@
 static void update_pointers( void );
 
 // keep track of the device
-static PCIDev* soundblaster_dev;
+static PCIDevice* soundblaster_dev;
 
 // memory access to the page
 static uint16* audio_samples;
@@ -49,8 +49,8 @@ void _soundblaster_init(void) {
     soundblaster_dev = NULL;
 
     // find the soundblaster device
-    soundblaster_dev = _pci_get_device_vendorid_deviceid(
-        SOUND_BLASTER_VENDOR_ID, SOUND_BLASTER_DEVICE_ID);
+    soundblaster_dev = _pci_dev_vendor( SOUND_BLASTER_VENDOR_ID, 
+                                        SOUND_BLASTER_DEVICE_ID );
 
     if (soundblaster_dev == NULL) {
         __cio_puts("!");
@@ -63,7 +63,10 @@ void _soundblaster_init(void) {
     assert( audio_samples ); // if this is null, big system problem
 
     // install ISR
-    __install_isr( soundblaster_dev->interrupt + PIC_EOI, _soundblaster_isr );
+    uint8 interrupt = _pci_get_interrupt_line( soundblaster_dev->bus, 
+                                               soundblaster_dev->device,
+                                               soundblaster_dev->function );
+    __install_isr( interrupt + PIC_EOI, _soundblaster_isr );
 
     // start out adding samples to the start.
     insert_sample_pointer = audio_samples;
@@ -77,7 +80,8 @@ void _soundblaster_init(void) {
     // enable bus master flag
     // enable bus mastering, disable memory mapping
     // allows the controller to initiate DMA transfers
-    _pci_write_field16(soundblaster_dev, PCI_COMMAND, 0x7);
+    _pci_set_command( soundblaster_dev->bus, soundblaster_dev->device, 
+                      soundblaster_dev->function, 0x7 );
 
     // reset controller
     __outl( base_io + 0x4, 0x20 );
