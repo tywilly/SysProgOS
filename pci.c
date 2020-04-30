@@ -35,9 +35,9 @@
 #define PCI_BAR0            0x10
 #define PCI_SEC_BUS         0x19
 
-// (Arbitrary) value for maximum number of connected devices
-// to the PCI
-#define PCI_MAX_DEVICES 15
+// Value for maximum number of connected devices to the PCI
+// chosen somewhat arbitrarily
+#define PCI_MAX_DEVICES 32
 
 /*
 ** PRIVATE GLOBAL VARIABLES
