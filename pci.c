@@ -325,8 +325,8 @@ void _pci_cfg_write_l( uint8 bus, uint8 device, uint8 function, uint8 offset, ui
     address = (uint32)((lbus << 16) | ((ldevice & 0x1F) << 11) |
               ((lfunction & 0x07) << 8) | (offset & 0xFC) | ((uint32)0x80000000));
 
-	__outl( address, 0xCF8 );
-	__outl( value, 0xCFC );
+	__outl( 0xCF8, address );
+	__outl( 0xCFC, value );
 }
 
 //
@@ -393,7 +393,7 @@ void _pci_set_command( uint8 bus, uint8 device, uint8 function, uint16 value ) {
 //    interruptLine     value to be written in interruptLine
 //
 void _pci_set_interrupt( uint8 bus, uint8 device, uint8 function, uint8 interruptPin, uint8 interruptLine ) {
-    uint16 interrupt = (uint16)(interruptPin << 8) & interruptLine;
+    uint16 interrupt = (uint16)((interruptPin << 8) | interruptLine);
     _pci_cfg_write_w( bus, device, function, 0x3C, interrupt );
 }
 
