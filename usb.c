@@ -708,8 +708,7 @@ static void _usb_dump_dev_info( void ) {
 // In order, what this does is:
 // - general init sequence
 //     - enable bus master and memory space
-//     - get device information from PCI
-//     - get controller base addresses
+//     - get controller information from PCI (including base address)
 //     - get ownership of the controller if necessary
 //     - stop and reset the controller
 //     - route all ports to this controller
