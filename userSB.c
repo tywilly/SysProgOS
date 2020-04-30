@@ -73,7 +73,7 @@ static void fill_buff(uint16* buff_to_fill, double hz) {
     }
 }
 
-static void play_sound(uint16* buff_to_play, int division) {
+static int play_sound(uint16* buff_to_play, int division) {
     int count_to_play = BUFF_SIZE / division;
     // wait until we send all the bytes
     int posted = 0;
@@ -81,6 +81,9 @@ static void play_sound(uint16* buff_to_play, int division) {
         int count = write (CHAN_SB, buff_to_play, count_to_play - posted);
         if (count == 0) {
             sleep(0); // yeild CPU
+        } else if (count < 0) {
+            // error, no device
+            return count;
         }
         posted += count;
     } while (posted < count_to_play);
@@ -91,6 +94,9 @@ static void play_sound(uint16* buff_to_play, int division) {
         int count = write (CHAN_SB, silent_buff, count_to_play - posted);
         if (count == 0) {
             sleep(0); // yeild CPU
+        } else if (count < 0) {
+            // error, no device
+            return count;
         }
         posted += count;
     } while (posted < count_to_play);
@@ -116,7 +122,11 @@ int mainSB( int argc, char* args ) {
 
     // notes are grouped into one quarter note beat
     // play measure 1
-    play_sound(g_sharp_buff, 16);
+    int status = play_sound(g_sharp_buff, 16);
+    if (status < 0) {
+        // no hardware support, exit
+        return 1;
+    }
     play_sound(g_sharp_buff, 16);
     play_sound(g_sharp_buff, 16);
     play_sound(g_sharp_buff, 16);

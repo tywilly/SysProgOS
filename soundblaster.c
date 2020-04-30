@@ -17,6 +17,7 @@
 #include "cio.h"
 #include "sio.h"
 #include "x86pic.h"
+#include "types.h"
 
 #include "soundblaster.h"
 #include "pci.h"
@@ -42,18 +43,22 @@ static uint32  base_io;
 // temporary to debug
 static int on;
 
+static bool sb_installed;
+
 // Detect and configure the Sound blaster audio device.
 void _soundblaster_init(void) {
+    sb_installed = false;
     // print out starting
     __cio_puts(" SoundBl");
     soundblaster_dev = NULL;
 
     // find the soundblaster device
-    soundblaster_dev = _pci_dev_vendor( SOUND_BLASTER_VENDOR_ID, 
+    soundblaster_dev = _pci_dev_vendor( SOUND_BLASTER_VENDOR_ID,
                                         SOUND_BLASTER_DEVICE_ID );
 
     if (soundblaster_dev == NULL) {
         __cio_puts("!");
+        sb_installed = false;
         return;
     }
 
@@ -63,7 +68,7 @@ void _soundblaster_init(void) {
     assert( audio_samples ); // if this is null, big system problem
 
     // install ISR
-    uint8 interrupt = _pci_get_interrupt_line( soundblaster_dev->bus, 
+    uint8 interrupt = _pci_get_interrupt_line( soundblaster_dev->bus,
                                                soundblaster_dev->device,
                                                soundblaster_dev->function );
     __install_isr( interrupt + PIC_EOI, _soundblaster_isr );
@@ -80,7 +85,7 @@ void _soundblaster_init(void) {
     // enable bus master flag
     // enable bus mastering, disable memory mapping
     // allows the controller to initiate DMA transfers
-    _pci_set_command( soundblaster_dev->bus, soundblaster_dev->device, 
+    _pci_set_command( soundblaster_dev->bus, soundblaster_dev->device,
                       soundblaster_dev->function, 0x7 );
 
     // reset controller
@@ -115,6 +120,7 @@ void _soundblaster_init(void) {
     // mark as good to screen
     __cio_puts("+");
     on = 0;
+    sb_installed = true;
 }
 
 static void update_pointers( void ) {
@@ -162,6 +168,9 @@ void _soundblaster_isr( int vector, int code ) {
 
 // soundblaster device write function
 int _soundblaster_write( const char* buff, int count ) {
+    if ( !sb_installed ) {
+        return E_BAD_CHANNEL;
+    }
 
     uint16* max = SB_BYTES_ALLOCATED/16 + audio_samples;
 
