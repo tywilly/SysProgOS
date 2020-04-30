@@ -271,7 +271,7 @@ syscalls.o: common.h types.h udefs.h ulib.h x86arch.h x86pic.h ./uart.h
 syscalls.o: support.h klib.h syscalls.h queues.h scheduler.h process.h
 syscalls.o: stacks.h kmem.h bootstrap.h clock.h cio.h sio.h soundblaster.h
 syscalls.o: ac97.h pci.h
-pci.o: common.h types.h udefs.h ulib.h klib.h pci.h
+pci.o: common.h types.h udefs.h ulib.h pci.h
 ac97.o: common.h types.h udefs.h ulib.h klib.h x86pic.h ac97.h pci.h
 soundblaster.o: common.h types.h udefs.h ulib.h klib.h cio.h sio.h queues.h
 soundblaster.o: x86pic.h soundblaster.h pci.h kmem.h kdefs.h support.h
