@@ -12,11 +12,11 @@
 
 OS_C_SRC = clock.c kernel.c klibc.c kmem.c process.c \
 	queues.c scheduler.c sio.c stacks.c syscalls.c pci.c \
-	ac97.c soundblaster.c userSB.c
+	ac97.c soundblaster.c userSB.c wav.c
 
 OS_C_OBJ = clock.o kernel.o klibc.o kmem.o process.o \
 	queues.o scheduler.o sio.o stacks.o syscalls.o pci.o \
-	ac97.o winstart.o soundblaster.o userSB.o
+	ac97.o winstart.o soundblaster.o userSB.o wav.o
 
 OS_S_SRC = klibs.S
 OS_S_OBJ = klibs.o
@@ -277,6 +277,7 @@ soundblaster.o: common.h types.h udefs.h ulib.h klib.h cio.h sio.h queues.h
 soundblaster.o: x86pic.h soundblaster.h pci.h kmem.h kdefs.h support.h
 soundblaster.o: kernel.h x86arch.h process.h stacks.h bootstrap.h
 userSB.o: userSB.h common.h types.h udefs.h ulib.h kmem.h cio.h
-users.o: common.h types.h udefs.h ulib.h users.h userSB.h ac97.h pci.h
+wav.o: common.h types.h udefs.h ulib.h wav.h
+users.o: common.h types.h udefs.h ulib.h users.h userSB.h ac97.h pci.h wav.h
 ulibc.o: common.h types.h udefs.h ulib.h
 ulibs.o: syscalls.h common.h types.h udefs.h ulib.h queues.h

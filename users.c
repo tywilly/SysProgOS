@@ -15,6 +15,7 @@
 #include "users.h"
 #include "userSB.h"
 #include "ac97.h"
+#include "wav.h"
 
 /*
 ** USER PROCESSES
@@ -1230,8 +1231,8 @@ int startsound( int argc, char *args ) {
     uint16 srate = ac97_setrate( 0 ); // doesn't set the rate, just queries it.
     if (srate != 8000) {
         sprint(buf, "Sample rate %d differs from expected 8000 Hz.\n", srate);
-        swrites(buf);
-        swrites("This may sound a little strange");
+        cwrites(buf);
+        cwrites("This may sound a little strange");
     }
 
     // see if we can set the volume
@@ -1239,18 +1240,22 @@ int startsound( int argc, char *args ) {
     uint8 vol = ac97_getvol();
     if (vol != 32) {
         sprint(buf, "Reported volume %d differs from the value set!\n", vol);
-        swrites(buf);
+        cwrites(buf);
     }
     ac97_setvol(63); // back to full blast
 
-    // A WAV support library would be nice. Then you could really easily pull
-    // header information out of the RIFF file and choose the right sample rate,
-    // encoding, etc.
-    //
-    // Until I have time for that, just accept that the data starts 44 bytes
-    // after the beginning of the file.
-    char *pos = (char *) &_binary_winstart_wav_start + 44;
+    char *pos = (char *) &_binary_winstart_wav_start;
     char *end = (char *) &_binary_winstart_wav_end;
+
+    if (!_wav_is_playable(pos, end)) {
+        cwrites("WAV is not playable. Try a different one.\n");
+        exit( -1 );
+    }
+
+    // sample rate must be in the playable range after the _wav_is_playable 
+    // check.
+    ac97_setrate((uint16) _wav_sample_rate(pos, end));
+    pos = _wav_audio_start(pos, end);
     while( pos < end ) {
         // play the song until you can't anymore
         //
