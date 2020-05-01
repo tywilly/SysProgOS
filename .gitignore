@@ -2,6 +2,7 @@
 *.image
 BuildImage
 docs/
+.clang-format
 
 # Prerequisites
 *.d
