@@ -243,6 +243,7 @@ PCIDevice *_pci_dev_vendor( uint16 vendor, uint16 deviceID ) {
     return( NULL );
 }
 
+
 //
 // _pci_cfg_read_l() - read a long word from the device configuration register
 //

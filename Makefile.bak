@@ -254,7 +254,7 @@ clock.o: x86arch.h x86pic.h ./x86pit.h common.h types.h udefs.h ulib.h klib.h
 clock.o: clock.h process.h stacks.h kmem.h queues.h bootstrap.h scheduler.h
 kernel.o: common.h types.h udefs.h ulib.h kernel.h x86arch.h process.h
 kernel.o: stacks.h kmem.h queues.h bootstrap.h clock.h syscalls.h cio.h sio.h
-kernel.o: scheduler.h pci.h soundblaster.h ac97.h usb.h users.h
+kernel.o: scheduler.h pci.h soundblaster.h ac97.h users.h
 klibc.o: common.h types.h udefs.h ulib.h
 kmem.o: common.h types.h udefs.h ulib.h klib.h x86arch.h bootstrap.h kmem.h
 kmem.o: cio.h
