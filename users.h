@@ -67,7 +67,7 @@
 #define SPAWN_G
 #define SPAWN_H // H runs userH(), spawns userZ() & exits before its child
 #define SPAWN_I // I spawns children, kills one, gets status for all
-#define SPAWN_J // J tries to spawn 2*MAX_PROCS children
+//#define SPAWN_J // J tries to spawn 2*MAX_PROCS children
 #define SPAWN_K // K and L run main4(), spawning copies of userX and sleeping
 #define SPAWN_L
 #define SPAWN_M // M and N run main5(); they spawn userW and userZ
@@ -80,7 +80,7 @@
 #define SPAWN_U // U runs main6(), spawns children, waits for them by PID
 #define SPAWN_V // V runs main6(), spawns children, kills them
 
-#define STARTUP_SOUND // play the windows xp startup sound
+#define SPAWN_AC97 // play the windows xp startup sound
 
 #define SPAWN_SB // spawn the sound blaster sampler
 

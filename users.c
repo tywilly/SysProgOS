@@ -55,7 +55,9 @@ int userS( int, char * ); int userT( int, char * ); int userU( int, char * );
 int userV( int, char * ); int userW( int, char * ); int userX( int, char * );
 int userY( int, char * ); int userZ( int, char * );
 
-int startsound( int, char * );
+int dj( int, char * );
+int play_ac97( int, char * );
+int play_soundblaster( int, char * );
 
 /*
 ** User function #1:  write, exit
@@ -1215,10 +1217,7 @@ int userZ( int argc, char *args ) {
     return( 42 );  // shut the compiler up!
 }
 
-/*
-** Play the Windows XP Startup Sound
-*/
-int startsound( int argc, char *args ) {
+int play_ac97( int argc, char *args ) {
     int ch = '@';
     char buf[48];
 
@@ -1281,12 +1280,64 @@ int startsound( int argc, char *args ) {
         }
     }
 
-#ifdef SPAWN_SB
+    return 0;
+}
+
+/*
+** Play Darude sandstorm with the Sound Blaster ad infinitum
+*/
+int play_soundblaster( int argc, char *args ){
     // start the sound mixer now - after 100ms of quiet
     sleep(100);
     // main sound blaster doesn't use it either
-    mainSB( argc, args );
+    return mainSB( argc, args );
+}
 
+/*
+** Start separate processes for the ac97 playback, and sandstorm
+*/
+int dj( int argc, char *args ) {
+    swritech( 'd' ); // announce our presence
+    int32 pid;
+
+#ifdef SPAWN_AC97
+    // play AC97 audio
+    pid = spawn( play_ac97, &args );
+    if( pid < 0 ) {
+        cwrites( "Failed to Spawn AC97 Playback Process!\n");
+    } else {
+        // wait until it's done
+        int32 status;
+        int32 tmp = wait( (Pid) pid, &status);
+
+        if( tmp < 0 ) {
+            cwrites( "Unable to wait for AC97 Playback process!\n" );
+            exit( -1 );
+        }
+
+        if( status < 0 ) {
+            cwrites( "AC97 Playback exited with error code.\n" );
+        }
+    }
+#endif
+
+#ifdef SPAWN_SB
+    // play Sound Blaster audio
+    pid = spawn( play_soundblaster, &args );
+    if( pid < 0 ) {
+        cwrites("Failed to Spawn Sound Blaster Playback process!\n" );
+    } else {
+        int32 status;
+        int32 tmp = wait( (Pid) pid, &status );
+        if( tmp < 0 ) {
+            cwrites( "Unable to wait for Sound Blaster Playback process!\n" );
+            exit( -1 );
+        }
+
+        if( status < 0 ) {
+            cwrites( "Sound Blaster Playback exited with error code.\n" );
+        }
+    }
 #endif
 
     return 0;
@@ -1354,11 +1405,11 @@ int init( int argc, char *args ) {
         argv[i] = NULL;
     }
 
-#ifdef STARTUP_SOUND
+#if defined(SPAWN_AC97) || defined(SPAWN_SB)
     // play the Windows XP startup sound
     argv[0] = NULL; // no arguments
 
-    whom = spawn( startsound, argv );
+    whom = spawn( dj, argv );
     if( whom < 0 ) {
         cwrites( "init, spawn() user O failed\n" );
     }
