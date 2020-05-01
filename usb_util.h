@@ -46,7 +46,7 @@
 ** @param wIndex  The index of the request
 ** @param wLength  The length of the request
 */
-void usb_device_request_packet(void* dst, uint8 bmRequestType, uint8 bRequest,
+void usb_device_request_packet(void *dst, uint8 bmRequestType, uint8 bRequest,
                                uint16 wValue, uint16 wIndex, uint16 wLength);
 
 /**

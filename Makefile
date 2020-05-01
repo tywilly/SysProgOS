@@ -12,11 +12,11 @@
 
 OS_C_SRC = clock.c kernel.c klibc.c kmem.c process.c \
 	queues.c scheduler.c sio.c stacks.c syscalls.c pci.c \
-	usb.c usb_ehci.c usbhd.c usbd.c usb_util.c ramdisk.c fs.c fs/devfs.c
+	usb.c usb_ehci.c usbhd.c usbd.c usb_util.c usb_ms.c ramdisk.c fs.c fs/devfs.c
 
 OS_C_OBJ = clock.o kernel.o klibc.o kmem.o process.o \
 	queues.o scheduler.o sio.o stacks.o syscalls.o pci.o \
-	usb.o usb_ehci.o usbhd.o usbd.o usb_util.o ramdisk.o fs.o fs/devfs.o
+	usb.o usb_ehci.o usbhd.o usbd.o usb_util.o usb_ms.o ramdisk.o fs.o fs/devfs.o
 
 OS_S_SRC = klibs.S
 OS_S_OBJ = klibs.o
@@ -284,8 +284,9 @@ pci.o: common.h types.h ./udefs.h ulib.h klib.h pci.h
 usb.o: common.h types.h ./udefs.h ulib.h usb.h usb_ehci.h pci.h
 usb_ehci.o: klib.h types.h usb_ehci.h common.h ./udefs.h ulib.h pci.h
 usb_ehci.o: queues.h
-usbd.o: usb_ehci.h klib.h
+usbd.o: usb_ehci.h klib.h queues.h
 usb_util.o: klib.h usb_util.h common.h
+usb_ms.o: usbd.h common.h cio.h
 ramdisk.o: types.h cio.h kmem.h common.h ./udefs.h ulib.h klib.h ramdisk.h
 fs.o: common.h types.h ./udefs.h ulib.h klib.h cio.h fs.h
 fs/devfs.o: ./device.h types.h klib.h cio.h sio.h common.h ./udefs.h ulib.h
