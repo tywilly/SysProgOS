@@ -33,11 +33,12 @@
 #define PCI_BIST            0xF
 // other useful offsets
 #define PCI_BAR0            0x10
+#define PCI_BAR1            0x14
 #define PCI_SEC_BUS         0x19
 
-// Value for maximum number of connected devices to the PCI
-// chosen somewhat arbitrarily
-#define PCI_MAX_DEVICES 32
+// (Arbitrary) value for maximum number of connected devices
+// to the PCI
+#define PCI_MAX_DEVICES 15
 
 /*
 ** PRIVATE GLOBAL VARIABLES
@@ -64,6 +65,7 @@ static void _pci_check_bus( uint8 );
 //
 static void _pci_check_function( uint8 bus, uint8 device, uint8 function ) {
     uint32 bar0;
+    uint32 bar1;
     uint16 vendorID;
     uint16 deviceID;
     uint8 class;
@@ -80,6 +82,7 @@ static void _pci_check_function( uint8 bus, uint8 device, uint8 function ) {
     vendorID = _pci_cfg_read_w( bus, device, function, PCI_VENDOR_ID );
     deviceID = _pci_cfg_read_w( bus, device, function, PCI_DEVICE_ID );
     bar0 = _pci_cfg_read_l( bus, device, function, PCI_BAR0 );
+    bar1 = _pci_cfg_read_l( bus, device, function, PCI_BAR1 );
     
     // check if the device is a secondary bus
     // if so, check the bus for connected devices
@@ -98,6 +101,7 @@ static void _pci_check_function( uint8 bus, uint8 device, uint8 function ) {
     newDevice->progIF = progIF;
     newDevice->vendorID = vendorID;
     newDevice->deviceID = deviceID;
+    newDevice->bar1 = bar1;
 
     // read base address 0 properly
     if( bar0 & 1 ) {                        // I/O Space BAR layout
@@ -160,7 +164,7 @@ static void _pci_check_bus( uint8 bus ) {
 //
 // _pci_check_buses() - check all buses for connected devices
 //
-static void _pci_check_buses() {
+static void _pci_check_buses(void) {
     uint8 function;
     uint8 bus;
 
@@ -214,6 +218,31 @@ PCIDevice *_pci_dev_class( uint8 class, uint8 subClass, uint8 progIF ) {
 
     return( NULL );
 }
+
+//
+// _pci_dev_vendor() - get the first device descriptor matching the given
+//                     parameters.
+//
+// Parameters:
+//    vendor        device vendor code
+//    deviceID      device id code
+//
+// Returns:
+//    a pointer to the device descriptor
+//
+PCIDevice *_pci_dev_vendor( uint16 vendor, uint16 deviceID ) {
+    uint8 i;
+
+    for( i = 0; i < _pci_num_dev; i++ ) {
+        PCIDevice *dev = &_pci_dev_list[i];
+        if( dev->vendorID == vendor && dev->deviceID == deviceID ) {
+            return( dev );
+        }
+    }
+
+    return( NULL );
+}
+
 
 //
 // _pci_cfg_read_l() - read a long word from the device configuration register

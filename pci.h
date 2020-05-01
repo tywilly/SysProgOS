@@ -33,6 +33,7 @@ typedef struct pci_device_s {
     uint16 vendorID;
     uint16 deviceID;
     uint32 bar0;
+    uint32 bar1;
 } PCIDevice;
 
 /*
@@ -56,6 +57,19 @@ void _pci_init( void );
 //    a pointer to the device descriptor
 //
 PCIDevice *_pci_dev_class( uint8 class, uint8 subClass, uint8 progIF );
+
+//
+// _pci_dev_vendor() - get the first device descriptor matching the given
+//                     parameters.
+//
+// Parameters:
+//    vendor        device vendor code
+//    deviceID      device id code
+//
+// Returns:
+//    a pointer to the device descriptor
+//
+PCIDevice *_pci_dev_vendor( uint16 vendor, uint16 deviceID );
 
 //
 // General read functions

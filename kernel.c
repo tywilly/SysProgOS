@@ -5,7 +5,8 @@
 **
 ** Author:  CSCI-452 class of 20195
 **
-** Contributor:
+** Contributor: Cody Burrows (cxb2114@rit.edu)
+**              Zach Jones   (ztj3686@rit.edu)
 **
 ** Description: Miscellaneous OS support routines.
 */
@@ -24,6 +25,8 @@
 #include "sio.h"
 #include "scheduler.h"
 #include "pci.h"
+#include "soundblaster.h"
+#include "ac97.h"
 #include "usb.h"
 
 // need init() and idle() addresses
@@ -154,11 +157,13 @@ void _init( void ) {
     _stk_init();     // stacks
     _sys_init();     // system calls
     _pci_init();     // PCI
+    _ac97_init();    // AC97
     _usb_init();     // USB
+    _soundblaster_init(); // sound blaster audio
 
     __cio_puts( "\nModule initialization complete.\n" );
     __cio_puts( "-------------------------------\n" );
-    __delay( 200 );  // about 5 seconds
+    __delay( 2 );  // about 50 milliseconds
 
     /*
     ** Create the initial process
@@ -317,6 +322,11 @@ void _shell( int ch ) {
         case 'u':
             _usb_dump_all();
             break;
+
+        case 'm':
+            _ac97_status();
+            break;
+
         default:
             __cio_printf( "shell: unknown request '0x%02x'\n", ch );
 
@@ -332,6 +342,7 @@ void _shell( int ch ) {
             __cio_puts( "   s  -- dump stacks for active processes\n" );
             __cio_puts( "   l  -- list all PCI devices\n");
             __cio_puts( "   u  -- dump USB init information\n" );
+            __cio_puts( "   m  -- dump status of the AC97 device\n" );
             __cio_puts( "   x  -- exit\n" );
             break;
         }

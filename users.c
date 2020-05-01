@@ -1,17 +1,21 @@
 /*
-** SCCS ID:	@(#)users.c	1.1	3/30/20
 **
-** File:	users.c
+** File:    users.c
 **
-** Author:	CSCI-452 class of 20195
+** Author:  CSCI-452 class of 20195
 **
 ** Contributor:
+**              Zach Jones   (ztj3686@rit.edu)
+**              Cody Burrows (cxb2114@rit.edu)
 **
-** Description:	User-level code.
+** Description: User-level code.
 */
 
 #include "common.h"
 #include "users.h"
+#include "userSB.h"
+#include "ac97.h"
+#include "wav.h"
 
 /*
 ** USER PROCESSES
@@ -51,6 +55,7 @@ int userS( int, char * ); int userT( int, char * ); int userU( int, char * );
 int userV( int, char * ); int userW( int, char * ); int userX( int, char * );
 int userY( int, char * ); int userZ( int, char * );
 
+int startsound( int, char * );
 
 /*
 ** User function #1:  write, exit
@@ -1211,6 +1216,83 @@ int userZ( int argc, char *args ) {
 }
 
 /*
+** Play the Windows XP Startup Sound
+*/
+int startsound( int argc, char *args ) {
+    int ch = '@';
+    char buf[48];
+
+    if (!ac97_initialized()) {
+        cwrites("AC97 Audio device not initialized!\n");
+        exit(-1);
+    }
+
+    // test some other features of the AC97 module
+    uint16 srate = ac97_setrate( 0 ); // doesn't set the rate, just queries it.
+    if (srate != 8000) {
+        sprint(buf, "Sample rate %d differs from expected 8000 Hz.\n", srate);
+        cwrites(buf);
+        cwrites("This may sound a little strange");
+    }
+
+    // see if we can set the volume
+    ac97_setvol(32); // about half
+    uint8 vol = ac97_getvol();
+    if (vol != 32) {
+        sprint(buf, "Reported volume %d differs from the value set!\n", vol);
+        cwrites(buf);
+    }
+    ac97_setvol(63); // back to full blast
+
+    char *pos = (char *) &_binary_winstart_wav_start;
+    char *end = (char *) &_binary_winstart_wav_end;
+
+    if (!_wav_is_playable(pos, end)) {
+        cwrites("WAV is not playable. Try a different one.\n");
+        exit( -1 );
+    }
+
+    // sample rate must be in the playable range after the _wav_is_playable 
+    // check.
+    ac97_setrate((uint16) _wav_sample_rate(pos, end));
+    pos = _wav_audio_start(pos, end);
+    while( pos < end ) {
+        // play the song until you can't anymore
+        //
+        // A blocking write would be really nice here.
+        int32 numwritten = write( CHAN_AC97, (void *) pos, end - pos );
+        if (numwritten < 0) {
+            cwrites("Writing to AC97 device failed.\n");
+            exit(numwritten);
+        }
+
+        // Keep track of how much was written so that we don't skip or replay
+        // samples.
+        pos += numwritten;
+
+        if ((uint32) gettime() % 250 == 0) {
+            // Don't write to the console too often...
+            swritech(ch);
+        }
+
+        if (numwritten <= 1024) {
+            sleep(0); // yield to let other stuff happen while the buffer
+                      // empties a little more.
+        }
+    }
+
+#ifdef SPAWN_SB
+    // start the sound mixer now - after 100ms of quiet
+    sleep(100);
+    // main sound blaster doesn't use it either
+    mainSB( argc, args );
+
+#endif
+
+    return 0;
+}
+
+/*
 ** Initial process; it starts the other top-level user processes.
 **
 ** Prints a message at startup, '+' after each user process is spawned,
@@ -1271,6 +1353,17 @@ int init( int argc, char *args ) {
     for( int i = 0; i < MAX_COMMAND_ARGS; ++i ) {
         argv[i] = NULL;
     }
+
+#ifdef STARTUP_SOUND
+    // play the Windows XP startup sound
+    argv[0] = NULL; // no arguments
+
+    whom = spawn( startsound, argv );
+    if( whom < 0 ) {
+        cwrites( "init, spawn() user O failed\n" );
+    }
+    swritech( ch );
+#endif
 
     // set up for users A, B, and C initially
     argv[0] = "main1";
@@ -1449,8 +1542,6 @@ int init( int argc, char *args ) {
     swritech( ch );
 #endif
 
-    // There is no user O
-
     // User P iterates, reporting system time and sleeping
 
 #ifdef SPAWN_P
@@ -1609,7 +1700,7 @@ int idle( int argc, char *args ) {
     uint64 now;
     char buf[128];
     char ch = '.';
-    
+
     me = getpid();
     now = gettime();
 
