@@ -1,6 +1,6 @@
 ================================================================================
 
-                                 Windows Vista
+                                   Windows XP 
                               Modules Description
                                     Group 4
 
@@ -9,7 +9,7 @@
 
 Abstract
 ----------------------------------------
-This document describes each component of Windows Vista module by module.
+This document describes each component of Windows XP module by module.
 Sections go into detail about major data structures, and how they evolved over
 time from the design stage to the final implementation. In addition, each
 module's API, and interaction with the rest of the OS will be discussed.
@@ -17,7 +17,7 @@ module's API, and interaction with the rest of the OS will be discussed.
 
 AC97 Module
 ----------------------------------------
-The AC97 Module in Windows Vista handles configuring the device for use by
+The AC97 Module in Windows XP handles configuring the device for use by
 user-level processes, and manages a buffer to store PCM audio data for output
 from the speakers.
 
@@ -135,7 +135,7 @@ Memory Usage:
     include deallocating the buffers when there are no streams playing.
 
 Performance:
-    The AC97 Module in Windows Vista supports stereo (signed 16-bit) PCM audio
+    The AC97 Module in Windows XP supports stereo (signed 16-bit) PCM audio
     sampled as low as 2 kHz, and as high as 48 kHz. At 48 kHz (CD quality),
     there is no noticeable clipping. I was not able to test even high quality
     audio, but there is nothing in theory that should stop it from working,

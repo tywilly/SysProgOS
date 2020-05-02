@@ -1,6 +1,6 @@
 ================================================================================
 
-                                 Windows Vista
+                                   Windows XP 
                                 API Information
                                     Group 4
 
@@ -9,7 +9,7 @@
 
 Abstract
 ----------------------------------------
-This document outlines all of the services available to users in Windows Vista,
+This document outlines all of the services available to users in Windows XP,
 including system calls and convenience functions. This includes system calls in
 the baseline OS as well as its augmentations.
 
