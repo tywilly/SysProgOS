@@ -1,0 +1,879 @@
+================================================================================
+
+                                   Windows XP 
+                                API Information
+                                    Group 4
+
+================================================================================
+
+
+Abstract
+----------------------------------------
+This document outlines all of the services available to users in Windows XP,
+including system calls and convenience functions. This includes system calls in
+the baseline OS as well as its augmentations.
+
+
+Baseline System Calls
+----------------------------------------
+bogus
+    void bogus( void );
+    A special system call intended for debugging the system call ISR. I'd bet
+    that it doesn't accomplish what you're trying to do...so please don't use
+    it unless you're debugging something.
+
+    Parameters:
+    None
+
+    Side Effects:
+    Warning on CIO with the PID and syscall number.
+    Your process gets killed.
+
+    Returns:
+    Nothing
+
+    Example Usage:
+    bogus();
+
+exit
+    void exit( int32 status );
+    This system call terminates whatever function calls it. The exit status
+    will be collected by the process' parent, or init.
+
+    Parameters:
+    int32 status: Your process' exit status. Typically a status of 0 indicates
+                  normal exit. Nonzero status typically indicates abnormal exit,
+                  but it's a free country.
+
+    Side Effects:
+    Your process dies.
+
+    Returns:
+    Does not return.
+
+    Example Usage:
+    exit( -32 ); // Something went horribly wrong, end my suffering!
+    exit( 0 );   // All is good, I'm moving on to a better place.
+
+getpid
+    Pid getpid( void );
+    Request your Process ID.
+
+    Parameters:
+    None
+
+    Side Effects:
+    None
+
+    Returns:
+    Your Process ID as type Pid (unsigned 16-bit integer). See types.h for
+    more details.
+
+    Example Usage:
+    if( getpid() == 254 ) {
+        exit( -1 ); // I don't like this number
+    }
+
+getppid
+    Pid getppid( void );
+    Request your parent's Process ID.
+
+    Parameters:
+    None
+
+    Side Effects:
+    None
+
+    Returns:
+    Your parent process' ID as type Pid (unsigned 16-bit integer). See types.h
+    for more information.
+
+    Example Usage:
+    kill( getppid() ); // make a life insurance claim
+
+gettime
+    Time gettime( void );
+    Request the system time, in 1 ms ticks since startup.
+
+    Parameters:
+    None
+
+    Side Effects:
+    None
+
+    Returns:
+    The current system time of type Time (unsigned 64-bit integer). See types.h
+    for more information.
+
+    Example Usage:
+    if( (uint32) gettime() > 150000 ) {
+        cwrites( "I'm late!!!!\n" );
+    }
+
+getstate
+    State getstate( uint16 pid );
+    Request the state of a process in the system.
+
+    Parameters:
+    uint16 pid: The Process ID of the process to check the state of. Passing
+                your own PID to this function is equivalent to passing 0 for
+                PID. Spoiler alert: checking your own state will almost always
+                be RUNNING, unless something goes wrong.
+
+    Side Effects:
+    None
+
+    Returns:
+    See status_e in types.h for all possible states.
+    The integer representation of the specified process' state. If the process
+    parameter is invalid or not found, the returned state will be UNUSED.
+
+    Example Usage:
+    if( getstate( 42 ) == WAITING ) {
+        kill( 42 ); // get impatient
+    }
+
+    while( true ) {
+        if( getstate( 0 ) == RUNNING ) {
+            cwrites( "I told you so!\n" );
+        }
+    }
+
+kill
+    int32 kill( Pid pid );
+    Take out your anger by assassinating a process in the system.
+
+    Parameters:
+    Pid pid: The process ID of your victim with type Pid.
+             Note: No matter how hard you try, you cannot kill init or idle.
+             Note: Passing 0 as the PID kills the calling process. Do this if
+                   calling exit() is not exciting enough.
+
+    Side Effects:
+    The process in question is murdered in cold blood. It is removed from
+    whatever system queue it is on, and its parent mourns the loss of the child
+    by collecting the exit status of E_KILLED.
+
+    Returns:
+    Note: If you kill yourself, you obviously won't return.
+    0 if the deed is done.
+    E_INVALID if you are not allowed to kill the process in question.
+    E_NOT_FOUND if you tried to kill a process that isn't in the system.
+
+    Example Usage:
+    if( kill( 42 ) != 0 /* I never liked that guy */ ) {
+        // he's on to us
+        kill( 0 ); // goodbye cruel world
+    }
+
+read
+    int32 read( int chan, void *buffer, uint32 length );
+    Read data from a stream into a local buffer. You may read from console input
+    or from serial input. Console input is non-blocking, but serial input is.
+
+    Parameters:
+    int chan:       The number representing which stream to read from.
+                    Valid options include: CHAN_SIO to read from serial input,
+                    or CHAN_CONS to read from console input.
+    void *buffer:   The place to read bytes into.
+    uint32 length:  The maximum capacity of the buffer in bytes.
+
+    Side Effects:
+    The buffer may be filled with some new data. If you're reading from serial
+    input, other processes may be scheduled until new data is available.
+
+    Returns:
+    The number of bytes read, or E_BAD_CHANNEL if you try to read from a
+    nonexistent stream,
+
+    Example Usage:
+    char ades[256]; // like the game
+    if( read( CHAN_SIO, ades, 256 ) > 0 ) {
+        cwrites( "Gone with the wind??\n" );
+    } else {
+        cwrites( "Just act something out already!" );
+    }
+
+sleep
+    void sleep( uint32 msec );
+    Put your process to sleep while the rest of the world goes on around you.
+    You cannot sleep for longer than 49 days, 17 hours, 2 minutes, and 47
+    seconds. If you want to sleep longer, see exit().
+
+    Parameters:
+    uint32 msec: The number of milliseconds your process desires to be asleep
+                 for.
+                 Note: Passing 0 milliseconds as a parameter effectively yields
+                 the CPU if there are other processes waiting.
+
+    Side Effects:
+    Your process does not run for a certain amount of time.
+    Your process may have dreams.
+
+    Returns:
+    Nothing
+
+    Example Usage:
+    if( (uint32) gettime() < 10000 ) {
+        cwrites( "Yeah, I got time...\n" );
+        sleep( 5000 );
+    }
+
+spawn
+    int32 spawn( int (*entry)(int, char*), char *args[] );
+    Bring a brand new process into the world.
+
+    Parameters:
+    int (*entry)(...):  A pointer to the main function that the process should
+                        start off executing. It must take an integer for the
+                        number of arguments (like argc), and a string of
+                        NULL delimited parameters.
+    char *args[]:       The command line arguments to pass to the main program.
+
+    Side Effects:
+    If all goes well, you are the proud parent of the newest process in the
+    system.
+
+    Returns:
+    The PID of the new process, or an error code. It could return E_MAX_PROCS if
+    there are already N_PROCS (see common.h) processes in the system. It could
+    also return E_NO_MEMORY if there is not enough space left in memory to
+    allocate a stack for the process.
+
+    Example Usage:
+    // down with the machine!
+    int forkbomb( int argc, char *argv ) {
+        char *argv[];
+        spawn( forkbomb, &argv );
+        while( true ) { cwrites("HA"); }
+
+        return -1; // whatever
+    }
+
+    char *argv[];
+    cwrites( "MWA HA" );
+    spawn( forkbomb, argv );
+
+wait
+    int32 wait( Pid pid, int32 *status );
+    Block until a child process exits, then collect its status.
+
+    Parameters:
+    Pid pid:        The process ID of the child to wait for.
+                    Note: Passing a pid of 0 will wait for any child to exit.
+    int32 *status:  A pointer to a safe place to put the child's status.
+
+    Side Effects:
+    If you wait for a valid child, the value that status points to will be
+    filled with the exited child's status. If none of your children have exited,
+    the calling process will be blocked, with the status WAITING.
+
+    Returns:
+    The Pid of the child that exited, or an error code: E_NO_CHILDREN if your
+    process is an empty-nester; E_INVALID if you try towait for yourself or if
+    you try to abduct another process' child; E_NOT_FOUND if the process you're
+    trying to wait for does not exist.
+
+    Example Usage:
+    int32 status;
+    uint16 pid;
+    char buf[64];
+    while( (pid = wait( 0, &status )) != E_NO_CHILDREN ) {
+        if( status == E_KILLED ) {
+            sprint( buf, "OH NO! MY BABY %d WAS KILLED! WHYYYYYY!!!?!??!\n" );
+            cwrites( buf );
+        }
+    }
+
+write
+    int32 write( int chan, const void *buf, uint32 length );
+    Transfer data from a buffer to a stream without blocking.
+
+    Parameters:
+    int chan:       The number of the channel you wish to write data to.
+                    CHAN_SIO: Serial output
+                    CHAN_CONS: Console output
+                    CHAN_AC97: AC97 audio output
+                    CHAN_SB:   SoundBlaster audio output
+
+    Side Effects:
+    The output stream you selected may have some data written to it.
+    Note: this is NOT a blocking write. If the console or serial buffers fill
+    before all of the data is written, the remaining data gets lost. However,
+    if the AC97 buffer fills, the number of bytes that fit into the buffer will
+    be returned. Be sure to keep track of this so you can continue writing
+    sound data without skipping or replaying samples. In addition, the AC97
+    controller will begin playback of data in the buffer.
+    The sound blaster buffer fills similar to the AC97, but will loop on
+    the last input if there's no more data.
+
+    Returns:
+    The number of bytes that were transferred, or an error code: E_BAD_CHANNEL
+    if you write to a nonexistent channel, or you write to the AC97 output
+    if an AC97 controller is not present in the system.
+
+    Example Usage:
+    const char emancipation_proc[34] = "Four score and seven years ago...";
+    write( CHAN_CONS, (const void *) emancipation_proc, 34 );
+
+    extern char *pos = _binary_winstart_wav_start;
+    extern char *end = _binary_winstart_wav_end;
+    int32 numwritten = write( CHAN_AC97, (void *) pos, end - pos );
+    if( numwritten < 0 ) {
+        // bad stuff happened
+        exit();
+    } else if( numwritten < 1024 ) {
+        sleep( 0 ); // yield to let the buffer drain a little bit
+    }
+    pos += numwritten; // start writing again where we left off
+
+    Variants:
+    The write system call has many handy shorthand functions for the lazy.
+    Each of the following returns the same thing described in the Returns
+    section of write (above).
+
+        cwritech
+            int cwritech( char ch );
+            Write a character to console output.
+
+            Parameters: char ch: the character to dump out
+
+            Side Effects:
+            A character is printed on console output, and the cursor is advanced
+
+            Example Usage:
+            cwritech( 'f' );
+            cwritech( 'o' );
+            cwritech( 'o' );
+
+        cwrites
+            int cwrites( const char *str );
+            Write a NULL-terminated string to console output.
+
+            Parameters: const char *str: The string to print.
+
+            Side Effects:
+            Your string, or as much of it as will fit in the output buffer,
+            will be printed to console output.
+
+            Example Usage:
+            cwrites( "foo\n" );
+            const char protest[42] = "You can't censor me!!!1!\n";
+            if( cwrites( protest ) < strlen(protest) ) {
+                // the buffer filled, or we get censored. Get violent!
+                kill( 3 );
+                kill( 0 );
+            }
+
+        cwrite
+            int cwrite( const char *buf, uint32 size );
+            Write a particular buffer to CHAN_CONS.
+
+            Parameters:
+            const char *buf:    The Buffer to print
+            uint32 size:        The number of bytes to write from the buffer
+
+            Side Effects:
+            Your buffer will be printed to console output, and the cursor may
+            be advanced.
+
+            Example Usage:
+            char buf[15];
+            sprint( buf, "%x wetter\n", 0xBED );
+            cwrite( buf, 15 );
+
+        swritech
+            int swritech( char ch );
+            Write a single character to the serial output.
+
+            Parameters: char ch: the character to print
+
+            Side Effects:
+            A character will be sent over serial output.
+
+            Example Usage:
+            while( true ) {
+                swritech( '8' ); // a reference to the Stanley Parable.
+            }
+
+        swrites
+            int swrites( const char *str );
+            Write a NULL-terminated string to serial output.
+
+            Parameters: const char *str: The NULL-terminated string to write.
+
+            Side Effects:
+            Some or all of your string will be written to SIO depending on how
+            full the output buffer is.
+
+            Example Usage:
+            swrites( "Knock Knock.\n" );
+            sleep( 1000 );
+            swrites( "Who's there?\n" );
+            sleep( 1000 );
+            swrites( "Flaming death.\n" );
+            spawn( forkbomb, argv ); // get it?
+
+        swrite
+            int swrite( const char *buf, uint32 size );
+            Write a certain number of bytes to the serial output line.
+
+            Parameters:
+            const char *buf: The buffer to write.
+            uint32 size:     The number of bytes to write from buf.
+
+            Side Effects:
+            Some or all of your buffer will be written to SIO depending on how
+            full the output buffer is.
+            You also may anger whoever is listening on the other end of the
+            line...
+
+            Example Usage:
+            const char buf[128] = "Hey Mr. Gorbachev, what did Soviet people "
+                                  "use to light their homes before candles?\n"
+                                  "Electricity.";
+            swrite( buf, strlen( buf ) );
+
+
+Baseline Support Functions
+----------------------------------------
+strstate
+    const char *strstate( State n );
+    Convert an integer process state in state_e (types.h) to a more friendly
+    string form.
+
+    Parameters:
+    A value for State. For example, UNUSED, NEW, READY, RUNNING, etc.
+
+    Side Effects:
+    None
+
+    Returns:
+    A pointer to a NULL-terminated string that describes the state passed in.
+    Or, "????" if the state is undefined.
+
+    Example Usage:
+    cwrites( strstate( getstate( 0 ) ) );
+
+str2int
+    int str2int( register const char *str, register int base );
+    Convert a string of characters to a number in the base provided.
+
+    Parameters:
+    const char *str: The string to convert.
+    int base:        The radix of the conversion.
+
+    Side Effects:
+    None
+
+    Returns:
+    The converted value.
+
+    Example Usage:
+    int n = str2int( "-3", 10 );
+    if( n == -3 ) {
+        cwrites( "fancy\n" );
+    }
+
+strlen
+    uint32 strlen( const char *str );
+    Return the length of a NULL-terminated string.
+
+    Parameters:
+    const char *str: The string to analyze. Note: If there is no null terminator
+    you run the risk of counting all bytes between the str pointer and the next
+    0 in memory.
+
+    Side Effects:
+    None
+
+    Returns:
+    The length of the string.
+
+    Example Usage:
+    if( strlen( "five" ) == 4 ) {
+        cwrites( "math is broken\n" );
+    }
+
+strcpy
+    char *strcpy( register char *dst, register const char *src );
+    Copy a chunk of characters from one place to another.
+
+    Parameters:
+    char *dst:          The place to copy the source buffer to
+    const char *src:    The data to copy somewhere else. Make sure the dst
+                        buffer is large enough to hold the contents of the src
+                        buffer.
+
+    Side Effects:
+    The data from src will show up in dst.
+
+    Returns:
+    A pointer to the destination buffer.
+
+    Example Usage:
+    extern const char *stackoverflow;
+    char my_work[256];
+    strcpy( my_work, stackoverflow );
+
+strcat
+    char *strcat( register char *dst, register const char *src );
+    Glue two strings together into one.
+
+    Parameters:
+    char *dst:          The base string that will show up first in the final
+                        concatenated string. This buffer must be large enough
+                        to hold the final string.
+    const char *src:    The the string that will be concatenated at the end of
+                        the base string.
+
+    Side Effects:
+    The final concatenated string will be coped into dst
+
+    Returns:
+    A pointer to dst.
+
+    Example Usage:
+    char dst[64] = "NaNaNaNaNaNaNaNaNa";
+    char src[16] = "Batman!";
+    cwrites( strcat( dst, src ) );
+
+strcmp
+    int strcmp( register const char *s1, register const char *s2 );
+    Compare two NULL-terminated strings. This comparison effectively evaluates
+    s1 - s2. If s1 < s2 the result is negative. If s1 > s2, the result is
+    positive. Zero is returned otherwise.
+
+    Parameters:
+    const char *s1: The first string to compare
+    const char *s2: The second string to compare
+
+    Side Effects:
+    None
+
+    Returns:
+    The value of the comparison.
+
+    Example Usage:
+    const char ubuntu[7] = "Ubuntu";
+    const char winders[8] = "Windows";
+    if( strcmp( ubuntu, winders ) > 0 ) {
+        cwrites( "Yeah, I thought so\n" );
+    }
+
+pad
+    char *pad( char *dst, int extra, int padchar );
+    Add a padding character to a buffer.
+
+    Parameters:
+    char *dst:      The resulting buffer
+    int extra:      The number of padding characters to add
+    int padchar:    The character to repeatedly add to the buffer.
+
+    Side Effects:
+    The padchar will be copied into dst extra times.
+
+    Returns:
+    A pointer to the next byte after the padding.
+
+    Example Usage:
+    char dst[32];
+    pad( dst, 4, " " ); // put 4 spaces in the buffer
+
+padstr
+    char *padstr( char *dst, char *str, int len, int widthi, int leftadjust,
+                  int padchar );
+    Add padding to a string to make it nice and cozy.
+
+    Parameters:
+    char *dst:      Destination buffer. Make sure it's large enough to hold the
+                    entire resulting string.
+    char *str:      The string to pad
+    int len:        The length of the str argument.
+    int width:      The desired length of the final resulting string.
+    int leftadjust: Pass 0 to right-justify the string in the final width.
+                    Pass anything else to left-justify the string in the final
+                    width, and put the padding character at the end.
+    int padchar:    The character to pad with
+
+    Side Effects:
+    A padded string is copied into dst.
+
+    Returns:
+    A pointer to the byte after the padded string.
+
+    Example Usage:
+    char dst[32];
+    padstr( dst, "right!", 6, 24, 0, '.' );
+
+sprint
+    void sprint( char *dst, char *fmt, ... );
+    Create formatted output in a buffer. This works like sprintf in Unix.
+
+    Parameters:
+    char *dst:  The destination buffer to place the final formatted string in.
+    char *fmt:  A format string that specifies how the output should look. You
+                can use flags as placeholders for various kinds of data. For
+                example, the format string "%d is the answer to life, the
+                universe and everything" will allow one integer to replace the
+                %d flag. In addition, you can specify padding. The format
+                string "Value: %08x" has its %08x flag replaced by a hexadecimal
+                value padded with 0s if necessary to reach 8 characters.
+                    %c: Character
+                    %d: Integer
+                    %s: String
+                    %x: Hex number
+                    %o: Octal number
+    ...:        Values to replace the flags with if necessary, in the order
+                they appear in the format string.
+
+    Side Effects:
+    dst buffer is filled with the format string with all flags replaced by
+    values. Make sure dst is large enough to accomodate all of the data.
+
+    Returns:
+    Nothing
+
+    Example Usage:
+    char buf[32];
+    sprint( buf, "%d of one, half dozen of the other", 6 );
+    sprint( buf, "Sometimes you don't use any flags.\n" );
+
+exit_helper
+    void exit_helper( void );
+    This is the function that user main functions return to if they don't call
+    exit themselves.
+
+    Parameters:
+    None
+
+    Side Effects:
+    This will call exit with the value of register eax.
+
+    Returns:
+    Nothing. Note: This function does not return.
+
+    Example Usage:
+    Don't use this. See exit.
+
+parse_args
+    int parse_args( int argc, char *args, int n, char *argv[] );
+    Convert an argument string into a (possibly) more useful argument vector.
+
+    Parameters:
+    int argc:       The number of arguments we expect to have in the argument
+                    string
+    char *args:     The argument string itself
+    int n:          The length of the argv array
+    char *argv[]:   The argv array itself.
+
+    Side Effects:
+    The first n - 1 entries in args will have pointers to the beginning of each
+    NULL-terminated string copied into the argv array.
+
+    Returns:
+    The number of strings that were actually copied into argv.
+
+    Example Usage:
+    if( parse_args( argc, args, 4, argv ) != 3 ) {
+        cwrites( "Usage: foo 1 2 3" );
+        exit( -1 );
+    }
+
+cvt_dec0
+    char *cvt_dec0( char *buf, int value );
+    Make an int32 into a string (NOT NULL-terimated) of its decimal
+    representation.
+
+    Parameters:
+    char *buf:  The destination buffer for the converted string. Make sure this
+                is large enough to hold all of the digits.
+    int value:  The value to convert
+
+    Side Effects:
+    The string representation of the value parameter will be copied into buf.
+
+    Returns:
+    The pointer to the byte after the last character in the string
+    representation
+
+    Example Usage:
+    char lyrics[128];
+    char *next = cvt_dec0( lyrics, 525600 );
+    strcat( next, " minutes \0" );
+    swrites( lyrics );
+
+cvt_dec
+    int cvt_dec( char *buf, int32 value );
+    Make an int32 into a null terminated string of its decimal representation.
+
+    Parameters:
+    char *buf:      The destionation buffer for the converted string. Make sure
+                    this is large enough to hold all of the digits
+    int32 value:    The value to convert
+
+    Side Effects:
+    A null-terminated string representation of the value parameter is copied
+    into the destination buffer.
+
+    Returns:
+    The number of characters placed into the buffer.
+
+    Example Usage:
+    char buf[16];
+    if( cvt_dec( buf, (int32) getppid() ) > 3 ) {
+        cwrites( "Wow, my parent has a lot of digits\n" );
+    }
+
+cvt_hex
+    int cvt_hex( char *buf, uint32 value );
+    Turn an unsigned 32-bit value into its hexadecimal string representation,
+    with a NULL terminator. The final string could be up to 8 hex digits long.
+
+    Parameters:
+    char *buf:      The destination for the converted string.
+    uint32 value:   The value to represent in hex
+
+    Side Effects:
+    The hex representation of the value will be copied into buf, with a NULL.
+
+    Returns:
+    The number of digits put in the buffer excluding the NULL.
+
+    Example Usage:
+    char buf[9];
+    n = cvt_hex( buf, 0xBEDDED );
+    cwrites( buf );
+
+report
+    void report( char ch, Pid whom );
+    Echo to the console that a user is running, with their pid.
+
+    Parameters:
+    char ch:    The char to represent the process running.
+    Pid whom:   The PID of the process.
+
+    Side Effects:
+    Prints " x(42)" if ch is 'x' and the Process ID is 42.
+
+    Returns:
+    Nothing
+
+    Example Usage:
+    report( 'a', getpid() );
+
+
+Enhancement System Calls
+----------------------------------------
+AC97 Driver
+    ac97_getvol
+        uint8 ac97_getvol( void );
+        Query the AC97 Audio Controller's Master volume level. The level is
+        reported on a 6-bit (0-63) scale where 0 is muted, and 63 is earth-
+        shakingly loud (on real hardware).
+
+        Parameters:
+        None
+
+        Side Effects:
+        None
+
+        Returns:
+        The device's master volume setting from 0 (silent) to 63 (deafening).
+        If the AC97 controller is not present or initialized, this will return
+        0.
+
+        Example Usage:
+        if( ac97_getvol() == 11 ) {
+            cwrites("Turned up to 11, but not actually that loud.\n" );
+        }
+
+    ac97_setvol
+        void ac97_setvol( uint8 vol );
+        Adjust the AC97 Master volume level to your desired level of hearing
+        loss.
+
+        Parameters:
+        uint8 vol: A 6-bit value to use as the new volume level. It will
+                   automatically be scaled to whatever number of bits your
+                   audio mixer supports. Values outside of the valid range
+                   have no effect.
+
+        Side Effects:
+        If the AC97 controller is present and initialized, your volume level
+        may be changed.
+
+        Returns:
+        Nothing
+
+        Example Usage:
+        uint8 vol = 0;
+        while( true ) {
+            // look ma, crescendos!
+`           ac97_setvol( vol );
+            vol = (vol + 1) % 64;
+        }
+
+    ac97_setrate
+        uint16 ac97_setrate( uint16 rate );
+        Set the AC97 controller's rate of operation in Hz. This will allow you
+        to play PCM audio at different sample rates. Not all frequencies are
+        supported, but the hardware chooses the closest one.
+
+        Parameters:
+        uint16 rate: The desired sample rate in Hz (samples per second).
+
+        Side Effects:
+        If the AC97 controller is present and initialized, the sample rate may
+        be updated. If the controller was playing, it will be stopped until
+        the next call to write.
+
+        Returns:
+        The actual sample rate the hardware has switched to. It is worth
+        checking this because the hardware may not support the exact sample
+        rate specified.
+
+        Example Usage:
+        uint16 actual = ac97_setrate( 44500 );
+        if( actual > 44500 ) {
+            cwrites( "will sound faster\n" );
+        } else if( actual < 44500 ) {
+            cwrites( "will sound slower\n" );
+        } else {
+            cwrites( "just right\n" );
+        }
+
+    ac97_write
+        int32 ac97_write( const void *buf, uint32 len );
+        A shorthand for writing to the AC97 controller. See write (above).
+
+    ac97_initialized
+        bool ac97_initialized( void );
+        Determine if the AC97 Audio Device is up and running or not.
+
+        Parameters:
+        None
+
+        Side Effects:
+        None
+
+        Returns:
+        True if the AC97 audio device is up and running. False otherwise.
+
+        Example Usage:
+        if( !ac97_initialized() ) {
+            // RATS!
+            exit( -1 );
+        }
+
+ATAPI CD-ROM Driver
+    ...
+        ...
+Ensoniq SoundBlaster Driver
+    piggy-backed off of the write system call, pass in the CHAN_SB parameter
+       to write to the sound blaster sound card.
+    ...
+        ...
+USB Storage Driver
+    ...
+        ...
