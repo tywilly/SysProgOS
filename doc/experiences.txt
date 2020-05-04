@@ -301,8 +301,9 @@ device information. And the PCI module is used by other members’ modules.
 
 Optical Drive Driver Development
 ----------------------------------------
-
+TODO Michael
 
 Bring on the Merge Conflicts
 ----------------------------------------
-TODO
+Merging all of the components into the system was not very difficult. The
+hardest merge was when we started using Yann's PCI module. 
