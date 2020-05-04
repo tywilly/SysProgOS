@@ -27,6 +27,8 @@
 #include "fs.h"
 #include "pci.h"
 #include "usb.h"
+#include "usbd.h"
+#include "usb_ms.h"
 
 // need init() and idle() addresses
 #include "users.h"
@@ -268,6 +270,8 @@ void _shell( int ch ) {
 
     // loop until we get an "exit" indicator
 
+    uint8 data[64];
+
     while( 1 ) {
 
         // are we done?
@@ -320,9 +324,22 @@ void _shell( int ch ) {
 
             break;
         case 'u':
-            __cio_puts( "\nUSB Devices:\n" );
-
+            __cio_puts( "\nUSB Status:\n" );
             _usb_status();
+            _usbd_list_devices();
+            break;
+        case 'e':
+            _usbd_enumerate_devices();
+            break;
+        case 'r':
+            _usb_ms_read(data, 0, 64);
+
+            __cio_puts("\n");
+            for(int i=0;i<64;i++){
+                __cio_printf("%x ", data[i]);
+            }
+            __cio_puts("\n");
+
             break;
         default:
             __cio_printf( "shell: unknown request '0x%02x'\n", ch );
