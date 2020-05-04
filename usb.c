@@ -707,8 +707,8 @@ static void _usb_dump_dev_info( void ) {
 //               enumeration is done in this function directly.
 // In order, what this does is:
 // - general init sequence
-//     - enable bus master and memory space
 //     - get controller information from PCI (including base address)
+//     - enable PCI bus master and memory space
 //     - get ownership of the controller if necessary
 //     - stop and reset the controller
 //     - route all ports to this controller
@@ -848,6 +848,8 @@ void _usb_init( void ) {
     _usb_get_cfg_desc( (uint32)cfg_desc, *(uint16 *)(cfg_desc+2) );
 
     // fill device information from configuration descriptor
+    // The full config descriptor also contains a descriptor for each interface
+      // and endpoint.
     _usb_dev.n_itf = cfg_desc[4];
     _usb_dev.cfg_val = cfg_desc[5];
     _usb_dev.str_cfg = cfg_desc[6];
