@@ -732,9 +732,6 @@ static void _usb_dump_dev_info( void ) {
 //
 void _usb_init( void ) {
 
-    // Enable Bus Master and Memory Space
-    _usb_set_pci_command( 0x0146 );
-
     // Get device information from PCI
     PCIDevice *dev = _pci_dev_class( USB_CLASS, USB_SUBCLASS, USB_EHCI_PROGIF );
     assert( dev != NULL );
@@ -744,6 +741,9 @@ void _usb_init( void ) {
     _usb_bus = dev->bus;
     _usb_device = dev->device;
     _usb_function = dev->function;
+
+    // Enable Bus Master and Memory Space
+    _usb_set_pci_command( 0x0146 );
 
     // store capability registers and operation registers base address
     _usb_base = dev->bar0;
