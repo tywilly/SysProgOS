@@ -1,0 +1,101 @@
+###############################################################################
+###############################################################################
+
+				Module Descriptions
+				      Group 3
+
+###############################################################################
+###############################################################################
+
+
+USB
+---------------------------------------
+The USB system is designed to handle some aspects of USB 2.0 hardware.
+Currently only Control and Bulk transfers are supported. However, the system
+can still recognize and initialize any USB device that gets connected.
+
+The USB system consists of 4 modules:
+	usb
+	usb_ehci
+	usbd
+	usbms
+
+Each module is designed to handle a certain part of the USB system and follows
+the structure detailed in the USB specification.
+
+The structure goes as follows:
+
+HWdevice <= usb_ehci <- usbd <- devicedriver
+
+'HWdevice' represents a physical USB device connected to the system.
+'devicedriver' is a module that controlls a specific USB device type.
+'<-' means a software connection.
+'<=' means a hardware connection.
+
+A device driver(usbms) interacts with the USBDriver(usbd) to facilitate 
+finding a device and then creating and send packets to the device.
+
+The USBDriver then interacts with a Host Controller(usb_ehci) to schedule
+any packets for the Host Controller to send.
+
+USB Module:
+    The USB module is simply a wrapper for the system. Upon initialization
+    the USB module calls the init functions of usb_ehci, usbd, and usbms
+    to get the rest of the system initialized.
+
+USB_EHCI Module:
+    The USB_EHCI module handles all functions pertaining to the systems
+    Enhanced Host Controller Interface(EHCI) device. This module acts as the
+    gateway between hardware and software.
+
+    Initialization:
+        Upon initialization, this module uses the PCI module to find a valid
+	EHCI Controller. Once a valid controller is found the MMIO address for
+	controlling the device is found by taking the base address from the PCI
+	header, and adding the size of the capabilities register. 
+
+	Now the module can control the Host Controller. To continue the
+	Host Controller is reset just in case the BIOS did something funky.
+	
+	Next, space for the Periodiclist and Asynclist are allocated.
+	The Periodic list is given a page of memory, as is required per the
+	specification.
+	The Asynclist is given a page of memory as well. But this is by choice.
+
+	To finish, an ISR is installed for the Host Controller and interrupts
+	are enabled. Followed by the Host Controller being enabled and setting
+	the Host Controller to route all USB traffic to this Controller.
+
+	Note: The reason for notifying the Controller to route all traffic
+	is because the USB 2.0 spec is backwards compatible with USB 1.0
+	To achieve this all USB 2.0 Controllers come with a companion
+	controller. However, this companion controller needs a driver.
+	Since our system does not have a module for USB 1.0 we just have
+	the traffic come to the USB 2.0 controller and handle it here.
+
+    Data Structures:
+	QueueTransferDescriptor:
+	    This structure represents either a Control or Bulk transfer.
+	    This structure is basically a Linked List with more data.
+	    It contains a pointer to the next node 'next_ptr', as well as
+	    a token 'token' that holds info like the status of the transfer,
+	    the type of transfer and how many bytes to transfer. It also has
+	    5 pointers to pages of memory as buffers. Thats because they can
+	    transfer 5 pages of memory.
+
+	    struct _usb_qtd_s
+		{
+		    uint32 next_ptr; // Pointer to next qTD
+		    uint32 alt_ptr;  //
+		    uint32 token;    // Token field
+		    uint32 ptr0;     // pointer to page 1 of buffer
+		    uint32 ptr1;     // .
+		    uint32 ptr2;     // .
+		    uint32 ptr3;     // .
+		    uint32 ptr4;
+		};
+
+	QueueHead:
+	    This structure represents a QueueHead. QueueHeads are used
+	    to store the list of QueueTransfers as well as details about the
+	    device the transfers belong to. 
