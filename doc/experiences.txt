@@ -231,6 +231,72 @@ using CPU time than the sample rate.
 
 USB Storage Driver Development
 ----------------------------------------
+I started this project by reading USB documentation. And there’s a lot 
+out there. Since I didn’t know what I was doing, I picked the wrong one. 
+It was too low level specifications that would’ve helped someone designing
+a controller, not a driver. After doing so, which in itself was not an easy
+and fun process I still wondered: what exactly do I write in my usb.c file?!
+Thanks to the professor’s help, I started working on the PCI module.
+
+During the PCI phase of the project, I haven’t had too many issues as the
+documentation I followed (from OSDev) was very complete and well explained.
+The only thing that challenged me was the writing process, which wasn’t
+explained in OSDev’s article and took some more digging around to find
+documentation for.
+
+It seems like an issue disappeared from my presentation, so in exclusivity:
+another mistake I made. When I started working on the EHCI driver, the first
+thing I needed to do was getting the base address from the PCI and then
+getting the operational base address, which required to read data from the
+EHCI controller base address. To read from the EHCI registers, I invented
+a new way to do direct I/O with 32 bit addresses instead of ports, which
+obviously did not work. Looking back, I think I just imitated what I did for
+the PCI module without understanding what I did and why. Also the
+documentation didn’t ever state precisely how to make use of addresses, which
+may be obvious to some, but, to reiterate, I didn't know what I was doing
+(and maybe still don't). Tyler Wilcox helped me figure out what was wrong
+with my code. EHCI addresses make use of Memory-Mapped I/O, so you're
+supposed to use them as pointers. 
+
+Then it was time to start working on the EHCI driver and once again, I had
+to start fresh on documentation. Tyler Wilcox handed me a link to a
+simplified description of EHCI data structures and control transfers, which
+helped me a lot in taking a step back to understand globally how the EHCI
+controller worked. I could then refer to the EHCI documentation more easily.
+
+Trying to get my first control request to work, I got into another problem.
+The first QTD in the sequence blew up to my face whatever tweaking I did
+to the code. Once again after some time struggling, I contacted Tyler who
+told me I forgot resetting the port to which the flash drive was connected.
+I did that and the second QTD in the sequence blew up.
+
+I spent another period struggling to find what was causing the issue. The only
+lead I had was the IN QTD's Halt bit being set to 1, which, following the
+documentation, means that "a serious error has occurred at the device/endpoint
+addressed by this qTD". This could happen for a number of reasons, none of
+which the other conditions were met (the other corresponding error bits were
+clear).
+
+After a lot of time struggling and getting nowhere. I switched to doing
+documentation work. On Tuesday April 28, I found the bug: the byte ordering of
+the request buffer was wrong. I fixed the issue and started working on
+reorganizing the USB module, which was at a state where I was just trying out
+to send a first request (everything was done in the init sequence with no
+function call). I implemented as many different control requests as I could.
+
+My PCI module was then used by other team members (instead of using Tyler's)
+which turned ou to cause issues. The bug, which came from the PCI writing
+functions, was found and fixed relatively easily this time. It was caused by a
+'&' which should've been an '|' and (I know) and bas use or __outl (I swapped
+port and value).
+
+All these issues add up to a lot of time wasted. The USB module cannot be
+used to perform I/O transfers to the flash drive, so no system calls were
+added to the OS. Also that means it cannot be used to store and load audio
+media, so it doesn’t have an impact on the overall audio project. However,
+for proof of work, two “dump all” functions were added to the console (one
+for the PCI module and one for the USB module). They both display connected
+device information. And the PCI module is used by other members’ modules.
 
 
 Optical Drive Driver Development
