@@ -1,5 +1,5 @@
 /*
-** SCCS ID: @(#)kmem.c	1.1 3/30/20
+** SCCS ID: @(#)kmem.c	1.2 4/21/20
 **
 ** File:    kmem.c
 **
@@ -298,13 +298,17 @@ void _kmem_init( void ) {
         ** this to include ACPI "reclaimable" memory.
         */
 
+        // first, check the ACPI one-bit flags
+
         if( ((region->acpi) & REGION_IGNORE) == 0 ) {
             continue;
         }
 
-        if( ((region->acpi) & REGION_NONVOL) == 1 ) {
+        if( ((region->acpi) & REGION_NONVOL) != 0 ) {
             continue;  // we'll ignore this, too
         }
+
+        // next, the region type
 
         if( (region->type) != REGION_USABLE ) {
             continue;  // we won't attempt to reclaim ACPI memory (yet)

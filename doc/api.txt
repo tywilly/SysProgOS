@@ -1,0 +1,784 @@
+###############################################################################
+
+				API Information
+				    Group 3
+
+###############################################################################
+
+Abstract
+---------------------------------------
+
+This document outlines all service calls available to users in the system.
+This includes service calls in the baseline as well as any additional modules.
+
+Baseline
+---------------------------------------
+EXIT(2)
+
+NAME
+	exit - terminate the calling process
+
+SYNOPSIS
+	#include "ulib.h"
+
+	void exit( int32 status );
+
+DESCRIPTION
+	exit() kills whatever process is calling exit()
+
+
+KILL(2)
+
+NAME
+	kill - terminate a process with extreme prejudice
+
+SYNOPSIS
+	#include "ulib.h"
+
+	int32 kill( Pid pid );
+
+DESCRIPTION
+	kill() will terminate a process with the ID specified by `pid`.
+
+	If `pid` is 0(zero), then the calling process is killed.
+
+RETURN VALUE
+	On success, zero is returned. Otherwise a value less than zero
+	is returned.
+
+WAIT(2)
+
+NAME
+	wait - wait for a child process to terminate
+
+SYNOPSIS
+	#include "ulib.h"
+
+	int32 wait( Pid pid, int32 *status );
+
+DESCRIPTION
+	wait() suspends execution of the calling process until a child
+	process, specified by `pid`, has finished executing. 
+	
+	Upon returning, wait() will place the exit code for the specified
+	child in status and returns the pid of the terminated child.
+
+	If `pid` is 0(zero), then wait() will suspend for any child.
+
+RETURN VALUE
+	On success, returns the PID of the terminated child.
+	Otherwise an error code is returned.
+
+SPAWN(2)
+
+NAME
+	spawn - create a new process
+
+SYNOPSIS
+	include "ulib.h"
+
+	int32 spawn( int (*entry)(int, char*), char *args[] );
+
+DESCRIPTION
+	spawn() will create a new process with entry point `entry`
+	and arguments `args`.
+
+	`entry` should be the function that represents the entry point
+	of the code.
+
+	`args` is an argv-style array of char *. The char * must be 
+	NULL terminated.
+
+RETURN VALUE
+	On success, returns the PID of the new process.
+	Otherwise an error code is returned.
+
+READ(2)
+
+NAME
+	read - read into a buffer from a stream
+
+SYNOPSIS
+	#include "ulib.h"
+
+	int32 read( int chan, void *buffer, uint32 length );
+
+DESCRIPTION
+	read() will copy data from a stream into a local buffer.
+
+	`chan` is the channel to read from valid options include:
+		CHAN_SIO to read from serial input
+		CHAN_CONS to read from console input
+
+	`buffer` is the local buffer to copy the data to
+
+	`length` is the number of bytes to copy
+
+RETURN VALUE
+	On success, the number of bytes copied.
+	Otherwise, an error code.
+
+WRITE(2)
+
+NAME
+	write - write from a buffer to a stream
+
+SYNOPSIS
+	#include "ulib.h"
+
+	int32 write( int chan, const void *buf, uint32 length );
+
+DESCRIPTION
+	write() will write up to `length` bytes from the buffer `buf` 
+	to the channel specified by `chan`
+
+	`chan` is the channel to write to. Valid options include:
+		CHAN_SIO to write to the serial output
+		CHAN_CONS to write to the console output
+
+	`buffer` is the buffer to write from
+
+	`length` is the number of bytes to write
+
+RETURN VALUE
+	On success, the number of bytes written.
+	Otherwise, an error code.
+
+SLEEP(2)
+
+NAME
+	sleep - put the current process to sleep for some length of time
+
+SYNOPSIS
+	#include "ulib.h"
+
+	void sleep( uint32 msec );
+
+DESCRIPTION
+	sleep() will suspend execution for a specified number of miliseconds.
+
+	If `msec` is greater than 0(zero), the calling process will suspend for
+	`msec` number of miliseconds. 
+	If `msec` is 0(zero), the calling process will yield the CPU until it
+	gets scheduled again.
+
+GETTIME(2)
+
+NAME
+	gettime - retrieve the current system time
+
+SYNOPSIS
+	#include "ulib.h"
+
+	Time gettime( void );
+
+DESCRIPTION
+	gettime() will return the current time of the system. 
+
+RETURN VALUE
+	On success, the current system time
+
+GETPID(2)
+
+NAME
+	getpid - retrieve the PID of the calling process
+
+SYNOPSIS
+	#include "ulib.h"
+
+	Pid getpid( void );
+
+DESCRIPTION
+	getpid() returns the PID of the calling process.
+
+RETURN VALUE
+	On success, the PID of the process.
+
+GETPPID(2)
+
+NAME
+	getppid - retrieve the PID of the parent to the calling process
+
+SYNOPSIS
+	#include "ulib.h"
+
+	Pid getppid( void );
+
+DESCRIPTION
+	getppid() returns the PID of the parent process of the calling
+	process.
+
+RETURN VALUE
+	On success, the PID of the parent process
+
+GETSTATE(2)
+
+NAME
+	getstate - retrieve the state of a specified process
+
+SYNOPSIS
+	#include "ulib.h"
+
+	State getstate( uint16 pid );
+
+DESCRIPTION
+	getstate() returns the state of a specific process.
+
+	If `pid` is 0(zero) then the state of the calling process will
+	be returned.
+	Otherwise the state of the process with ID `pid` will be returned.
+
+RETURN VALUE
+	On success, the state of the specified process.
+	Otherwise, an error code.
+
+BOGUS(2)
+
+NAME
+	bogus - a bogus system call, used for testing the syscall ISR
+
+SYNOPSIS
+	#include "ulib.h"
+
+	void bogus( void );
+
+DESCRIPTION
+	bogus() is a simple function useful in testing the syscall module
+	of the system.
+
+CWRITECH(2)
+
+NAME
+	cwritech - write a single character to the console
+
+SYNOPSIS
+	#include "ulib.h"
+
+	int cwritech( char ch );
+
+DESCRIPTION
+	cwritech() will write a single character to the console
+
+RETURN VALUE
+	Returns the value from calling write().
+
+CWRITES(2)
+
+NAME
+	cwrites - write a NULL-terminated string to the console
+
+SYNOPSIS
+	#include "ulib.h"
+
+	int cwrites( const char *str );
+
+DESCRIPTION
+	cwrites() will write a string to the console. The string
+	must be NULL-terminated, otherwise undefined side effects will
+	occurr.
+
+RETURN VALUE
+	Returns the value from calling write().
+
+CWRITE(2)
+
+NAME
+	cwrite - write a sized buffer to the console
+
+SYNOPSIS
+	#include "ulib.h"
+
+	int cwrite( const char *buf, uint32 size );
+
+DESCRIPTION
+	cwrite() writes `size` number of bytes from buffer `buf` to the console.
+
+RETURN VALUE
+	Returns the value from calling write().
+
+SWRITECH(2)
+
+NAME
+	swritech - write a single character to serial output
+
+SYNOPSIS
+	#include "ulib.h"
+
+	int swritech( char ch );
+
+DESCRIPTION
+	swritech() will write a single character to serial output
+
+RETURN VALUE
+	Returns the value from calling write().
+
+SWRITES(2)
+
+NAME
+	swrites - write a NULL-terminated string to serial output
+
+SYNOPSIS
+	#include "ulib.h"
+
+	int swrites( const char *str );
+
+DESCRIPTION
+	swrites() will write a string to serial output. The string
+	must be NULL-terminated, otherwise undefined side effects will
+	occurr.
+
+RETURN VALUE
+	Returns the value from calling write().
+
+SWRITE(2)
+
+NAME
+	swrite - write a sized buffer to serial output
+
+SYNOPSIS
+	#include "ulib.h"
+
+	int swrite( const char *buf, uint32 size );
+
+DESCRIPTION
+	swrite() writes `size` number of bytes from buffer `buf` to
+	serial output.
+
+RETURN VALUE
+	Returns the value from calling write().
+
+Baseline Support Functions
+---------------------------------------
+
+STRSTATE(3)
+
+NAME
+	strstate - return a constant string containing a state name
+
+SYNOPSIS
+	#include "ulib.h"
+
+	const char *strstate( State n );
+
+DESCRIPTION
+	strstate() returns a string representation of State `n`.
+
+RETURN VALUE
+	Returns a string representation of a State.
+
+STR2INT(3)
+
+NAME
+	str2int - convert a string to a number in a specified base
+
+SYNOPSIS
+	#include "ulib.h"
+
+	int str2int( register const char *str, register int base );
+
+DESCRIPTION
+	str2int() will take a string and convert it into a number
+	of base `base`.
+
+RETURN VALUE
+	An integer of the converted string.
+
+STRLEN(3)
+
+NAME
+	strlen - The length of a NULL-terminated string
+
+SYNOPSIS
+	#include "ulib.h"
+
+	uint32 strlen( const char *str );
+
+DESCRIPTION
+	strlen() will calculate the length of string `str` and return the value
+
+RETURN VALUE
+	The length of a string.
+
+STRCPY(3)
+
+NAME
+	strcpy - Copy a NULL-terminated string
+
+SYNOPSIS
+	#include "ulib.h"
+
+	char *strcpy( register char *dst, register const char *src );
+
+DESCRIPTION
+	strcpy() will copy a string from `src` into `dst`.
+
+	`dst` must be large enough to hold `src`, otherwise undefined
+	side effects may occurr.
+
+RETURN VALUE
+	Returns `dst`
+
+STRCAT(3)
+
+NAME
+	strcat - Append one string to another
+
+SYNOPSIS
+	#include "ulib.h"
+
+	char *strcat( register char *dst, register const char *src );
+
+DESCRIPTION
+	Append the string `src` onto string `dst`.
+
+	`dst` should be large enough to hold the newly formed string.
+
+RETURN VALUE
+	 Returns `dst`
+
+STRCMP(3)
+
+NAME
+	strcmp - Compare two NULL-terminated strings
+
+SYNOPSIS
+	#include "ulib.h"
+
+	int strcmp( register const char *s1, register const char *s2 );
+
+DESCRIPTION
+	strcmp() will compare the two strings. 
+
+RETURN VALUE
+	If `s1` is less than `s2`, a negative number.
+	If `s1` is equal to `s2`, zero.
+	If `s1` is greater than `s2`, a positive number.
+
+STRSPLIT(3)
+
+NAME
+	strsplit - Split a string at a delimiter
+
+SYNOPSIS
+	#include "ulib.h"
+
+	char* strsplit( char *s, const char *delim );
+
+DESCRIPTION
+	strsplit() Splits the string `s` at the first occurrance of a character
+	in the delim string, replacing the delimiter with a NULL byte.
+
+RETURN VALUE
+	A string that has been split.
+
+PAD(3)
+
+NAME
+	pad - Generate a padding string
+
+SYNOPSIS
+	#include "ulib.h"
+
+	char *pad( char *dst, int extra, int padchar );
+
+DESCRIPTION
+	pad() will generate a string used for padding.
+
+	`dst` is the location to start the padding
+	`extra` is how many bytes to add
+	`padchar` is what character to pad with
+
+RETURN VALUE
+	Returns a pointer to the first byte after the padding
+
+PADSTR(3)
+
+NAME
+	padstr - Add padding characters to a string
+
+SYNOPSIS
+	#include "ulib.h"
+
+	char *padstr( char *dst, char *str, int len, int width, 
+		      int leftadjust, int padchar );
+
+DESCRIPTION
+	padstr() will add padding characters to a string.
+
+	`dst` is the destination buffer
+	`str is the string to add padding to
+	`len` is the length of `str`
+	`width` is the final length of the string
+	`leftadjust` if 0(zero) then right justify. Otherwise left justify.
+	`padchar` the character to pad with
+
+NOTE
+	The resulting string is not NULL-terminated
+
+RETURN VALUE
+	A pointer to the first byte after the padding.
+
+SPRINT(3)
+
+NAME
+	sprint - formatted output into a string buffer
+
+SYNOPSIS
+	#include "ulib.h"
+
+	void sprint( char *dst, char *fmt, ... );
+
+DESCRIPTION
+	sprint() will take a format string `fmt`  and replace the placeholders
+	with values in `...`.
+
+	`dst` the buffer to place the final string in.
+	`fmt` the format string.
+	The following are the available placeholders:
+		%c: Character
+		%d: Decimal number
+		%s: String
+		%x: Hex number
+		%o: Octal number
+
+	`...` The values the replace in the format string.
+
+RETURN VALUE
+	none
+
+Added support functions
+---------------------------------------
+
+FPUTC(3)
+
+NAME
+	fputc - Write a character to a stream
+
+SYNOPSIS
+	#include "ulib.h"
+
+	int fputc( char c, int chan );
+
+DESCRIPTION
+	fputc() writes a character `c` to the specified stream `chan`
+
+RETURN VALUE
+	On success, the character `c`.
+	On error, -1.
+
+FPUTS(3)
+
+NAME
+	fputs - Writes a NULL-terminated string to a stream
+
+SYNOPSIS
+	#include "ulib.h"
+
+	int fputs( const char *s, int chan );
+
+DESCRIPTION
+	fputs() writes a string `s` to the specified stream `chan`.
+	`s` must be NULL-terminated.
+
+RETURN VALUE
+	The number of characters written.
+
+FGETC(3)
+
+NAME
+	fgetc - Read the next character from a stream
+
+SYNOPSIS
+	#include "ulib.h"
+
+	int fgetc( int chan );
+
+DESCRIPTION
+	fgetc() reads the next available character from the specified
+	stream `chan`.
+
+RETURN VALUE
+	On success, the character read cast to an int.
+	On error, -1.
+
+FGETS(3)
+
+NAME
+	fgets - Read a string from a stream
+
+SYNOPSIS
+	#include "ulib.h"
+	
+	char *fgets( char *s, int size, int chan );
+
+DESCRIPTION
+	fgets() reads in at most one less than `size` characters from 
+	the stream `chan` and stores it in `s`.
+
+	Reading will stop after an EOF or newline.
+
+RETURN VALUE
+	On success, `s`.
+	On error, NULL.
+
+READLINE(3)
+
+NAME
+	readline - Read a line from a stream
+
+SYNOPSIS
+	#include "ulib.h"
+
+	int readline( const char *prompt, char *buf, int size, int chanin,
+		      int chanout );
+
+DESCRIPTION
+	readline() reads a line with user editing, saving it to `buf` and 
+	NULL-terminating it.
+
+	readline() will read until `size`-1 characters are read, a newline
+	is encountered, or EOF.
+
+	`prompt` A prompt to display at the begining of the line.
+	`buf` The buffer to save the input to.
+	`size` The number of bytes to read.
+	`chanin` The input stream.
+	`chanout` The output stream.
+
+RETURN VALUE
+	Returns the number of characters read.
+
+Miscellaneous support functions
+---------------------------------------
+
+EXIT_HELPER(3)
+
+NAME
+	exit_helper - Serves at the return to point for user processes.
+
+SYNOPSIS
+	#include "ulib.h"
+
+	void exit_helper( void );
+
+DESCRIPTION
+	exit_helper() is the function that user processes return to to help
+	the system clean up.
+
+RETURN VALUE
+	none
+
+PARSE_ARGS(3)
+
+NAME
+	parse_args - parse a command-line argument string into an argument vector
+
+SYNOPSIS
+	#include "ulib.h"
+
+	int parse_args( int argc, char *args, int n, char *argv[] );
+
+DESCRIPTION
+	parse_args() takes the argc and args parameters to the process' 
+	main() function along with an array of char *; fills in the array 
+	with pointers to the beginnings of the argument strings, followed 
+	by a NULL pointer. Only converts the first n-1 entries.
+
+RETURN VALUE
+	Returns the number of argument string put into the argv array
+
+CVT_DEC(3)
+
+NAME
+	cvt_dec - convert a 32-bit signed value into a NULL-terminated string
+
+SYNOPSIS
+	#include "ulib.h"
+	
+	int cvt_dec( char *buf, int32 value );
+
+DESCRIPTION
+	cvt_dec() converts a 32-bit signed value into a NULL-terminated string.
+
+	`buf` is the buffer to store the string into.
+	`value` is the value to convert.
+
+RETURN VALUE
+	Returns the number of character placed into `buf`.
+	Not including the NULL.
+
+CVT_HEX(3)
+
+NAME
+	cvt_hex - convert a 32-bit unsigned value into a HEX string.
+
+SYNOPSIS
+	#include "ulib.h"
+
+	int cvt_hex( char *buf, uint32 value );
+
+DESCRIPTION
+	cvt_hex() converts a 32-bit unsigned value into a HEX string.
+
+	`buf` is the buffer to store the string into.
+	`value` is the value to convert.
+
+RETURN VALUE
+	Returns the number of characters placed into `buf`.
+	Not including the NULL.
+
+CVT_OCT(3)
+
+NAME
+	cvt_oct - convert a 32-bit unsigned value into an octal string.
+
+SYNOPSIS
+	#include "ulib.h"
+
+	int cvt_oct( char *buf, uint32 value );
+
+DESCRIPTION
+	cvt_oct() converts a 32-bit unsigned value into an octal string.
+
+	`buf` is the buffer to store the string into.
+	`value` is the value to convert.
+
+RETURN VALUE
+	Returns the number of characters placed into `buf`.
+	Not including the NULL.
+
+REPORT(3)
+
+NAME
+	report - report to the console that a user is running
+
+SYNOPSIS
+	#include "ulib.h"
+	
+	void report( char ch, Pid whom );
+
+DESCRIPTION
+	report() reports to the console that a user `ch` is running as process
+	`whom`. 
+
+RETURN VALUE
+	none
+
+PARSE_ARGS(3)
+
+NAME
+	parse_args - argument parser
+
+SYNOPSIS
+	#include "ulib.h"
+
+	int parse_args( int argc, char *args, int n, char *argv[] );
+
+DESCRIPTION
+	parse_args() takes the `argc` and `args` parameters to a process' 
+	main function along with an array of char *. It fills in `argv` with 
+	pointers to the beginnings of the argument strings, followed by a 
+	NULL pointer.
+
+RETURN VALUE
+	Returns the number of string placed into `argv`.

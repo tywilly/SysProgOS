@@ -1,6 +1,8 @@
 # Project Specific
 *.image
 BuildImage
+usb_docs/
+.clang-format
 
 # Prerequisites
 *.d
