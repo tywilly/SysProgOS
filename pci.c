@@ -14,6 +14,7 @@
 
 #include "common.h"
 #include "klib.h"
+#include "e1000.c"
 
 #include "pci.h"
 
@@ -117,6 +118,7 @@ void _pci_dump_all( void ) {
     __cio_printf( "%d: Vendor: %04x Device: %04x Class: %02x SubClass: %02x Progif: %02x\n", i, dev->vendorid,
                   dev->deviceid, dev->class, dev->subclass, dev->progif);
   }
+  _e1000_init();
 }
 
 //

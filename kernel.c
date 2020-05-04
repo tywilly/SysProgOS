@@ -27,6 +27,7 @@
 #include "fs.h"
 #include "pci.h"
 #include "usb.h"
+#include "e1000.h"
 
 // need init() and idle() addresses
 #include "users.h"
@@ -157,6 +158,7 @@ void _init( void ) {
     _sys_init();     // system calls
     _pci_init();     // PCI
     _usb_init();     // USB
+    _e1000_init();   // e1000 driver
 
     _ramdisk_init(); // ramdisk
     _fs_init();	     // filesystem
@@ -324,6 +326,15 @@ void _shell( int ch ) {
 
             _usb_status();
             break;
+        case 'm':
+            __cio_puts("\n");
+            _e1000_dump_MAC();
+            break;
+        case 'b':
+            __cio_puts("\nBrodcast Hello\n");
+            char* hello = "Hello";
+            _e1000_ethernet_frame((uint8*) hello, 6, 0x22F0);
+            break;
         default:
             __cio_printf( "shell: unknown request '0x%02x'\n", ch );
 
@@ -339,6 +350,8 @@ void _shell( int ch ) {
             __cio_puts( "   s  -- dump stacks for active processes\n" );
             __cio_puts( "   l  -- list all PCI devices\n");
             __cio_puts( "   u  -- get the status of the USB controller\n" );
+            __cio_puts( "   m  -- print the MAC address of the network card\n" );
+            __cio_puts( "   b  -- brodcast \"Hello\"\n" );
             __cio_puts( "   x  -- exit\n" );
             break;
         }

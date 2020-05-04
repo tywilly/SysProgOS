@@ -264,7 +264,7 @@ clock.o: klib.h clock.h process.h stacks.h kmem.h queues.h bootstrap.h
 clock.o: scheduler.h
 kernel.o: common.h types.h ./udefs.h ulib.h kernel.h x86arch.h process.h
 kernel.o: stacks.h kmem.h queues.h bootstrap.h clock.h syscalls.h cio.h sio.h
-kernel.o: scheduler.h ramdisk.h fs.h pci.h usb.h users.h
+kernel.o: scheduler.h ramdisk.h fs.h pci.h usb.h users.h e1000.h
 klibc.o: common.h types.h ./udefs.h ulib.h
 kmem.o: common.h types.h ./udefs.h ulib.h klib.h x86arch.h bootstrap.h kmem.h
 kmem.o: cio.h
