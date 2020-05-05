@@ -867,7 +867,35 @@ AC97 Driver
         }
 
 ATAPI CD-ROM Driver
-    TODO Michael 
+    atapi_read
+    void atapi_read( void );
+    A very basic system call that attempts a PIO read. It sets the drive select to the secondary bus(default in qemu) and attempts
+    to read one sector by sending a packet command then a scsi command and will read what is in the data register when an interrupt is       fired. It then prints what it finds into console output. Note this is not spawned at the moment, but it is implemented it just           caused problems with the demo syscalls.
+    Parameters:
+    None
+    
+    Side Effects:
+    None
+    
+    Returns:
+    None
+    
+    Example Usage:
+      atapi_read();
+    atapi_capacity
+    void atapi_capacity( void );
+    A very basic system call that executes a read capacity command. It sets the drive select to the secondary bus(default in qemu) and       reads and outputs capacity information by sending a packet command then a scsi command and will read what is in the data register       when the cd is not busy. It then prints what it finds into console output. Note this is not spawned at the moment, but it is             implemented it just caused problems with the demo syscalls by causing too much of a delay.
+    Parameters:
+    None
+    
+    Side Effects:
+    None
+    
+    Returns:
+    None
+    
+    Example Usage:
+      atapi_capacity();
 
 Ensoniq SoundBlaster Driver
     piggy-backed off of the write system call, pass in the CHAN_SB parameter
