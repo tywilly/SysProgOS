@@ -81,7 +81,7 @@
 #define SPAWN_V // V runs main6(), spawns children, kills them
 
 #define SPAWN_AC97 // play the windows xp startup sound
-
+#define SPAWN_ATAPI //reads a sector and gives cd-rom info
 #define SPAWN_SB // spawn the sound blaster sampler
 
 //

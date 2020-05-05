@@ -21,7 +21,7 @@ void _atapi_isr_secondary(int vector, int code){
 
 }
 
-uint32 _atapi_capacity(uint32 bus) {
+uint32 _atapi_capacity_process(uint32 bus) {
     uint32 status;
    // __outb(ATA_DRIVE_SELECT(bus), drive);
    // ATA_SELECT_DELAY(bus);
@@ -52,7 +52,7 @@ uint32 _atapi_capacity(uint32 bus) {
     return block_size;
 }
 
-int atapi_read(uint32 bus, uint32 sector) {
+int _atapi_read_process(uint32 bus, uint32 sector) {
     uint32 status;
   //  __outb(ATAPI_INTERRUPT_REG,ATA_DCR_HIGH_ORDER_BYTE);
    // uint16 size=0;
@@ -133,14 +133,14 @@ void _atapi_init(void) {
 
 void _atapi_read(void) {
 	__cio_puts("attempt a read");
-   	if(atapi_read(ATA_BUS_SECONDARY,1)) {
+   	if(_atapi_read_process(ATA_BUS_SECONDARY,1)) {
      	    __cio_puts( " read" );
    	}
 	return;
 } 
 
-void atapi_capacity(void) {
+void _atapi_capacity(void) {
 	__cio_puts("attempt capacity");
-	__cio_printf("%x this is it",_atapi_capacity(ATA_BUS_SECONDARY));
+	__cio_printf("%x this is it",_atapi_capacity_process(ATA_BUS_SECONDARY));
 	return;
 }

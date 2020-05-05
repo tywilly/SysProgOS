@@ -71,7 +71,7 @@ enum drive_type{
 
 #define ATAPI_CAPACITY_READ 0X25
 #define ATAPI_PACKET 0xa0
-void atapi_capacity(void);
+void _atapi_capacity(void);
 void _atapi_isr_secondary(int vector,int code);
 void _atapi_init(void);
 void _atapi_read(void);
