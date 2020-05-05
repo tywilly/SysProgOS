@@ -89,6 +89,7 @@ typedef struct usb_qh_s {
 ** PRIVATE GLOBAL VARIABLES
 */
 
+static uint8 _usb_err;
 // PCI device related information
 static uint8 _usb_bus;
 static uint8 _usb_device;
@@ -734,8 +735,10 @@ void _usb_init( void ) {
 
     // Get device information from PCI
     PCIDevice *dev = _pci_dev_class( USB_CLASS, USB_SUBCLASS, USB_EHCI_PROGIF );
-    assert( dev != NULL );
-    assert( dev->bar0 != 0xFFFFFFFF );
+    if( dev == NULL || dev->bar0 == 0xFFFFFFFF ) {
+        _usb_err = true;
+        __cio_puts( "USB ERR: Device not found\n" );
+    }
 
     // store device location
     _usb_bus = dev->bus;
@@ -874,10 +877,12 @@ void _usb_init( void ) {
     // I don't know how to manage the fact that there are potentially many interfaces,
     // so I use the fact that I know the device I use only has 1.
     if( _usb_dev.class != 8 && _usb_itf[0].class != 8 ) {
+        _usb_err = true;
         __cio_puts( "USB ERR: Device is not mass storage\n" );
     }
     for( uint8 i = 0; i < _usb_itf[0].n_edp; i++ ) {
         if( (_usb_edp[0][i].attr & 0b11) != 0b10 ) {
+            _usb_err = true;
             __cio_puts( "USB ERR: Device doesn't use bulk transfer\n" );
             break;
         }
@@ -897,7 +902,10 @@ void _usb_init( void ) {
     // _usb_frame_list = (uint32 *)_kalloc_page(1);
     // _usb_write_l( _usb_op_base, USB_PERIODICLISTBASE, ((uint32)_usb_frame_list) );
 
-    // assert( _usb_frame_list == ((uint32 *)_usb_read_l( _usb_op_base, USB_PERIODICLISTBASE )));
+    // if( _usb_frame_list == ((uint32 *)_usb_read_l( _usb_op_base, USB_PERIODICLISTBASE ))) {
+    //     _usb_err = true;
+    //     __cio_puts( "USB ERR: Frame list couldn't be set\n" );
+    // }
 
     // for(int i = 0; i < USB_MAX_FRLIST; i++) { // Set the pointers to be invalid
     //     _usb_frame_list[i] = 1;
@@ -914,6 +922,10 @@ void _usb_init( void ) {
 //     descriptors gathered from the init sequence
 //
 void _usb_dump_all() {
+    if( _usb_err ) {
+        __cio_puts( "USB: Module didn't init properly\n" );
+        return;
+    }
     __cio_puts("\n------------------------ USB Configuration ------------------------\n");
     _usb_dump_dev_info();
     __cio_puts("--------------------- USB String descriptors  ---------------------\n");
