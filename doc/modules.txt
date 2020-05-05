@@ -83,19 +83,194 @@ USB_EHCI Module:
 	    5 pointers to pages of memory as buffers. Thats because they can
 	    transfer 5 pages of memory.
 
-	    struct _usb_qtd_s
-		{
-		    uint32 next_ptr; // Pointer to next qTD
-		    uint32 alt_ptr;  //
-		    uint32 token;    // Token field
-		    uint32 ptr0;     // pointer to page 1 of buffer
-		    uint32 ptr1;     // .
-		    uint32 ptr2;     // .
-		    uint32 ptr3;     // .
-		    uint32 ptr4;
-		};
+	    My first design for this structure worked fairly well. So I didn't
+	    make any changes to it.
 
 	QueueHead:
 	    This structure represents a QueueHead. QueueHeads are used
 	    to store the list of QueueTransfers as well as details about the
-	    device the transfers belong to. 
+	    device the transfers belong to. This structure is also in a list,
+	    but in a cyclical list. This way the QueueHeads are always checked
+	    if there are any transfers to be completed. QueueHeads are stored
+	    in a page of memory, and added to a queue in the module. When a new
+	    QueueHead is needed, a new one is removed.
+
+	    Initially this structure worked. That is until I needed to have
+	    more than one in the Asynclist. The issue is the bottom 5 bits
+	    of the next pointer field are not used as a pointer. They provide
+	    details about the next element. Therefore the structures need to be
+	    on 31 byte boundries. Since this structure is 48 bytes in size. 
+	    It didn't quite fit. So I needed to add a few bytes of padding.
+
+    API:
+	In general this module should not be used by any other module.
+	Only the USBD module should be interacting with this.
+
+USBD Module:
+    This module is the overall handler of USB. It maintains a logical model of
+    the USB system, and faciliates the interaction of software with hardware.
+    
+
+    Initialization:
+	The module begins by creating a 'driver handler queue'. This is my own
+	creation and is used to hold handler functions that when a device is
+	added to the system, get called so that driver can be notified of the 
+	new device.
+
+	Next a list of USBDev structures are initalized.
+
+	Then an endpoint for the default devices control pipe is created.
+	This endpoint serves as the means of communicating with an un addressed
+	device in the system. It allows the system to address and configure the
+	new device.
+
+	Finally the isr callback for the EHCI controller is set. This is
+	another one of my designs. It allows the host controller to notify the
+	USBD module that it raised an interrupt. 
+
+    Data Structures:
+	USBEndpoint:
+	    This structure is used to store data about an endpoint. It holds
+	    the QueueHead associated with it, a pointer to the first packet, as
+	    well as if the endpoint is an 'IN' type endpoint.
+
+	    This structure really didn't change much from the begining.
+
+	USBDev:
+	    This structure is used to store data about a USB device.
+	    It holds an array of endpoints associated with the device and
+	    a string that is the name of the driver that configured it.
+
+	    Again this structure didn't change much from the initial design.
+
+    API:
+	To interact with the USB system there are only a few functions that
+	will be used.
+
+	To begin, upon initialization of your module, register a handler
+	function using '_usbd_register_handler'. This function will be of the
+	form 'bool handler(USBDev* dev, uint8 class, uint8 subClass
+				, uint8 protocol)'. 
+	When the system detects a new USB device, all the registered handler 
+	functions are called until one returns 'true'. Returning 'true' lets 
+	the USB system know that that module will be handling the device. If no
+	module claims the device, the device is still configured and can be 
+	accessed using '_usbd_get_device'.
+
+	In your handler function you should check that the class, subClass and
+	protocol match the device you are expecting. If it matches, save the
+	reference to the USBDev somewhere in your module. USBDev is how you
+	tell the USB driver what device you are talking about.
+
+	You can now retrieve references to the endpoints you need. To do so
+	use '_usbd_get_endpoint' to get an endpoint by its number. If you don't
+	know which endpoint number is the one you need, you can use
+	'_usbd_get_endpoint_type'. This will get an endpoint that matches
+	the direction and type specified.
+
+	Once an endpoint has been found you can create packets using
+	'_usbd_new_packet'. You will need to specifiy a type and size.
+	The follow types are valid:
+	    USB_OUT_PACKET
+	    USB_IN_PACKET
+	    USB_SETUP_PACKET
+	This will return a USBPacket that you will use later.
+
+	Now, create an array of bytes that you wish to send to the device.
+	Using '_usbd_add_data_packet' you can reference your buffer and packet
+	to get the data from your buffer copied to the packet.
+
+	To send the new packet to the device use '_usbd_add_packet_to_endpoint'
+	to schedule the packet for transfer. Note: this function schedules
+	like a LIFO stack. If you schedule multiple packets back to back
+	without waiting, the last one scheduled is sent first.
+
+	You may now wish to keep on processing or use '_usbd_wait_for_packet'
+	to block execution until the packet has been successfuly sent.
+
+	After the packet has been sent use '_usbd_get_data_packet' to copy
+	the data from the packet to a local buffer.
+
+	Upon finishing with the packet, use '_usbd_free_packet' to free up the
+	packet for future use of the system. You can now discard the USBPackets
+
+	Useful support functions:
+	    _usbd_get_device_desc:
+		This function will get a descriptor from the device.
+		There are a load of descriptors available like DEVICE
+		and CONFIGURATION. 
+
+	    _usbd_get_string_desc:
+		This function will get a STRING descriptor from the device.
+		STRING descriptors are index and usually found in the DEVICE
+		and CONFIGURATION descriptors.
+
+	    _usbd_print_endpoint:
+		This function is helpful in debugging the current status of an
+		endpoint. It prints all the info to the console.
+
+USB_MS Module:
+    This module is an example module implementing USB Mass Storage. It is very
+    simple and can only read the first 16 bytes from the first sector. 
+    USB Mass Storage uses the SCSI command set to interact with the device.
+
+	Initialization:
+	    During init this module simply registers a device handler in the
+	    USB system.
+
+	Data Structures:
+	    CBW:
+		This structure represents a Command Block Wrapper(CBW). A CBW
+		is used to setup a SCSI command for the Mass Storage Device.
+		
+	    CSW:
+		This structure represents a Command Status Wrapper(CSW). A CSW
+		is used to retrieve the status of a SCSI command.
+
+	API:
+	    There are no functions exposed to the user for this module.
+	    The plan is to have a stream created so users can read directly
+	    from the stream.
+
+	    _usb_ms_read:
+		This function reads a specific number of bytes at a specific
+		block on the device. The data read will be placed in a local
+		buffer.
+
+PCI
+---------------------------------------
+The PCI Module handles everything PCI. It enumerates any connected device
+and allows access to PCI registers.
+
+    Initialization:
+	During init, the PCI module probes all 256 buses, 32 devices per bus
+	and each 8 functions per device. If a valid device is found it is added
+	to the list.
+
+    Data Structures:
+	PCIDev:
+	    This structure contains all the important device information.
+	    This includes the bus it is on, the device and function number.
+	    As well as what interrupt the device is attached to and all the
+	    base address registers.
+
+    API:
+	_pci_get_device:
+	    This function will get a PCIDev reference that has a specified ID.
+
+	_pci_get_device_class:
+	    This function will get a PCIDev reference that has a specific
+	    class, subClass and progif.
+
+	_pci_config_read:
+	    This function will read a long word of data from the PCI config
+	    register for a device.
+
+	_pci_config_write:
+	    This function will write a long word of data to the PCI config
+	    register for a device.
+
+	_pci_set_interrupt:
+	    This function will set the interrupt pin and line of a PCI device.
+
+
