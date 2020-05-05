@@ -274,3 +274,43 @@ and allows access to PCI registers.
 	    This function will set the interrupt pin and line of a PCI device.
 
 
+E1000 Driver
+-----------------------------------------
+The Driver handles communication with the E1000 standard network drive using
+memory mapped IO. The driver has functions for intializing the driver, command
+code definitions, and functions meant to transmit data. It also includes a
+function for building an ethernet frame. 
+
+    Initialization:
+    This requires the PCI to be set up first. After identifying the card with
+    the pci, the base addres of the memory mapped I/O (mmio) is found. Using
+    this we can write and read commands and info from the card. The Transmit
+    functionality is enabled as well, and sets up the transmit descripter ring
+    buffer. The MAC address is also read and stored in a convienient location.
+
+    Data Structures:
+    E1000Dev:
+        This stores a ring buffer of TX descriptions, the mmio base address
+        and the mac address for the card. The TX descriptions are the most 
+        important feature.
+
+    TXDesc:
+        Stores the address of a data buffer to send, a length field, a checksum
+        offset start field (CSO) which goes unused, a command byte, a status
+        and reserved bits (which share the status byte), and a special byte. 
+        These are set in a specific order and byte alignment neccessary for
+        them to work correctly. 
+
+    API:
+    _e1000_init:
+        Initializes the driver. Needs the PCI set up before it can work.
+        Sets up the mmio, the TX ring, and reads the mac address.
+
+    _e1000_dump_MAC:
+        Prints the e1000 mac address.
+        
+    _e1000_ethernet_frame:
+        Encapsulates data given to the function in an ethernet frame and sets
+        the Ethertype as specified. 
+        The example sends "Hello\0" with type 0x22F0 which is audio 
+        video transport
