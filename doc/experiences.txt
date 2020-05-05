@@ -12,3 +12,23 @@ Scott Court (Filesystems)
 ###############################################################################
 Oscar Lowry (Ethernet)
 ###############################################################################
+
+This was the first time I had to read a hardware manual like the e1000 manuals
+for wrting software. I was daunted at first and searched for tutorials online.
+I found a very helpful example on osdev in C++. It fortunatly had all of the
+hardware command constants already listed, which was a big help. 
+
+I found myself refering back to the hardware manual more often the longer I
+worked on this project. From there I found that part of my work could be done
+for me (Ethernet FCS). 
+
+I also found that qemu is both a wonderful and useful tool, and a terrible pain
+to work with. Turns out qemu sends some packets on startup that I initialy
+thought was my ethernet packet. Turns out my driver wasn't sending in the first
+place. 
+
+Lessons learned
+- Knowing how to use your own tools like qemu is important 
+- Make code that is easy to read so you can fix your own mistakes
+- Example code sometimes doesn't work
+- Reading documentation in full can make life easier. Unless it doesn't
