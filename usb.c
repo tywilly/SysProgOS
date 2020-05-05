@@ -737,7 +737,8 @@ void _usb_init( void ) {
     PCIDevice *dev = _pci_dev_class( USB_CLASS, USB_SUBCLASS, USB_EHCI_PROGIF );
     if( dev == NULL || dev->bar0 == 0xFFFFFFFF ) {
         _usb_err = true;
-        __cio_puts( "USB ERR: Device not found\n" );
+        __cio_puts( "USB ERR: EHCI controller not found\n" );
+        return;
     }
 
     // store device location
@@ -879,12 +880,13 @@ void _usb_init( void ) {
     if( _usb_dev.class != 8 && _usb_itf[0].class != 8 ) {
         _usb_err = true;
         __cio_puts( "USB ERR: Device is not mass storage\n" );
+        return;
     }
     for( uint8 i = 0; i < _usb_itf[0].n_edp; i++ ) {
         if( (_usb_edp[0][i].attr & 0b11) != 0b10 ) {
             _usb_err = true;
             __cio_puts( "USB ERR: Device doesn't use bulk transfer\n" );
-            break;
+            return;
         }
     }
 
@@ -905,6 +907,7 @@ void _usb_init( void ) {
     // if( _usb_frame_list == ((uint32 *)_usb_read_l( _usb_op_base, USB_PERIODICLISTBASE ))) {
     //     _usb_err = true;
     //     __cio_puts( "USB ERR: Frame list couldn't be set\n" );
+    //     return;
     // }
 
     // for(int i = 0; i < USB_MAX_FRLIST; i++) { // Set the pointers to be invalid
