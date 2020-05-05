@@ -1,0 +1,359 @@
+================================================================================
+
+                                   Windows XP 
+                              Modules Description
+                                    Group 4
+
+================================================================================
+
+
+Abstract
+----------------------------------------
+This document describes each component of Windows XP module by module.
+Sections go into detail about major data structures, and how they evolved over
+time from the design stage to the final implementation. In addition, each
+module's API, and interaction with the rest of the OS will be discussed.
+
+
+AC97 Module
+----------------------------------------
+The AC97 Module in Windows XP handles configuring the device for use by
+user-level processes, and manages a buffer to store PCM audio data for output
+from the speakers.
+
+The only internal data structures the module stores include the following:
+    AC97Dev: The structure that contains pertinent device configuration
+    information, as well as buffer state. This is implemented as a struct so
+    that future support for multiple AC97 Controllers could be implemented.
+
+    AC97BufferDescriptor: A 4-byte structure that the DMA Engine uses to
+    identify audio buffers. Within the two longwords in the struct, there are
+    certain control bits, and information fields. I originally wanted to
+    implement this as the following bit field:
+        typedef struct buffer_descriptor_s {
+            unsigned int            : 0; // force alignment
+            unsigned int pointer    :32;
+            unsigned int ioc        : 1;
+            unsigned int bup        : 1;
+            unsigned int reserced   :14;
+            unsigned int len        :16;
+        } AC97BufferDescriptor;
+    However, GCC doesn't cooperate with the length and alignment requirements
+    that the DMA Engine is so picky about. Implementing it as two unsigned 32
+    bit ints worked much better.
+        typedef struct buffer_descriptor_s {
+            uint32 pointer;
+            uint32 control;
+        } AC97BufferDescriptor;
+    The DMA Engine does not maintain buffers directly. It only deals with them
+    indirectly through the Buffer Descriptor List (BDL). A BDL can be up to 32
+    4-byte structures that describe the data buffers themselves.
+    The pointer member is used to point to the actual location of the buffer
+    in memory. The control member has a few bits and fields of interest:
+        Bit 31, IOC: Set to generate an Interrupt when the buffer that this BDL
+            entry points to has been played completely.
+        Bits 15:0, LEN: Set the number of samples in the buffer that the pointer
+            member points to. This is the number of 16-bit samples that the
+            buffer contains, NOT the number of bytes in the buffer.
+
+At the moment, the module only supports a single AC97 Controller, and a single
+Buffer Descriptor List. However, more could be added in future development.
+
+The AC97 Initialization routine performs the following duties:
+    1. Detects the presence of an Intel AC97 Controller. At the moment, other
+       varieties from other manufacturers are not supported.
+    2. Obtain the base address registers for the audio bus and mixer
+       configuration spaces.
+    3. Set the sample rate to 8 kHz to keep file size low(ish) because we're
+       dealing with uncompressed stereo, 16-bit PCM audio.
+    4. Sets up the ISR callback function
+    5. Enables PCI Bus Mastering to allow the Controller itself to initiate DMA
+       transfers
+    6. Allocates and initializes the Buffer Descriptor List (BDL) and a 4K page
+       for each buffer, and gives the base address of the BDL to the DMA
+       Controller.
+    7. Enables FIFO Error and Buffer Completion Interrupts
+    8. Determines the number of volume bits the controller supports (5 or 6).
+       This is completely transparent to the user, as all user volume
+       interactions are 6 bits.
+    9. Sets the Master and PCM output volume to full blast. This is best for use
+       in a VM, since the host OS also has a sound mixer that will likely
+       reduce the volume further.
+
+Theory of Operation:
+    The AC97 DMA Engine has two steady states of operation. When the RUN/PAUSE
+    bit in the bus master control register is cleared, the device is idle.
+    No DMA transfers occur, and no audio is played. When it is set, the
+    controller loops through the BDL entries, playing each buffer's audio until
+    it reaches the Last Valid Index (LVI).
+
+    When a user program writes to CHAN_AC97, the buffer is filled with the audio
+    file's data (or as much as will fit). Then, the RUN/PAUSE bit is set, and
+    LVI is updated to tell the controller when it reached the end of the sample
+    to play. As the controller chews through the buffers in the BDL, it
+    interrupts the CPU after completing each one. The AC97 ISR marks the
+    buffers that have played as free. If the controller reaches LVI, and there's
+    no more data left in the buffer, it clears the RUN/PAUSE bit, sending the
+    controller back to its idle state.
+
+    Playing uninterrupted audio involves the user calling write on CHAN_AC97
+    repeatedly until all of the data has made it through the buffer. At the
+    moment the system lacks a blocking write. Once the internal buffers fill
+    for other system calls, the excess data is dropped on the floor. This is
+    not acceptable for audio, as this will cause skipping and other undesirable
+    artifacts. The workaround at the moment is to advance the pointer to your
+    audio data by the number of bytes that the internal AC97 buffer took.
+    When there is new data, the write function also makes sure to set the
+    RUN/PAUSE bit and set the controller off running.
+
+Streams and Mixing:
+    There was not enough time to consider developing a sound architecture to
+    handle proper stream mixing. If two processes try to write to the AC97
+    Controller at the same time, it probably won't sound very good.
+
+    A sound architecture could also help unify system calls to the Ensoniq
+    SoundBlaster Module, but again, there was not enough time.
+
+System Calls:
+    The AC97 Module exposes several of its functions to users via system calls.
+    Users are able to interact with the device at a high-level without needing
+    to know much about how it works. They are able to see if it's initialized,
+    set and query volume and sample rate, and write to it using the write
+    syscall.
+    See api.txt for specifics about each one.
+
+Memory Usage:
+    This module allocates a lot of memory for PCM samples, and never gives it
+    back. More specifically, it allocates a static BDL, which is 32 entries * 4
+    Bytes each, totaling 128. Each of those entries points to a page which can
+    be filled with up to 4K bytes of data. The total memory usage for buffers
+    is 131,200 bytes. None of the pages allocated for buffers are ever returned
+    to the system because at high sample rates, such as 48 kHz (CD quality),
+    the buffer holds a fraction of a second of audio data when completely full.
+    Deallocating and re-allocating the buffers when they are emptied and
+    refilled would incur significant overhead. A future enhancement could
+    include deallocating the buffers when there are no streams playing.
+
+Performance:
+    The AC97 Module in Windows XP supports stereo (signed 16-bit) PCM audio
+    sampled as low as 2 kHz, and as high as 48 kHz. At 48 kHz (CD quality),
+    there is no noticeable clipping. I was not able to test even high quality
+    audio, but there is nothing in theory that should stop it from working,
+    as long as the ISR can keep up.
+
+
+Ensoniq SoundBlaster Module
+----------------------------------------
+The SoundBlaster module handles the configuration of the SoundBlaster device.
+There is no data structures the module stores other the PCI Device, from
+the PCI module.
+This is defined as follows:
+    typedef struct pci_dev_s {
+        int id;
+        uint8 class;
+        uint8 subclass;
+        uint8 headertype;
+        uint8 progif;
+        uint8 interrupt;
+
+        uint16 vendorid;
+        uint16 deviceid;
+
+        uint32 bar0;
+        uint32 bar1;
+        uint32 bar2;
+        uint32 bar3;
+        uint32 bar4;
+        uint32 bar5;
+
+        uint8 bus;
+        uint8 slot;
+        uint8 func;
+    } PCIDev;
+The only other pieces of info are:
+  1. A pointer to a buffer of data to be used as the sound buffer for samples.
+  2. A pointer to where to put the samples into this buffer.
+
+At the moment, this module only supports a single controller and single
+device.
+
+The SoundBlaster initialization routine does the following duties:
+   1. Detects the presences of a SoundBlaster ES1370 controller. Other versions
+      are not currently supported. If the device is not present, this returns.
+   2. Allocate a buffer for samples of audio.
+   3. Sets up the ISR callback function
+   4. Enables PCI Bus Mastering, to allow the controller to initiate DMA
+      transfers.
+   5. Resets the controller's data.
+   6. Sets the volume.
+   7. Sets the parameters to do 48khz sound, mono, looped mode, and informs
+      the controller of the buffer address and number of samples it can play.
+
+Theory of Operation:
+   The SoundBlaster device is always running once it starts when the buffer
+   fills after the first time. The sound plays until the buffer fills, and
+   then it interrupts, and the next inserts go into the beginning of the
+   buffer. In order to get continued sound, the player must be able to generate
+   samples faster than the sound card plays them. If this doesn't happen, the
+   card will loop the last few samples, which provides a smooth experience
+   if there is any lag.
+
+Streams and mixing:
+   There was also not enough time to get this implemented, so instead the
+   sample user program was built to make a cool tune.
+
+Memory usage:
+   The kernel allocates 64, 4k byte pages to use as the buffer. This is half
+   of the usage of the AC97, but this is much more limiting as there's
+   no ability to swap out buffers as they are put out to the speaker.
+   In order to reduce lag spikes from other user programs causing noticable
+   degradations in the notes, the user program uses big buffers to hold
+   the samples of notes to play. This requires an addition 320 pages of
+   memory, but results in nice audio quality. (1.3 MB of RAM)
+
+Performance:
+   The sound works, and since the sound was created rather than played back,
+   it's hard to tell how high quality it is. There was no clipping of the audio,
+   and the loop mode allows for small lag spikes to be not as noticeable to
+   the end user.
+
+ATAPI CD-ROM Module
+----------------------------------------
+TODO Michael
+
+
+PCI Module
+----------------------------------------
+The PCI Module handles communication with the PCI. It enumerates all devices
+connected to the PCI. A series of configuration space memory access (read and
+write) functions are provided to other modules. Also, they can query a specific
+PCIDev struct from a device ID or from a given class.
+
+Data structures:
+    PCIDevice: contains relevant device information from the PCI configuration
+    space registers. This includes where to locate the device in the PCI
+    configuration space (bus, device and function number), class information
+    (class, subclass, progIF), device ID (vendorID, deviceID), device base
+    addresses (bar0, bar1). For each device, one on these structs is stored
+    in a static array (_pci_dev_list).
+
+PCI configuration space memory access:
+    To access the PCI configuration space, a 32 bit address is built using
+    a bus, device and function number and an offset.
+    The address is fed to the PCI CONFIG_ADDRESS port using direct IO:
+    __outl( 0xCF8, address );
+    Then to read from the address, the __inl function is called on the PCI
+    CONFIG_DATA port (= 0xCFC). To write data to the specified address, the
+    __outl function is called on CONFIG_DATA.  
+
+Init routine (= device enumeration):
+    There are 256 buses max, 32 devices per bus max, and 8 functions per
+    device max. One strategy is to iterate over all these and check if the
+    address refers to a valid device. However, because it's not very efficient,
+    another approach for taken, it uses recursion.
+    The process starts by checking bus 0. It checks every 32 potential devices.
+    For each device, function 0 is checked. Only if the device is valid and
+    multi-function then function 1 to 7 are also checked (multi-function
+    information is looked up in the config space registers for the device).
+    If a device is a secondary bus, the process starts recursively from a new
+    bus number (also looked up in the device registers).
+
+System calls:
+    No system calls are required for this module. Only a debugging command was
+    added to the console. When 'l' is hit, a list of all PCI devices is dumped
+    to the console.
+
+Memory usage:
+    Very little memory is used by the module. No memory needs to be dynamically
+    allocated. Only the static array (of arbitrary size 15, 15*18b = 270b) is
+    needed.
+
+USB Storage Module
+----------------------------------------
+The USB storage module handles configuring the EHCI controller and the usb
+flash drive that's plugged into it.
+
+EHCI general information:
+    The EHCI controller has two different systems for scheduling USB transfers:
+    The first one is called periodic schedule, it manages interrupt and
+    isochronous transfers. The second one is the synchronous schedule, it
+    manages control and bulk transfers. Since the first thing to do with a USB
+    device during enumeration is exchanging control data, I first (and only had
+    the opportunity to) focused on asynchronous schedule.
+
+The USB module requires two main data structures:
+    USBQHead: USBQHeads (Queue Heads, QHs) are fed to the EHCI asynchronous
+    schedule system to describe transfers needed to be made to a device. QHs
+    are linked together (qhead_hlink) in a loop, forming a pure round robin
+    schedule system for asynchronous schedule. Each QH describes where the data
+    has to be sent and some transfer characteristics (endpoint_crc,
+    endpoint_cap). It links to a linked list of QTDs which characterize the
+    transfer sequence in more detail.
+    In the module, a full page of QHs is allocated and a Queue of free QHs is
+    used to keep track of unused QHs.
+
+    USBQTD: USBQTDs (Queue Transfer Descriptors, QTDs) describe an element in
+    the transfer sequence. QTDs are linked together using (next_qtd) in a list
+    that describes the transfer sequence. The QTD token describes the type of
+    the QTD (IN, OUT or SETUP), its state, and some transfer-related
+    information. They also contain links to data buffers, which contain the
+    actual data to be sent or received during the USB transaction. Buffers are
+    restricted to 4k page boundaries. The first buffer can have an offset but
+    the others must start at the beginning of a 4k page. Since I'm not
+    transferring more than 1k of data. Each time a buffer is needed, a slice is
+    allocated and used as buffer 0. This way at least 1k is available before
+    crossing a page boundary.
+    A full page of QTDs is allocated and a Queue of free QTDs is used to keep
+    track of unused QTDs.
+
+    Periodic schedule uses other data structures that were not implemented.
+    Namely, the frame list (_usb_frame_list) is declared but not used.
+
+    A handful of global variables are declared to store device information.
+    This includes EHCI register base addresses and other information and flash
+    drive characteristics: a structure for device information (_usb_dev), and
+    one for each available interface (_usb_itf) and endpoint (_usb_edp).
+
+Init routine:
+    1. Controller initialization
+        a. Fetch a PCIDev struct of type EHCI, store relevant controller data.
+        b. Set PCI command register to enable Bus Master and Memory space.
+        c. Get base operational address.
+        d. Check if the BIOS owns the controller; if true, get ownership.
+        e. Stop and reset the controller.
+        f. Route all ports to the controller.
+        g. Start the controller.
+        h. Reset all ports where a device is connected. It's assumed that only
+           a flash drive is connected to the EHCI controller and that it's
+           connected from the start. The port for which a device is detected
+           is stored.
+        i. Allocate data structures (see data structures).
+    2. Device initialization (because the following data transfers are done
+       during the init routing, they are performs synchronously)
+        a. Set up a QHead to communicate with the flash drive's endpoint 0. A
+           device's endpoint 0 is used to send control data to get device
+           information and initialize / configure it.
+        b. Set start of asynchronous schedule list and enable asynchronous
+           schedule.
+        c. Get the device's device and configuration descriptors.
+        d. From the configuration descriptor, get the descriptor for each
+           interface and endpoint. Store all descriptor data.
+        e. Check that the device is mass storage.
+        f. Check that the device's endpoints support bulk transfer.
+        g. Set a permanent address for the flash drive.
+        h. Set the flash drive configuration.
+
+System calls:
+    No system calls were implemented for this module. Only a debugging
+    command was added to the console. When 'u' is hit, all gathered USB
+    information is dumped to the console.
+
+Memory usage:
+    The USB module is a bit memory consuming. QHeads and QTDs both require a
+    4k page and a Queue. A lot of controller and device information needs to
+    be stored in the module. Interface and endpoint related information
+    uses a lot of memory since several interfaces can be used per device, and
+    there are several endpoints per interface. Also, each time a transfer is
+    performed, 1 or 2 1k buffers are allocated and then freed. Since transfers
+    are performed synchronously, also a maximum of two buffers are allocated
+    at once.

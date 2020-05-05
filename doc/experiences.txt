@@ -1,0 +1,351 @@
+================================================================================
+
+                                   Windows XP 
+                                  Experiences
+                                    Group 4
+
+================================================================================
+
+
+Abstract
+----------------------------------------
+This document chronicles the journey taken by the team throughout the semester.
+
+
+In The Beginning...
+----------------------------------------
+Once baseline development was coming to a close, we started considering our
+options for potential augmentations for it. A giant group amassed in the
+southeast corner of the DSL, each person excited about bolting certain
+functionality into the baseline. We ultimately decided to split into two
+teams based on which group of features would best complement each other.
+Our group decided to tackle making an audio player of some kind, with drivers
+for various sound hardware, CD-ROM, and USB storage for storing music files.
+Our original target devices were Intel AC97, Intel HD Audio.
+
+The other group decided to tackle networking, file systems, and another USB
+implementation. Realizing the potential of a really cool final product, we
+decided that we would work closely with each other, and try to merge all eight
+(8!) projects into one if there was time. The end result could have been
+something like a low-budget Spotify with samples streaming and playing on
+different machines.
+
+We set up a shared slack workspace for the two teams to stay in close contact,
+as well as a shared GitHub repository. At the time of writing this document,
+it seems that no efforts will be made to merge all of the enhancements together
+into one ubersystem given the circumstances. However, someone could pick that
+up as a personal project if they desire.
+
+
+The Plot Thickens...
+----------------------------------------
+Right around spring break, we drew the "stay home; global pandemic" card (Do
+not pass Go, Do not collect $200). As a result, we lost a week of time to work
+on finishing the baseline system, and our group members started considering
+simpler enhancements due to the added challenge of working from home, using
+emulators instead of actual hardware, etc.
+
+Our team also had to cope with a 6-hour time difference. It turned out to be
+easier than I thought it would be, since there's a pretty wide swath of time
+that we're all awake. After setting up our home workstations and QEMU
+environments, we began working individually on our drivers.
+
+
+AC97 Driver Development
+----------------------------------------
+Working from home took some adjustment for me. I am the type of person who
+thrives in structured environments. When literally all of the structure I was
+accustomed to crumbled away, it took me a few weeks to settle into new routines
+before I was able to get back to full productivity.
+
+My prior experience with embedded development helped me keep realistic
+expectations about my daily progress throughout, and mainly that it will seem
+hopeless until suddenly it will start working. My first major milestone was
+to detect whether or not there even was an AC97 Audio Controller present in
+the system. This didn't take too long once we had a working PCI support library
+because all I needed to do was look for vendor 0x8086 (they are obsessed with
+that number...) device ID 0x2415. To my knowledge, this is the only AC97 audio
+controller that QEMU is capable of emulating. I verified that this worked by
+either passing the -soundhw ac97 option or not.
+
+Once that was working, the goal was to get it to fire an interrupt at me. By
+this point I discovered that the actual Intel AC97 Specification was not very
+helpful in determining the initialization process. I looked at some existing
+implementations of AC97 audio drivers to better understand what needs to be
+done to bring the device up. I also discovered two other specs that included
+imperative information such as theory of operation, and even a programmer's
+reference manual. I worked for a few days setting register contents and reading
+them back to see if they behaved the way I expected them to. Most of the time
+I got zeroes or things other than the defaults from the specification.
+
+A few days in, I discovered that my base addresses were wrong, so I wasn't
+actually writing to the registers I thought I was. After I got that sorted
+out, I started seeing default register values that made sense, and
+I got my echoed values back as expected.
+
+At long last, I got the interrupt to fire one time only. This was the first
+real indication that the controller liked any of the bits I was tickling. After
+I added the PIC_EOI thing, it started vomiting interrupts so fast that it was
+the only thing on the console output. It still hadn't made a peep, but I hadn't
+given it anything to do yet.
+
+I spent the next couple days learning about how the DMA controller operates,
+and that it's pretty picky about things like alignment. It expects a buffer
+descriptor list, which is an array of 2 longwords that hold various information
+about each buffer. There are 32 in total. They hold things like a pointer to the
+next buffer, the number of samples in the buffer, whether or not to interrupt on
+completion, etc. I allocated a static array of those, because they're not super
+big, and the DMA controller gets angry if they suddenly disappear.
+
+As for the buffers themselves, they can be any length up to 4096 16-bit samples.
+On initialization, I decided to allocate 32 4KB pages with no intention of ever
+giving them back. Each buffer holds 256 PCM audio samples, and across all 32 of
+them, it still only holds a very small duration of audio--much less than a tenth
+of a second at the default playback speed of 48 kHz. Even playing a clip that
+is a few seconds long will result in each buffer's data being replaced hundreds
+or even thousands of times. I decided deallocating and re-allocating in that
+situation doesn't make much sense. The system probably won't miss 32 pages
+dedicated to audio data anyways.
+
+Once that was set up, I purposely didn't clear any of the buffers to see what
+the random data inside them might sound like. Unfortunately, it was all clear
+or very nearly clear because I couldn't even make out crackles and pops. I went
+off in search of something to play.
+
+As a quick break, I dredged up an old Thinkpad I had in my closet. I spent an
+hour wallowing up to my armpits in nostalgia for Windows XP. After listening
+to each sound several times, I realized that XP was the pinnacle of Microsoft
+acoustic design. So, I scraped the wav files for use (abuse?) in the baseline.
+
+For testing purposes, and until my group-mates got their storage drivers up and
+running, I needed to compile in my audio data somehow. I found the easiest way
+was to use the linker to turn them into binary object files. It even exported
+variables I could use from the code to get to the start and end of the binary
+blob. The only issue I ran into is that this severely limits the length of the
+audio files I can include before the program becomes too large to start at
+0x10000. When I tried up-sampling the orchestral startup sound to the AC97
+default sample rate of 48 kHz from its original 22.5, but it made the file too
+large to link in. To save space, I ended up figuring how to change the AC97
+DAC rate, and down-sampled it to 8 kHz. It sounds more muffled, but it's still
+recognizable. It was honestly more nostalgic that way, since for most of my
+childhood, the computer speakers weren't very good anyway.
+
+I used __memcpy to load the buffer initially with the beginning of the startup
+sound. When it played (at the wrong sample rate) I nearly fell out of my chair.
+I think I was so excited that it worked that I took the rest of the day off.
+I came back refreshed and wrote the ISR to cycle the data through the buffer
+so the whole sound played. Once all of that was working, I exposed some of the
+driver's functionality to userland, and wrote a user application that played the
+sound after init starts.
+
+I made no attempts at mixing or implementing streams. If two processes try to
+write to the controller, I'm not sure what will happen, but I am very confident
+that it will make very ugly noises. Implementing streams and mixing would
+require significant implementation effort. If we hadn't lost a week to our
+extended spring break, I could have tackled it. A userland player that
+takes audio data from USB or CD sources was in the works, but it depends on
+everyone else's drivers working. I took all of the Windows XP sounds, and I feel
+that they should all (or as many as possible) be incorporated into the system
+when certain events occur rather than using console output. I also grabbed a
+clip of Prof. Carithers saying "such is life" from a zoom meeting that plays
+marvelously.
+
+
+Ensoniq SoundBlaster Driver Development
+----------------------------------------
+(Zach Jones)
+
+The transition to working from home wasn't too bad for me, the problem was my
+setup. Mac's don't compile 32-bit programs anymore, so I had to install a
+virtual machine. I went with Ubuntu since that seemed the most user-friendly
+for someone that's not used to Linux stuff. I tried to build qemu from source
+from the one suggested, but I couldn't get that to work so I used the
+pre-packaged latest version. This worked out fine.
+
+I have almost no embedded systems development experience, other than
+some knowledge of x86 assembly (I learned the 64-bit calling convention though).
+I'm glad that I was able to work with C to get almost all the code for this
+done.
+
+On my mac, turns out it doesn't have the Intel HDA, but rather something
+proprietary. On the lab machines, there was the Intel HDA. Rather than abandon
+sound, I went with a different approach, what can I run with the VMWare fusion?
+VMWare as it turns out only exports an Ensoniq / Creative Labs ES1373, which
+is the predecessor to the AC97. There is the slightly older Ensoniq
+SoundBlaster ES1370, which was a bit simpler and "documented". I put
+documented in quotes, because while it goes through some of the main registers,
+it never specifies quite a bit of the important stuff.
+It also doesn't specify that the one channel doesn't work unless you do
+some other closed-source set of instructions.
+
+Like the other sound system, my first milestone was to get it detected
+on the PCI bus. Turns out, even if you have the hardware emulated on VMWare,
+qemu doesn't emulate it unless you specify -soundhw es1370. I did the same
+thing with looking for vendor (0x1274) and device ID (0x5000).
+
+My goal was to make my version not have a dependency on getting USB or
+some other way to input data to play working first.
+My first steps was instead of trying to feed it pre-recorded sound, I
+thought "I'll just give it a 440 hz sound wave, that should sound like
+The 4th A on a piano." Turns out, since we don't have the C standard library
+at our disposal, I had to write my own implementation of the sine function.
+This made it so that I could just send sample down to the sound card as needed,
+so I initially tested it out with loop when done = true, don't interrupt.
+This made no sound, because I didn't turn the audio volume on, or PCI mastering,
+but there was no indication in the small documentation I could find.
+I had to reverse-engineer some code from Linux to get this it working.
+
+Now, the sound would play for about 1 second, but it would have about 1/10th
+of it be silent, on loop. I thought this might have to do with not implementing
+the interrupts, so I went to that next.
+I got the interrupt working pretty easily after that, and since this initial
+point took so long, I had the help of Cody for the PCI usage.
+
+The soundblaster only uses one buffer, and when it spits out the interrupt,
+you (the OS) have less than 50 ms or something like that to acknowledge and
+replace the buffer address and played count or it will hop to the beginning
+of the sound sample. Since I could only get ok quality sound with the highest
+sample rate of 48 khz, I allocated the biggest buffer possible of 64 pages.
+It only supports up to 2^^16th samples since it must fit in a 16-bit register,
+which runs out in 0.34 seconds.
+
+Also with the user program, I thought it would be cool to play a simple song.
+I was going to do the song "Hot Cross Buns" that I remember having to play in
+elementary school, but after talking to the group, "Sandstorm" by Darude, which
+is just 4 different notes would definitely sound cooler. Plus it repeats the
+3-6 measures basically the whole song, which is nice for the meme-y effect.
+
+The part of getting this setup wasn't too bad, but since this needs to be
+calculating all this data, it can't keep up with the sound that is playing,
+so it sounded really crazy. In order to do this, I create 5 buffers in the
+user program, and filled them up at startup (takes a couple seconds).
+(I allocated these from the kernel module since there's no malloc).
+This worked much better in terms of sound quality, but required a lot more
+memory (another 320 pages) to get about .3 seconds of each frequency and
+silence to separate out the notes.
+
+I also made no attempt of mixing sounds, this would be a huge task without
+sound card hardware support, and would likely take longer to mix the sound
+using CPU time than the sample rate. 
+
+
+USB Storage Driver Development
+----------------------------------------
+I started this project by reading USB documentation. And there’s a lot 
+out there. Since I didn’t know what I was doing, I picked the wrong one. 
+It was too low level specifications that would’ve helped someone designing
+a controller, not a driver. After doing so, which in itself was not an easy
+and fun process I still wondered: what exactly do I write in my usb.c file?!
+Thanks to the professor’s help, I started working on the PCI module.
+
+During the PCI phase of the project, I haven’t had too many issues as the
+documentation I followed (from OSDev) was very complete and well explained.
+The only thing that challenged me was the writing process, which wasn’t
+explained in OSDev’s article and took some more digging around to find
+documentation for.
+
+It seems like an issue disappeared from my presentation, so in exclusivity:
+another mistake I made. When I started working on the EHCI driver, the first
+thing I needed to do was getting the base address from the PCI and then
+getting the operational base address, which required to read data from the
+EHCI controller base address. To read from the EHCI registers, I invented
+a new way to do direct I/O with 32 bit addresses instead of ports, which
+obviously did not work. Looking back, I think I just imitated what I did for
+the PCI module without understanding what I did and why. Also the
+documentation didn’t ever state precisely how to make use of addresses, which
+may be obvious to some, but, to reiterate, I didn't know what I was doing
+(and maybe still don't). Tyler Wilcox helped me figure out what was wrong
+with my code. EHCI addresses make use of Memory-Mapped I/O, so you're
+supposed to use them as pointers. 
+
+Then it was time to start working on the EHCI driver and once again, I had
+to start fresh on documentation. Tyler Wilcox handed me a link to a
+simplified description of EHCI data structures and control transfers, which
+helped me a lot in taking a step back to understand globally how the EHCI
+controller worked. I could then refer to the EHCI documentation more easily.
+
+Trying to get my first control request to work, I got into another problem.
+The first QTD in the sequence blew up to my face whatever tweaking I did
+to the code. Once again after some time struggling, I contacted Tyler who
+told me I forgot resetting the port to which the flash drive was connected.
+I did that and the second QTD in the sequence blew up.
+
+I spent another period struggling to find what was causing the issue. The only
+lead I had was the IN QTD's Halt bit being set to 1, which, following the
+documentation, means that "a serious error has occurred at the device/endpoint
+addressed by this qTD". This could happen for a number of reasons, none of
+which the other conditions were met (the other corresponding error bits were
+clear).
+
+After a lot of time struggling and getting nowhere. I switched to doing
+documentation work. On Tuesday April 28, I found the bug: the byte ordering of
+the request buffer was wrong. I fixed the issue and started working on
+reorganizing the USB module, which was at a state where I was just trying out
+to send a first request (everything was done in the init sequence with no
+function call). I implemented as many different control requests as I could.
+
+My PCI module was then used by other team members (instead of using Tyler's)
+which turned ou to cause issues. The bug, which came from the PCI writing
+functions, was found and fixed relatively easily this time. It was caused by a
+'&' which should've been an '|' and (I know) and bas use or __outl (I swapped
+port and value).
+
+All these issues add up to a lot of time wasted. The USB module cannot be
+used to perform I/O transfers to the flash drive, so no system calls were
+added to the OS. Also that means it cannot be used to store and load audio
+media, so it doesn’t have an impact on the overall audio project. However,
+for proof of work, two “dump all” functions were added to the console (one
+for the PCI module and one for the USB module). They both display connected
+device information. And the PCI module is used by other members’ modules.
+
+
+Optical Drive Driver Development
+----------------------------------------
+I started researching ATAPI early into the semester before everything changed. 
+I started out being really excited with the project as I really love music and 
+had the big goal of being able to play music. Of course, everything changed,
+and I overestimated my initial knowledge of ATAPI from the initial research
+period. I had no prior knowledge on ATAPI or ATA besides knowing of its existence.
+I was determined to try my best to get this working.
+
+When the extended spring break and closing of RIT happened, I was a bit worried.
+I was not an expert on qemu and being away from my team seemed like it could cause
+extra problems. I started out coding a pretty lengthy initial startup and a basic
+ATAPI read capacity command. I then discovered qemu's -cdrom flag which got me
+initially excited as that solved most of my qemu issues or so I thought. Over
+the next couple days, I grew increasingly frustrated as no matter what I did
+the actual setup packet command and scsi command failed. One aspect of ATAPI
+I underestimated was how much register management was involved. With every
+command there were several outw calls to certain registers and this could vary
+greatly between commands. A lot of the documentation I found mentioned the
+sometimes-unwieldly commands but were light on details on some. I was at a
+point where I was constantly rereading parts of my driver code following each
+part of a command and triple checking the value which I did find some bugs in
+(for instance lba mid and high registers need special values when doing a read
+capacity command). I ended up wasting a lot of time doing this as the solution
+was correcting an out word to the drive select register with the default atapi
+drive for qemu and enabling interrupts. Suddenly I was firing the irqs depicted
+in the documentation and I was thrilled for the moment.
+
+After this I continued my read using PIO mode and caught the irq. PIO mode of
+atapi is simpler than it's DMA counterpart. I was convinced as that the commands
+were working now that I just needed to fixup the read command and I could then
+read the ata_data an amount of times determined by the lba registers after the
+interrupt and have a semi-working read. Theoretically this is still correct, but
+I did not realize the amount of interrupt handling needed by PIO mode. See PIO
+mode of ATAPI kind of works like this it will fire a interrupt then read a little
+then fire another interrupt and read more and repeat until a value is in the control
+register with a non re enterable kernel this would need a major redesign of how I was
+going about this. If I could not catch the interrupt every time it fired, I would not
+be able to read correctly. So, I decided to switch to DMA. The problem with this is
+all the documents I used including OSdevwiki(which has a separate wiki for atapi), an
+operating systems textbook with a chapter on atapi, and osdevwiki forum posts were
+mostly related to pio and a whole separate batch of research was needed this was a
+couple days before presentations were due so I rushed to fix up my diver and present
+an accurate look of that new design.
+continue here 
+
+Bring on the Merge Conflicts
+----------------------------------------
+Merging all of the components into the system was not very difficult. The
+hardest merge was when we started using Yann's PCI module. 

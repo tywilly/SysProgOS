@@ -6,6 +6,7 @@
 ** Author:	Warren R. Carithers
 **
 ** Contributor: Cody Burrows (cxb2114@rit.edu)
+**              Zach Jones   (ztj3686@rit.edu)
 **
 ** Based on:	c_io.c 1.13 (Ken Reek, Jon Coles, Warren R. Carithers)
 **
@@ -622,8 +623,8 @@ int __cio_gets( char *buffer, unsigned int size ){
 /**
   * Print the contents of the cio input buffer.
   * This function creates two lines of output: the first is the contents
-  * of the buffer. The line below shows where the _c_next_char and 
-  * __c_next_space pointers are. 
+  * of the buffer. The line below shows where the _c_next_char and
+  * __c_next_space pointers are.
   *
   * ^ = __c_next_char
   * _ = __c_next_space
@@ -667,7 +668,7 @@ void __cio_init( void (*fcn)(int) ){
 	/*
 	** Screen dimensions
 	*/
-	min_x  = SCREEN_MIN_X;	
+	min_x  = SCREEN_MIN_X;
 	min_y  = SCREEN_MIN_Y;
 	max_x  = SCREEN_MAX_X;
 	max_y  = SCREEN_MAX_Y;
