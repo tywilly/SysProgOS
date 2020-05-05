@@ -341,9 +341,16 @@ be able to read correctly. So, I decided to switch to DMA. The problem with this
 all the documents I used including OSdevwiki(which has a separate wiki for atapi), an
 operating systems textbook with a chapter on atapi, and osdevwiki forum posts were
 mostly related to pio and a whole separate batch of research was needed this was a
-couple days before presentations were due so I rushed to fix up my diver and present
-an accurate look of that new design.
-continue here 
+couple days before presentations were due so I rushed to fix up my driver and present
+an accurate look of that new design. SadlyI did not get a full DMA read working. 
+I scaled back the syscalls and they are commented out from the actual run processes 
+as they were causing delays in other parts of the demo run syscalls all though 
+they are implemented.I added back in a pio implementation to show a read from 
+that point as well although that fails somehwat as well. In the end I implemented most of the
+driver calls in the interactive mode to show interactions with the atapi driver. It is far from
+a complete driver ,but I believe it shows a start and includes where it fails. I wish I figured
+out the issues I ran into earlier.
+
 
 Bring on the Merge Conflicts
 ----------------------------------------
