@@ -1301,27 +1301,6 @@ int test_atapi(int argc, char *args){
 	return 0;
 }
 
-int cdrom( int argc, char *args){
-    swritech('d');
-    int32 pid;
-#ifdef SPAWN_ATAPI
-    // test cdrom
-    pid = spawn( test_atapi, &args );
-    if( pid < 0 ) {
-        cwrites( "Failed to Spawn ATAPI Process!\n");
-    } else {
-        // wait until it's done
-        int32 status;
-        int32 tmp = wait( (Pid) pid, &status);
-        if( tmp < 0 ) {
-            cwrites( "Unable to wait for ATAPI process!\n" );
-            exit( -1 );
-        }
-    }
-#endif
-    return 0;
-}
-
 /*
 ** Start separate processes for the ac97 playback, and sandstorm
 */
@@ -1368,7 +1347,22 @@ int dj( int argc, char *args ) {
         }
     }
 #endif
-
+#ifdef SPAWN_ATAPI
+    /* test cdrom currently disabled as it messes with the other syscalls
+    pid = spawn( test_atapi, &args );
+    if( pid < 0 ) {
+        cwrites( "Failed to Spawn ATAPI Process!\n");
+    } else {
+        // wait until it's done
+        int32 status;
+        int32 tmp = wait( (Pid) pid, &status);
+        if( tmp < 0 ) {
+            cwrites( "Unable to wait for ATAPI process!\n" );
+            exit( -1 );
+        }
+    }
+    */
+#endif
     return 0;
 }
 
@@ -1446,8 +1440,9 @@ int init( int argc, char *args ) {
 #endif
 
 #if defined(SPAWN_ATAPI)
+    // attempts a pio read and capcaity atapi command
     argv[0] = NULL;
-    whom = spawn(cdrom,argv);
+    whom = spawn(dj ,argv);
     if(whom < 0){
 	cwrites("init, spawn() user 1 failed\n");
     }
