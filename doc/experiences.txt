@@ -305,60 +305,63 @@ I started researching ATAPI early into the semester before everything changed.
 I started out being really excited with the project as I really love music and 
 had the big goal of being able to play music. Of course, everything changed,
 and I overestimated my initial knowledge of ATAPI from the initial research
-period. I had no prior knowledge on ATAPI or ATA besides knowing of its existence.
-I was determined to try my best to get this working.
+period. I had no prior knowledge on ATAPI or ATA besides knowing of its
+existence.  I was determined to try my best to get this working.
 
-When the extended spring break and closing of RIT happened, I was a bit worried.
-I was not an expert on qemu and being away from my team seemed like it could cause
-extra problems. I started out coding a pretty lengthy initial startup and a basic
-ATAPI read capacity command. I then discovered qemu's -cdrom flag which got me
-initially excited as that solved most of my qemu issues or so I thought. Over
-the next couple days, I grew increasingly frustrated as no matter what I did
-the actual setup packet command and scsi command failed. One aspect of ATAPI
-I underestimated was how much register management was involved. With every
-command there were several outw calls to certain registers and this could vary
-greatly between commands. A lot of the documentation I found mentioned the
-sometimes-unwieldly commands but were light on details on some. I was at a
-point where I was constantly rereading parts of my driver code following each
-part of a command and triple checking the value which I did find some bugs in
-(for instance lba mid and high registers need special values when doing a read
-capacity command). I ended up wasting a lot of time doing this as the solution
-was correcting an out word to the drive select register with the default atapi
-drive for qemu and enabling interrupts. Suddenly I was firing the irqs depicted
+When the extended spring break and closing of RIT happened, I was a bit
+worried.  I was not an expert on qemu and being away from my team seemed like
+it could cause extra problems. I started out coding a pretty lengthy initial
+startup and a basic ATAPI read capacity command. I then discovered qemu's
+-cdrom flag which got me initially excited as that solved most of my qemu
+issues or so I thought. Over the next couple days, I grew increasingly
+frustrated as no matter what I did the actual setup packet command and scsi
+command failed. One aspect of ATAPI I underestimated was how much register
+management was involved. With every command there were several outw calls to
+certain registers and this could vary greatly between commands. A lot of the
+documentation I found mentioned the sometimes-unwieldly commands but were light
+on details on some. I was at a point where I was constantly rereading parts of
+my driver code following each part of a command and triple checking the value
+which I did find some bugs in (for instance lba mid and high registers need
+special values when doing a read capacity command). I ended up wasting
+a lot of time doing this as the solution was correcting an out word to the
+drive select register with the default atapi drive for qemu and enabling
+interrupts. Suddenly I was firing the irqs depicted
 in the documentation and I was thrilled for the moment.
 
 After this I continued my read using PIO mode and caught the irq. PIO mode of
-atapi is simpler than it's DMA counterpart. I was convinced as that the commands
-were working now that I just needed to fixup the read command and I could then
-read the ata_data an amount of times determined by the lba registers after the
-interrupt and have a semi-working read. Theoretically this is still correct, but
-I did not realize the amount of interrupt handling needed by PIO mode. See PIO
-mode of ATAPI kind of works like this it will fire a interrupt then read a little
-then fire another interrupt and read more and repeat until a value is in the control
-register with a non re enterable kernel this would need a major redesign of how I was
-going about this(I ended up implementing PIO mode despite this and it now reads 1 sector succesfully).
-If I could not catch the interrupt every time it fired, I would not
-be able to read correctly. So, I decided to switch to DMA. The problem with this is
-all the documents I used including OSdevwiki(which has a separate wiki for atapi), an
-operating systems textbook with a chapter on atapi, and osdevwiki forum posts were
-mostly related to pio and a whole separate batch of research was needed this was a
-couple days before presentations were due so I rushed to fix up my driver and present
-an accurate look of that new design. Sadly did not get a full DMA read working as I ran into issues with
-how DMA changes the data bits exactly and could not find the docs to fix, but I was able to go
-back and create a working janky PIO read. 
-I scaled back the syscalls and they are commented out from the actual run processes 
-as they were causing delays in other parts of the demo run syscalls all though 
-they are implemented.I added back in a pio implementation to show a read from 
-that point for some reason read is not throwing interrupts past the initial one 
-despite being acknowledged by the PIC. In the end I implemented most of the driver
-calls in the interactive mode to show interactions with the atapi driver.
-It is far from a complete driver ,but I believe it shows a start and includes 
-where it fails. I then fixed up read capacity to calculate
-the last LBA on the disk, capacity of the disk, and block size of the disk. 
-In addition these changes will assure the user they have a disk inserted and ready to read. 
-The porblem I ran into with this is the read functionality seems to stop the data register 
-from updating no matter what scsi command I send which is an issue.  I wish I figured
-out the issues I ran into earlier. 
+atapi is simpler than it's DMA counterpart. I was convinced as that the
+commands were working now that I just needed to fixup the read command and I
+could then read the ata_data an amount of times determined by the lba registers
+after the interrupt and have a semi-working read. Theoretically this is still
+correct, but I did not realize the amount of interrupt handling needed by PIO
+mode. See PIO mode of ATAPI kind of works like this it will fire a interrupt
+then read a little then fire another interrupt and read more and repeat until a
+value is in the control register with a non re enterable kernel this would need
+a major redesign of how I was going about this(I ended up implementing PIO mode
+despite this and it now reads 1 sector succesfully).  If I could not
+catch the interrupt every time it fired, I would not be able to read correctly.
+So, I decided to switch to DMA. The problem with this is all the documents I
+used including OSdevwiki(which has a separate wiki for atapi), an operating
+systems textbook with a chapter on atapi, and osdevwiki forum posts were mostly
+related to pio and a whole separate batch of research was needed this was a
+couple days before presentations were due so I rushed to fix up my driver and
+present an accurate look of that new design. Sadly did not get a full DMA read
+working as I ran into issues with how DMA changes the data bits exactly and
+could not find the docs to fix, but I was able to go back and create a working
+janky PIO read.  I scaled back the syscalls and they are commented out from the
+actual run processes as they were causing delays in other parts of the demo run
+syscalls all though they are implemented.I added back in a pio implementation
+to show a read from that point for some reason read is not throwing interrupts
+past the initial one despite being acknowledged by the PIC. In the end I
+implemented most of the driver calls in the interactive mode to show
+interactions with the atapi driver.  It is far from a complete driver ,but I
+believe it shows a start and includes where it fails. I then fixed up read
+capacity to calculate the last LBA on the disk, capacity of the disk, and block
+size of the disk.  In addition these changes will assure the user they have a
+disk inserted and ready to read.  The porblem I ran into with this is the read
+functionality seems to stop the data register from updating no matter what scsi
+command I send which is an issue.  I wish I figured out the issues I ran into
+earlier. 
 
 
 Bring on the Merge Conflicts

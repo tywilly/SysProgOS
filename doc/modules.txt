@@ -219,33 +219,39 @@ Performance:
 
 ATAPI CD-ROM Module
 ----------------------------------------
-The ATAPI module sends SCSI commands through ATA withuse of the packet interface.
-It has two main commands working as of now which is a PIO read of one sector of the CD
-and the read_capacity command. This module assumes secondary bus and master drive are used
-as it is in qemu. I did not have time to create a proper identify ATAPI drive as
-qemu is a bit strange wen it comes to which drive is enabled although read_capacity
-can be sent to every drive theoretically and it will detect if there is a cd or if the drive exists.
-There are no fully implemented data structures. I late in the semester planned on use of PRDT, but only the struct and
-an unimplemented version of read are left of that implementation as well as some comments on it.
+The ATAPI module sends SCSI commands through ATA withuse of the packet
+interface.  It has two main commands working as of now which is a PIO read of
+one sector of the CD and the read_capacity command. This module assumes
+secondary bus and master drive are used as it is in qemu. I did not have time
+to create a proper identify ATAPI drive as qemu is a bit strange wen it comes
+to which drive is enabled although read_capacity can be sent to every drive
+theoretically and it will detect if there is a cd or if the drive exists.
+There are no fully implemented data structures. I late in the semester planned
+on use of PRDT, but only the struct and an unimplemented version of read are
+left of that implementation as well as some comments on it.
 
 The ATAPI init
    1. Install the secondary ATA interrupt
    2.Output the master byte to drive select
    3. delay for appropiate time to account for drive select
    ========================================================
-   Command dependent(Technically this is initializing atapi but vary on my commands and are not in init)
+   Command dependent(Technically this is initializing atapi but vary on my
+           commands and are not in init)
    4. Set the ATA features mode bit to PIO or DMA
-   5. Set Low and High lba registers based off sector size/maximal byte if it is in PIO mode otherwise set them as zero for DMA
+   5. Set Low and High lba registers based off sector size/maximal byte if it
+      is in PIO mode otherwise set them as zero for DMA
    6. Send the packet command to the command bus.
    7. Poll on cd_bsy
    8. ATAPI is set up for SCSI commands
 
 Theory of Operation:
   PIO Read:
-    9. Send the 6 word read command to the data driver using the desired sector count
-        shifted for data bytes 16 for data bit1 and just the sector for data bit 2.
-    10. On interrpt read the status byte to check for errors then
-    the lba registers to determine how many words to read where read <= maximal byte set.
+    9. Send the 6 word read command to the data driver using the desired sector
+       count shifted for data bytes 16 for data bit1 and just the sector for
+       data bit 2.
+    10. On interrpt read the status byte to check for errors then the lba
+        registers to determine how many words to read where read <= maximal byte
+        set.
     11. Continue until there are no interrupt. 
   PIO Read Capacity:
     9. Send the 6 word read capacity command
@@ -262,27 +268,27 @@ System calls:
   as they were causing delays in the sound driver syscalls.
   
 Memory usage:
-   The DMA implementation planned to use memory, but that was not finished in time. 
-   It would have used a PRDT of one to test initally and given the pointer to the PCI Busmaster.
-   Memory is not allocated if I had a bit more time and I didn't just get read working
-   I would have added a buffer to save data from the cd, but as of right now it is just
-   directly output.
+   The DMA implementation planned to use memory, but that was not finished in
+   time.  It would have used a PRDT of one to test initally and given the
+   pointer to the PCI Busmaster.  Memory is not allocated if I had a bit more
+   time and I didn't just get read working I would have added a buffer to save
+   data from the cd, but as of right now it is just directly output.
 
 Performance:
-   The ATAPI driver has two main points of functionaility at the moment.
-   The first is read_capacity which sets up PIO mode polls for the cd to
-   be ready then sends the SCSI read capacity command and polls again 
-   takes in four words from the data register and calculates the capacity,
-   last lba, and block size. It also says if a cd is nserted at the indicated drive 
-   and bus(qemu has a certain bus/drive it defaults to). The read functionaility sets up 
-   PIO mode while setting the maximal byte count using the sector size of 2048 and
-   sets LBA high and mid based off that. It then sends the READ scsi command and 
-   waits for an interrupt to then read the lba registers to get the indicated transfer 
-   size from the PIO buffer and reads in as many words as indicated by that
-   size and prints to consle. Issues include interrupts not firing after the initial 
-   read interrup, read capacity failing after a read as the PIObuffe ris not clearing 
-   after th new command for some reason, the left out syscalls, and reliance
-   on interactive mode.
+   The ATAPI driver has two main points of functionaility at the moment.  The
+   first is read_capacity which sets up PIO mode polls for the cd to be ready
+   then sends the SCSI read capacity command and polls again takes in four
+   words from the data register and calculates the capacity, last lba, and
+   block size. It also says if a cd is nserted at the indicated drive and
+   bus(qemu has a certain bus/drive it defaults to). The read functionaility
+   sets up PIO mode while setting the maximal byte count using the sector size
+   of 2048 and sets LBA high and mid based off that. It then sends the READ
+   scsi command and waits for an interrupt to then read the lba registers to
+   get the indicated transfer size from the PIO buffer and reads in as many
+   words as indicated by that size and prints to consle. Issues include
+   interrupts not firing after the initial read interrup, read capacity failing
+   after a read as the PIObuffe ris not clearing after th new command for some
+   reason, the left out syscalls, and reliance on interactive mode.
 
 
 PCI Module
