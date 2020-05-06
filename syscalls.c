@@ -624,13 +624,13 @@ static void _sys_ac97_write( uint32 arg1, uint32 arg2, uint32 arg3 ) {
     _sys_write(CHAN_AC97, arg1, arg2);
 }
 
-static void _sys_atapi_read() {
+/*static void _sys_atapi_read(void) {
 	_atapi_read();
-}
+}*/
 
-static void _sys_atapi_capacity(){
+/*static void _sys_atapi_capacity(void){
 	_atapi_capacity();
-}
+}*/
 
 static void _sys_ac97_get_volume( uint32 arg1, uint32 arg2, uint32 arg3 ) {
     RET(_current) = _ac97_get_volume();
@@ -681,8 +681,8 @@ void _sys_init( void ) {
     _syscalls[ SYS_ac97_setrate ]       = _sys_ac97_set_rate;
     _syscalls[ SYS_ac97_initialized ]   = _sys_ac97_initialized;
     _syscalls[ SYS_ac97_write ]         = _sys_ac97_write;
-    _syscalls[ SYS_atapi_read ]         = _sys_atapi_read;
-    _syscalls[ SYS_atapi_capacity ]     = _sys_atapi_capacity;
+   // _syscalls[ SYS_atapi_read ]         = _sys_atapi_read;
+   // _syscalls[ SYS_atapi_capacity ]     = _sys_atapi_capacity;
 
     // install the second-stage ISR
     __install_isr( INT_VEC_SYSCALL, _sys_isr );
