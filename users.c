@@ -15,6 +15,7 @@
 #include "users.h"
 #include "userSB.h"
 #include "ac97.h"
+#include "optical_drive.h"
 #include "wav.h"
 
 /*
@@ -58,6 +59,7 @@ int userY( int, char * ); int userZ( int, char * );
 int dj( int, char * );
 int play_ac97( int, char * );
 int play_soundblaster( int, char * );
+int test_atapi(int,char*);
 
 /*
 ** User function #1:  write, exit
@@ -1294,6 +1296,15 @@ int play_soundblaster( int argc, char *args ){
 }
 
 /*
+** A process to exercise the cdrom.
+*/
+int test_atapi(int argc, char *args){
+	_atapi_read();
+	_atapi_capacity();
+	return 0;
+}
+
+/*
 ** Start separate processes for the ac97 playback, and sandstorm
 */
 int dj( int argc, char *args ) {
@@ -1411,11 +1422,20 @@ int init( int argc, char *args ) {
 
     whom = spawn( dj, argv );
     if( whom < 0 ) {
-        cwrites( "init, spawn() user O failed\n" );
+        cwrites( "init, spawn() DJ user failed\n" );
     }
     swritech( ch );
 #endif
 
+#if defined(SPAWN_ATAPI)
+    // attempts a pio read and capcaity atapi command
+    argv[0] = NULL;
+    whom = spawn(test_atapi ,argv);
+    if(whom < 0){
+	cwrites("init, spawn() test_atapi user failed\n");
+    }
+    swritech( ch );
+#endif
     // set up for users A, B, and C initially
     argv[0] = "main1";
     // argv[1] will vary

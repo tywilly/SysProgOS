@@ -39,9 +39,11 @@
 #define SYS_ac97_setrate        13
 #define SYS_ac97_initialized    14
 #define SYS_ac97_write          15
+#define SYS_atapi_read		16
+#define SYS_atapi_capacity	17
 
 // UPDATE THIS DEFINITION IF MORE SYSCALLS ARE ADDED!
-#define N_SYSCALLS      16
+#define N_SYSCALLS      18
 
 // dummy system call code to test our ISR
 

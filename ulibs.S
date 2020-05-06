@@ -51,6 +51,8 @@ SYSCALL(ac97_setvol)
 SYSCALL(ac97_setrate)
 SYSCALL(ac97_initialized);
 SYSCALL(ac97_write);
+SYSCALL(atapi_read);
+SYSCALL(atapi_capacity);
 
 /*
 ** This is a bogus system call; it's here so that we can test

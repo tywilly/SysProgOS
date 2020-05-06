@@ -100,6 +100,8 @@ static int play_sound(uint16* buff_to_play, int division) {
         }
         posted += count;
     } while (posted < count_to_play);
+
+    return 0; // to shut up gcc
 }
 
 int mainSB( int argc, char* args ) {

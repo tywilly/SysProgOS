@@ -28,7 +28,7 @@
 #include "soundblaster.h"
 #include "ac97.h"
 #include "usb.h"
-
+#include "optical_drive.h"
 // need init() and idle() addresses
 #include "users.h"
 
@@ -159,6 +159,7 @@ void _init( void ) {
     _pci_init();     // PCI
     _ac97_init();    // AC97
     _usb_init();     // USB
+    _atapi_init();   //ATAPI / OPTICAL DRIVE
     _soundblaster_init(); // sound blaster audio
 
     __cio_puts( "\nModule initialization complete.\n" );
@@ -326,7 +327,13 @@ void _shell( int ch ) {
         case 'm':
             _ac97_status();
             break;
-
+	case 'o':
+	    __cio_puts("\nExit interactive mode for CD Read\n");
+	    _atapi_read();
+	    break;
+	case 'g':
+	    _atapi_capacity();
+	    break;
         default:
             __cio_printf( "shell: unknown request '0x%02x'\n", ch );
 
@@ -341,12 +348,14 @@ void _shell( int ch ) {
             __cio_puts( "   q  -- dump the queues\n" );
             __cio_puts( "   s  -- dump stacks for active processes\n" );
             __cio_puts( "   l  -- list all PCI devices\n");
+            __cio_puts( "   u  -- get the status of the USB controller\n" );
             __cio_puts( "   u  -- dump USB init information\n" );
             __cio_puts( "   m  -- dump status of the AC97 device\n" );
+	    __cio_puts( "   o  -- Do a PIO CD-ROM read(need to exit after)\n");
+	    __cio_puts( "   g  -- Get block size and Last Logical Block Unit for cd\n");
             __cio_puts( "   x  -- exit\n" );
             break;
         }
-
         __cio_puts( "\n? " );
         ch = __cio_getchar();
     }
