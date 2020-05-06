@@ -13,7 +13,7 @@
 
 #include "common.h"
 #include "klib.h"
-#include "e1000.c"
+#include "e1000.h"
 
 #include "pci.h"
 

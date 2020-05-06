@@ -9,6 +9,8 @@
 
  */
 
+#ifndef _E1000_H_
+#define _E1000_H_
 
 /* Identification of Device */
 #define CLASS_NETCTL 0x02
@@ -82,6 +84,8 @@
 
 #define ETHERNET_ADDR_LEN   6
 
+#include "common.h"
+
 unsigned int _e1000_read_mmio(uint16 reg);
 
 void _e1000_write_mmio(uint16 reg, uint32 val);
@@ -95,3 +99,5 @@ int _e1000_tx(uint8 *data, int len);
 int _e1000_ethernet_frame(uint8 *data, int len, uint16 type);
 
 int _e1000_init( void );
+
+#endif
