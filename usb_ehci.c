@@ -251,7 +251,7 @@ struct _usb_qtd_s *_usb_ehci_free_qtd(void)
 {
   if (_queue_front(_usb_free_qtdq) == NULL)
   {
-    __panic("USB_EHCI: Not enought Queue Transfer Descriptors");
+    __panic("USB_EHCI: Not enough Queue Transfer Descriptors");
   }
   return (struct _usb_qtd_s *)_queue_deque(_usb_free_qtdq);
 }
@@ -271,7 +271,7 @@ struct _usb_qh_s *_usb_ehci_free_qh(void)
 {
   if (_queue_front(_usb_free_qhq) == NULL)
   {
-    __panic("USB_EHCI: Not enought Queue Heads");
+    __panic("USB_EHCI: Not enough Queue Heads");
   }
   return (struct _usb_qh_s *)_queue_deque(_usb_free_qhq);
 }
