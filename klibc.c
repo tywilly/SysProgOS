@@ -127,6 +127,41 @@ void __memcpy( void *dst, register const void *src,
 }
 
 /*
+** __str2int(str,base) - convert a string to a number in the specified base
+**
+** @param str   The string to examine
+** @param base  The radix to use in the conversion
+**
+** @returns The converted integer
+*/
+int __str2int( register const char *str, register int base ) {
+    register int num = 0;
+    register char bchar = '9';
+    int sign = 1;
+
+    // check for leading '-'
+    if( *str == '-' ) {
+        sign = -1;
+        ++str;
+    }
+
+    if( base != 10 ) {
+        bchar = '0' + base - 1;
+    }
+
+    // iterate through the characters
+    while( *str ) {
+        if( *str < '0' || *str > bchar )
+            break;
+        num = num * base + *str - '0';
+        ++str;
+    }
+
+    // return the converted value
+    return( num * sign );
+}
+
+/*
 ** Name:        __strlen
 **
 ** Description: Calculate the length of a C-style string.
@@ -161,6 +196,30 @@ int __strcmp( register const char *s1, register const char *s2 ) {
 		++s1, ++s2;
 
 	return( *s1 - *s2 );
+}
+
+/*
+** Splits the string s at the first occurrance of a character in the delim
+** string, replacing the delimiter with a null byte.
+**
+** @param s     The string to parse
+** @param delim A character array of delimiters to split at
+**
+** @return A pointer to the beginning of the rest of the string after after the
+** delimiter, or NULL if no delimiters were found.
+*/
+char* __strsplit( char* s, const char* delim ) {
+        int i, j;
+        int numdelim = strlen(delim);
+        for (i = 0; i < strlen(s); i++) {
+                for (j = 0; j < numdelim; j++) {
+                        if ( s[i] == delim[j] ) {
+                                s[i] = '\0';
+                                return &s[i+1];
+                        }
+                }
+        }
+        return NULL;
 }
 
 /*

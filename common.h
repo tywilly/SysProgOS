@@ -60,16 +60,16 @@
 #define	SEC_TO_MS(n)		((n) * 1000)
 
 // pull in the standard system type definitions
-#include "types.h"
+#include <types.h>
 
 /*
 ** Additional OS-only or user-only things
 */
 
 #ifdef __SP_KERNEL__
-#include "kdefs.h"
+#include <kdefs.h>
 #else
-#include "udefs.h"
+#include <udefs.h>
 #endif
 
 #endif
