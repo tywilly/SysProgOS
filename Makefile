@@ -288,6 +288,6 @@ usbd.o: usb_ehci.h klib.h queues.h
 usb_util.o: klib.h usb_util.h common.h
 usb_ms.o: usbd.h common.h cio.h
 ramdisk.o: types.h cio.h kmem.h common.h ./udefs.h ulib.h klib.h ramdisk.h
-fs.o: common.h types.h ./udefs.h ulib.h klib.h cio.h fs.h
+fs.o: common.h types.h ./udefs.h ulib.h klib.h cio.h fs.h fs/devfs.h
 fs/devfs.o: ./device.h types.h klib.h cio.h sio.h common.h ./udefs.h ulib.h
 fs/devfs.o: queues.h ramdisk.h fs/devfs.h fs.h

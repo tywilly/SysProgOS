@@ -142,7 +142,11 @@ bin/userland.o: ./include/common.h ./include/types.h ./include/udefs.h
 bin/userland.o: ./include/ulib.h bin/userland.h bin/consh.h
 bin/consh.o: ./include/common.h ./include/types.h ./include/udefs.h
 bin/consh.o: ./include/ulib.h bin/consh.h bin/userland.h bin/ramdisk.h
-bin/ramdisk.o: ./include/ulib.h ./include/types.h ./include/kernel/ramdisk.h
-bin/ramdisk.o: bin/ramdisk.h
+bin/consh.o: bin/fileutils.h
+bin/ramdisk.o: ./include/common.h ./include/types.h ./include/udefs.h
+bin/ramdisk.o: ./include/ulib.h ./include/kernel/ramdisk.h bin/ramdisk.h
+bin/fileutils.o: ./include/common.h ./include/types.h ./include/udefs.h
+bin/fileutils.o: ./include/ulib.h ./include/fs.h ./include/kernel/devfs.h
+bin/fileutils.o: bin/fileutils.h
 lib/ulibs.o: ./include/syscalls.h ./include/common.h ./include/types.h
 lib/ulibs.o: ./include/udefs.h ./include/ulib.h

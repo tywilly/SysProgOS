@@ -32,23 +32,22 @@ int write_main( int argc, char* args ) {
 	}
 
 	// Open File
-	fd = _devfs_open(0, argv[1], FILE_MODE_WRITE);
+	fd = _fs_open(argv[1], FILE_MODE_WRITE);
 	if ( fd < 0 ) {
 		fputs("Failed to open file\r\n", stdout);
 		exit(2);
 	}
 
 	// Write
-	_devfs_lseek(0, fd, SEEK_SET, 0);
-	i = _devfs_write(0, fd, argv[2], strlen(argv[2]));
+	i = write(fd, argv[2], strlen(argv[2]));
 	if ( i < 0 ) {
 		fputs("Failed to write to file\r\n", stdout);
-		i = _devfs_close(fd);
+		i = _fs_close(fd);
 		exit(2);
 	}
 
 	// Close
-	i = _devfs_close(fd);
+	i = _fs_close(fd);
 	if ( i < 0 ) {
 		fputs("Failed to close file\r\n", stdout);
 		exit(2);
@@ -78,26 +77,27 @@ int cat_main( int argc, char* args ) {
 	argv[1] = argv[0] + strlen(argv[0]) + 1;
 
 	// Open file
-	fd = _devfs_open(0, argv[1], FILE_MODE_WRITE);
+	fd = _fs_open(argv[1], FILE_MODE_READ);
 	if ( fd < 0 ) {
 		fputs("Failed to open file\r\n", stdout);
 		exit(2);
 	}
 
 	// Read data
-	_devfs_lseek(0, fd, SEEK_SET, 0);
-	do {
-		i = _devfs_read(0, fd, data, DATA_BLOCK_SIZE);
-		if ( i < 0 ) {
+	for (;;) {
+		i = read(fd, data, DATA_BLOCK_SIZE);
+		if ( i == 0 )
+			break;
+		else if ( i < 0 ) {
 			fputs("Failed to read from file\r\n", stdout);
-			i = _devfs_close(fd);
+			i = _fs_close(fd);
 			exit(2);
 		}
-		fputs(data, stdout);
-	} while ( i > 0 );
+		write(stdout, data, i);
+	}
 
 	// Close
-	i = _devfs_close(fd);
+	i = _fs_close(fd);
 	if ( i < 0 ) {
 		fputs("Failed to close file\r\n", stdout);
 		exit(2);

@@ -163,7 +163,7 @@ LDFLAGS = -melf_i386 -no-pie
 	$(LD) $(LDFLAGS) -Ttext 0x0 -s --oformat binary -e begtext -o $*.b $*.o
 
 .c.o:
-	$(CC) $(CFLAGS) -c $*.c
+	$(CC) $(CFLAGS) -c $*.c -o $*.o
 
 #
 # Targets for remaking bootable image of the program
@@ -286,4 +286,5 @@ usb_uhci.o: klib.h types.h usb_uhci.h common.h ./udefs.h ulib.h pci.h
 usb_uhci.o: queues.h
 ramdisk.o: types.h cio.h kmem.h common.h ./udefs.h ulib.h klib.h ramdisk.h
 fs.o: common.h types.h ./udefs.h ulib.h klib.h cio.h fs.h
-fs/devfs.o: ./device.h types.h klib.h ramdisk.h fs/devfs.h fs.h
+fs/devfs.o: ./device.h types.h klib.h cio.h sio.h common.h ./udefs.h ulib.h
+fs/devfs.o: queues.h ramdisk.h fs/devfs.h fs.h

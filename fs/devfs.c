@@ -10,6 +10,33 @@
 
 #define ARRAY_SIZE(x) ((sizeof x) / (sizeof *x))
 
+// Wrapper functions for the CIO and SIO drivers.
+
+/* A dummy lseek function for devices that lack the hardware capability to
+ * seek.
+ */
+static int dummy_seek(int chan, int offset, int whence) {
+	return E_INVALID;
+}
+
+static int cio_write(int chan, const void* buf, uint32 len) {
+	__cio_write(buf, len);
+	return len;
+}
+
+static int cio_read(int chan, void* buf, uint32 len) {
+	return __cio_gets(buf, len);
+}
+
+static int sio_write(int chan, const void* buf, uint32 len) {
+	_sio_write(buf, len);
+	return len;
+}
+
+static int sio_read(int chan, void* buf, uint32 len) {
+	return _sio_reads(buf, len);
+}
+
 static char* module_name = "devfs";
 
 typedef struct dev_file_s {
@@ -28,8 +55,8 @@ static DevFile ofs[MAX_FILES];
 
 /* Device classes and drivers */
 static DeviceClass class[] = {
-	{ "console", {"cio",NULL,NULL,NULL}, 1 },
-	{ "serial", {"sio",NULL,NULL,NULL}, 1 },
+	{ "console", {"cio",cio_write,cio_read,dummy_seek}, 1 },
+	{ "serial", {"sio",sio_write,sio_read,dummy_seek}, 1 },
 	{ "ramdisk",
 		{"ramdisk",_ramdisk_write,_ramdisk_read,_ramdisk_seek},
 		MAX_RAMDISKS }
@@ -44,16 +71,6 @@ static DeviceClass* get_device_class(const char* name) {
 			return &class[i];
 	}
 	return NULL;
-}
-
-/* Gets the next unused DevFile. */
-static int get_next_unused_devfile(void) {
-	int i;
-	for ( i = 0; i < MAX_FILES; i++ ) {
-		if ( ofs[i].used == false )
-			return i;
-	}
-	return -1;
 }
 
 void _devfs_init(void) {
@@ -78,14 +95,14 @@ void _devfs_init(void) {
 	__cio_puts( " DEVFS" );
 }
 
-int _devfs_write(int chan, int fd, const void* buf, uint32 len) {
+int _devfs_write(int fd, const void* buf, uint32 len) {
 	if ( fd < 0 || fd >= MAX_FILES || ofs[fd].used == false )
 		return -1;
 
 	return ofs[fd].driver->write( ofs[fd].chan, buf, len );
 }
 
-int _devfs_read(int chan, int fd, void* buf, uint32 len) {
+int _devfs_read(int fd, void* buf, uint32 len) {
 	if ( fd < 0 || fd >= MAX_FILES || ofs[fd].used == false )
 		return -1;
 
@@ -93,23 +110,21 @@ int _devfs_read(int chan, int fd, void* buf, uint32 len) {
 
 }
 
-int _devfs_lseek(int chan, int fd, int offset, int whence) {
+int _devfs_lseek(int fd, int offset, int whence) {
 	if ( fd < 0 || fd >= MAX_FILES || ofs[fd].used == false )
 		return -1;
 
 	return ofs[fd].driver->lseek( ofs[fd].chan, offset, whence );
 }
 
-int _devfs_open(int chan, const char* path, int mode) {
-	int fd;
+int _devfs_open(int chan, int fd, const char* path, int mode) {
 	char dev_class_name[MAX_PATH_LEN];
 	char* dev_number;
 	DeviceClass* dev_class;
 	int dev_chan;
 
-	// Get an fd
-	fd = get_next_unused_devfile();
-	if ( fd < 0 )
+	// Check the fd
+	if ( fd < 0 || fd >= MAX_FILES || ofs[fd].used == true )
 		return -1;
 
 	// Parse and convert the options
