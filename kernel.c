@@ -158,7 +158,7 @@ void _init( void ) {
     _sys_init();     // system calls
     _pci_init();     // PCI
     _ac97_init();    // AC97
-   // _usb_init();     // USB
+    _usb_init();     // USB
     _atapi_init();   //ATAPI / OPTICAL DRIVE
     _soundblaster_init(); // sound blaster audio
 

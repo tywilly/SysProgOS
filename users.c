@@ -1295,6 +1295,9 @@ int play_soundblaster( int argc, char *args ){
     return mainSB( argc, args );
 }
 
+/*
+** A process to exercise the cdrom.
+*/
 int test_atapi(int argc, char *args){
 	_atapi_read();
 	_atapi_capacity();
@@ -1347,22 +1350,7 @@ int dj( int argc, char *args ) {
         }
     }
 #endif
-#ifdef SPAWN_ATAPI
-    /* test cdrom currently disabled as it messes with the other syscalls
-    pid = spawn( test_atapi, &args );
-    if( pid < 0 ) {
-        cwrites( "Failed to Spawn ATAPI Process!\n");
-    } else {
-        // wait until it's done
-        int32 status;
-        int32 tmp = wait( (Pid) pid, &status);
-        if( tmp < 0 ) {
-            cwrites( "Unable to wait for ATAPI process!\n" );
-            exit( -1 );
-        }
-    }
-    */
-#endif
+
     return 0;
 }
 
@@ -1442,7 +1430,7 @@ int init( int argc, char *args ) {
 #if defined(SPAWN_ATAPI)
     // attempts a pio read and capcaity atapi command
     argv[0] = NULL;
-    whom = spawn(dj ,argv);
+    whom = spawn(test_atapi ,argv);
     if(whom < 0){
 	cwrites("init, spawn() user 1 failed\n");
     }
