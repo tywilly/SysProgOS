@@ -1,3 +1,12 @@
+/*
+** File:	optical_drive.c
+**
+** Author:	Michael Hopkins(mbh4480@rit.edu)
+**
+** Contributor:
+**
+** Description:	Very basic ATAPI driver for sending SCSI commands to interact with data off CD-ROMS 
+*/
 #define __SP_KERNEL__
 
 #include "klib.h"
