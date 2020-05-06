@@ -82,6 +82,16 @@
 
 #define ETHERNET_ADDR_LEN   6
 
-int _e1000_init( void );
+unsigned int _e1000_read_mmio(uint16 reg);
+
+void _e1000_write_mmio(uint16 reg, uint32 val);
+
+uint16 _e1000_eeprom_read(uint8 addr);
+
 void _e1000_dump_MAC( void );
+
+int _e1000_tx(uint8 *data, int len);
+
 int _e1000_ethernet_frame(uint8 *data, int len, uint16 type);
+
+int _e1000_init( void );
