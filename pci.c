@@ -165,7 +165,6 @@ void _pci_dump_all(void) {
                  i, dev->vendorid, dev->deviceid, dev->class, dev->subclass,
                  dev->progif, dev->interrupt);
   }
-  _e1000_init();
 }
 
 //

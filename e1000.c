@@ -169,7 +169,7 @@ int _e1000_tx(uint8 *data, int len)
     while(!(desc->status & 0xff)) { 
         counter++ ; 
         if(counter == 0xfffff){
-            __cio_printf("Packet Unsent"); 
+            __cio_printf("\nPacket Unsent\n"); 
             return -1;
         }
     }
