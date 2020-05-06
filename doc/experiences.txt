@@ -3,6 +3,53 @@
 Tyler Wilcox (USB)
 ###############################################################################
 
+Oh gosh, where do I start...
+
+In the beginning I started doing some research on what projects to pursue.
+I was really drawn to USB because it has so many useful functions.
+So I began looking up some documentation on USB. I found some really useful
+docs and started reading them. I found that I needed to interact with PCI
+to use the USB controller, so I started reading up on PCI. The OSDevWiki is
+the holy grail! After a little bit of playing around I got a basic PCI module
+working. Now I could start work on USB. 
+
+I started working on a UHCI implementation. I started with UHCI because it
+seemed to be the easiest version. It also was the one QEMU supported so it was
+kinda a no-brainer. I got about a quarter of the way through and read that 
+USB Mass Storage, the ultimate goal, was only supported on USB 2.0. So I began
+converting my module to work with EHCI controllers.
+
+The conversion was actually fairly easy, at least from where I was. I just
+updated the MMIO address and I was on my way. 
+
+The EHCI module was by far the hardest. I wan only successful in getting half
+of the implementation working. But once I got it, man did it feel good. The
+hours and hours of debugging just trying to get a single packet to not kill the
+entire system. I ran into many issues with memory bounds, timing and just plain
+stupidity on my end. But eventually I got my way through it. After I could talk
+to a device I started reworking the module to make more sense, and make it
+easier to interact with. Thats because I needed to implement the USB driver
+module. 
+
+The USB driver was fairly simple, at least in comparison to the EHCI module.
+It was really just an abstraction layer for the EHCI module but also a logical
+model of the USB system as a whole. It was designed to interact with each
+component at a kind of atomic level. I could have abstracted away more. Even
+creating a sort of standard data structure to represent a transfer. But with
+the time limit I had, I opted not to. That being said, I believe it is still
+somewhat intuitive to work with. 
+
+To demonstrate the USB module working, I quickly whipped up a USB Mass Storage
+driver. It really does nothing... Only being able to read the first 16 bytes of
+data from a drive. But nonetheless, it proves the functionality of the USB
+module.
+
+All in all, a fair ammount of my road blocks came from lack of time. I believe,
+if I had a couple more weeks, and no classes interferring, I could have had a
+fully working module. I also would have sketched out a better design.
+
+I had an absolute blast working on this project! I wish I could have done more,
+but I am happy with where I am at. An extremely difficult, but rewarding task.
 
 ###############################################################################
 Scott Court (Filesystems)
