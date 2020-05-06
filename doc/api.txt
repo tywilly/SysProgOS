@@ -782,3 +782,151 @@ DESCRIPTION
 
 RETURN VALUE
 	Returns the number of string placed into `argv`.
+
+
+----------------------------------------------
+
+E1000_READ_MMIO(4)
+
+NAME
+    _e1000_read_mmio - read memory mapped I/O at offset
+
+SYNOPSIS
+    #include "e1000.h"
+
+    unsigned int _e1000_read_mmio(uint16 reg);
+
+DESCRIPTION
+    _e1000_read_mmio(uint16 reg) gives the value stored at the 
+    location specified offset for the e1000 driver's memory mapped I/O
+
+RETURN VALUE
+    Returns the 16 bit value stored at the location specified.
+    
+    
+E1000_WRITE_MMIO(4)
+
+NAME
+    _e1000_write_mmio - write memory mapped I/O at offset
+
+SYNOPSIS
+    #include "e1000.h"
+
+    void _e1000_write_mmio(uint16 reg, uint32 val);
+
+DESCRIPTION
+    _e1000_write_mmio(reg, val) writes the val to the 
+    location specified offset for the e1000 driver's memory mapped I/O
+
+RETURN VALUE
+    None.
+
+
+E1000_EEPROM_READ(4)
+
+NAME
+    _e1000_eeprom_read - read from the electricly erasable memory of the e1000
+    card.
+
+SYNOPSIS
+    #include "e1000.h"
+
+    uint16 _e1000_eeprom_read(uint8 addr);
+
+DESCRIPTION
+    _e1000_eeprom_read(addr) gives the value stored at the 
+    location specified offset for the e1000 driver's electricly erasable memory
+
+RETURN VALUE
+    Returns the 16 bit value stored at the location specified.
+
+
+E1000_DUMP_MAC(4)
+
+NAME
+    _e1000_dump_MAC - Print the MAC address of the network card.
+
+SYNOPSIS
+    #include "e1000.h"
+
+    void _e1000_dump_MAC( void );
+
+DESCRIPTION
+    _e1000_dump_MAC() prints the MAC address of the e1000 card. Requires the
+    e1000 driver to be set up first.
+
+RETURN VALUE
+    None.
+
+
+E1000_INIT(4)
+
+NAME
+    _e1000_init - sets up the e1000 driver.
+
+SYNOPSIS
+    #include "e1000.h"
+    
+    int _e1000_init( void );
+
+DESCRIPTION
+    _e1000_init() sets up the e1000 driver. Fails if there is no driver to set
+    up.
+
+RETURN VALUE
+    interger, 0 on success.
+
+E1000_TX(4)
+
+NAME
+    _e1000_tx - sends data on ethernet
+
+SYNOPSIS
+    #include "e1000.h"
+    
+    int _e1000_tx(uint8 *data, int len);
+
+DESCRIPTION
+    _e1000_tx(data, len) sends data in a uint8 pointer buffer 'data' 
+    with length 'len' over ethernet.
+
+RETURN VALUE
+    returns the len if success.
+
+
+E1000_TX(4)
+
+NAME
+    _e1000_tx - sends data on ethernet
+
+SYNOPSIS
+    #include "e1000.h"
+    
+    int _e1000_tx(uint8 *data, int len);
+
+DESCRIPTION
+    _e1000_tx(data, len) sends data in a uint8 pointer buffer 'data' 
+    with length 'len' over ethernet.
+
+RETURN VALUE
+    returns the len if success.
+
+
+E1000_ETHERNET_FRAME(4)
+NAME
+    _e1000_ethernet_frame - sends data in ethernet frame using the e1000 driver
+
+SYNOPSIS
+    #include "e1000.h"
+    
+    int _e1000_ethernet_frame(uint8 *data, int len, uint16 type);
+
+DESCRIPTION
+    _e1000_ethernet_frame(data,len,type) sends the uint8 pointer data buffer of
+    length 'len' and uses the Ethertype 'type' to encapsulate the data in an
+    ethernet frame. This uses E1000_TX to send the encapsulated data on the
+    wire.
+
+RETURN VALUE
+    returns len on success
+
