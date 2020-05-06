@@ -1,3 +1,13 @@
+/*
+** File:	optical_drive.h
+**
+** Author:	Michael Hopkins(mbh4480@rit.edu)
+**
+** Contributor:
+**
+** Description:	Useful ATAPI definitions for the myriad of registers and words needed to get ATAPI working 
+*/
+
 #ifndef OPTICAL_DRIVE
 #define OPTICAL_DRIVE
 
