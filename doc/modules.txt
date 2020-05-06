@@ -219,7 +219,34 @@ Performance:
 
 ATAPI CD-ROM Module
 ----------------------------------------
-TODO Michael
+The ATAPI module
+
+The ATAPI init
+   1. 
+
+Theory of Operation:
+
+System calls:
+  System calls are implemented, but are commented out 
+  as they were causing delays in the sound driver syscalls.
+  
+Memory usage:
+   The DMA implementation planned ot use memory, but that was not finished in time.
+   Memory is not allocated if I had a bit more time and I didn't just get read working
+   I would have added a buffer to save data from the cd, but as of right now it is just
+   directly output.
+
+Performance:
+   The ATAPI driver has two main points of functionaility at the moment. The first is read_capacity which
+   sets up PIO mode polls for the cd to be ready then sends the SCSI read capacity command and polls again 
+   takes in four words from the data register and calculates the capacity, last lba, and block size. It also
+   says if a cd is nserted at the indicated drive and bus(qemu has a certain bus/drive it defaults to). The 
+   read functionaility sets up PIO mode while setting the maximal byte count using the sector size of 2048 and
+   sets LBA high and mid based off that. It then sends the READ scsi command and waits for an interrupt to then read
+   the lba registers to get the indicated transfer size from the PIO buffer and reads in as many words as indicated by that
+   size and prints to consle. Issues include interrupts not firing after the initial read interrup, read capacity failing
+   after a read as the PIObuffe ris not clearing after th new command for some reason, the left out syscalls, and reliance
+   on interactive mode.
 
 
 PCI Module
