@@ -43,7 +43,7 @@ uint32 _atapi_capacity_process(uint32 bus) {
     //poll on BSY
     while ((status = __inb(ATA_COMMAND(bus))) & ATA_STATUS_BUSY)
         __asm__ __volatile__ ("pause");
-    __cio_printf("status_reg: %x\n", status);
+    __cio_printf("\nstatus_reg: %x\n", status);
     if (status & ATA_STATUS_ERROR) {
 	__cio_printf("error sending packet command");
     }
@@ -61,15 +61,16 @@ uint32 _atapi_capacity_process(uint32 bus) {
         WARNING("error sending scsi command\n");
         return 0;
     }
-   // uint32 lba = __inw(ATA_DATA(bus));
-   // lba = lba | ((uint32) __inw(ATA_DATA(bus)) << 16);
-   // uint32 block = __inw(ATA_DATA(bus));
-    //lock = block | ((uint32) __inw(ATA_DATA(bus)) << 16);
-   // __cio_printf("\nLAST LBA: %x\n", lba);
-   uint32 data1 = __inw(ATA_DATA(bus));
-   uint32 data2 = __inw(ATA_DATA(bus));
-   uint32 data3 = __inw(ATA_DATA(bus));
-   uint32 data4 = __inw(ATA_DATA(bus));
+   uint16 data1 = __inw(ATA_DATA(bus));
+   uint16 data2 = __inw(ATA_DATA(bus));
+   uint16 data3 = __inw(ATA_DATA(bus));
+   uint16 data4 = __inw(ATA_DATA(bus));
+   uint16 lba = data1 | (data2 << 8);
+   uint16 block = data3 | (data4 << 8);
+   uint32 capacity = (lba + 1)*block;
+   __cio_printf("\nBLOCK SIZE: %x\n",block);
+   __cio_printf("\nLAST LBA: %x\n",lba);
+   __cio_printf("\nCAPACITY: %x\n",capacity);
    return 1;
 }
 
@@ -84,7 +85,7 @@ int _atapi_dma_read_process(uint32 bus, uint32 sector) {
     //send read command to bus master
     __outb(0xC8,0x8);
     //enable DMA
-    __outb(ATA_FEATURES(bus), 1);
+    __outb(ATA_FEATURES(bus), ATA_DMA_MODE);
    // set MID and LOW to zero because of DMA usage
     __outb(ATA_ADDR_LOW(bus),0);
     __outb(ATA_ADDR_MID(bus),0);
@@ -123,9 +124,8 @@ int _atapi_dma_read_process(uint32 bus, uint32 sector) {
 int _atapi_read_process(uint32 bus, uint32 sector) {
     uint32 status;
   //  __outb(ATAPI_INTERRUPT_REG,ATA_DCR_HIGH_ORDER_BYTE);
-   // uint16 size=0;
     //enable pio
-    __outb(ATA_FEATURES(bus), 0);
+    __outb(ATA_FEATURES(bus), ATA_PIO_MODE);
     //Maximal byte count in this case based off of cd rom size here since this is PIO mode
     __outb(ATA_ADDR_LOW(bus), (ATAPI_SECTOR_SIZE  & 0xff));
     __outb(ATA_ADDR_HIGH(bus), (ATAPI_SECTOR_SIZE >> 8));
@@ -192,6 +192,8 @@ void _atapi_read(void) {
 
 //basic test function that calls the actual read capacity
 void _atapi_capacity(void) {
-	__cio_printf("Block Size:%x\n",_atapi_capacity_process(ATA_BUS_SECONDARY));
+	if(_atapi_capacity_process(ATA_BUS_SECONDARY)) {
+	    __cio_printf("\nCD inserted and Drive is correct\n");
+	}
 	return;
 }
