@@ -737,7 +737,7 @@ void _usb_init( void ) {
     PCIDevice *dev = _pci_dev_class( USB_CLASS, USB_SUBCLASS, USB_EHCI_PROGIF );
     if( dev == NULL || dev->bar0 == 0xFFFFFFFF ) {
         _usb_err = true;
-        __cio_puts( "USB ERR: EHCI controller not found\n" );
+        __cio_puts( " USB ERR: EHCI controller not found\n" );
         return;
     }
 
