@@ -1422,7 +1422,7 @@ int init( int argc, char *args ) {
 
     whom = spawn( dj, argv );
     if( whom < 0 ) {
-        cwrites( "init, spawn() user O failed\n" );
+        cwrites( "init, spawn() DJ user failed\n" );
     }
     swritech( ch );
 #endif
@@ -1432,7 +1432,7 @@ int init( int argc, char *args ) {
     argv[0] = NULL;
     whom = spawn(test_atapi ,argv);
     if(whom < 0){
-	cwrites("init, spawn() user 1 failed\n");
+	cwrites("init, spawn() test_atapi user failed\n");
     }
     swritech( ch );
 #endif
