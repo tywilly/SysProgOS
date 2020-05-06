@@ -336,20 +336,29 @@ I did not realize the amount of interrupt handling needed by PIO mode. See PIO
 mode of ATAPI kind of works like this it will fire a interrupt then read a little
 then fire another interrupt and read more and repeat until a value is in the control
 register with a non re enterable kernel this would need a major redesign of how I was
-going about this. If I could not catch the interrupt every time it fired, I would not
+going about this(I ended up implementing PIO mode despite this and it now reads 1 sector succesfully).
+If I could not catch the interrupt every time it fired, I would not
 be able to read correctly. So, I decided to switch to DMA. The problem with this is
 all the documents I used including OSdevwiki(which has a separate wiki for atapi), an
 operating systems textbook with a chapter on atapi, and osdevwiki forum posts were
 mostly related to pio and a whole separate batch of research was needed this was a
 couple days before presentations were due so I rushed to fix up my driver and present
-an accurate look of that new design. SadlyI did not get a full DMA read working. 
+an accurate look of that new design. Sadly did not get a full DMA read working as I ran into issues with
+how DMA changes the data bits exactly and could not find the docs to fix, but I was able to go
+back and create a working janky PIO read. 
 I scaled back the syscalls and they are commented out from the actual run processes 
 as they were causing delays in other parts of the demo run syscalls all though 
 they are implemented.I added back in a pio implementation to show a read from 
-that point as well although that fails somehwat as well. In the end I implemented most of the
-driver calls in the interactive mode to show interactions with the atapi driver. It is far from
-a complete driver ,but I believe it shows a start and includes where it fails. I wish I figured
-out the issues I ran into earlier.
+that point for some reason read is not throwing interrupts past the initial one 
+despite being acknowledged by the PIC. In the end I implemented most of the driver
+calls in the interactive mode to show interactions with the atapi driver.
+It is far from a complete driver ,but I believe it shows a start and includes 
+where it fails. I then fixed up read capacity to calculate
+the last LBA on the disk, capacity of the disk, and block size of the disk. 
+In addition these changes will assure the user they have a disk inserted and ready to read. 
+The porblem I ran into with this is the read functionality seems to stop the data register 
+from updating no matter what scsi command I send which is an issue.  I wish I figured
+out the issues I ran into earlier. 
 
 
 Bring on the Merge Conflicts
